@@ -24,6 +24,7 @@ declare -g MC_VERSION="33.0.61" # Do find all replace
 declare -g BOARD_URL="https://yabb.jriver.com/interact/index.php/board,86.0.html" # MC33
 declare -gi UPDATE_SWITCH=1 # set to 0 to disable automatic self-update
 declare -g SCRIPT_URL="https://git.bryanroessler.com/bryan/installJRMC/raw/master/installJRMC"
+# declare -g SCRIPT_URL="https://raw.githubusercontent.com/cryobry/installJRMC/refs/heads/master/installJRMC"
 declare -gi DEBUG=${DEBUG:-0} # det default debug and allow DEBUG env override (default: disabled)
 
 # @description Print help text
