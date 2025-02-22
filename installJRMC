@@ -1587,33 +1587,28 @@ update() {
   # Check if we're in a git directory and if it's the installJRMC repository
   if git -C "$SCRIPT_DIR" rev-parse --is-inside-work-tree &>/dev/null \
   && [[ "$(git -C "$SCRIPT_DIR" config --get remote.origin.url)" == *"installJRMC"* ]]; then
-    debug "installJRMC git repository detected. Running git pull"
 
     # Get the current commit hash
     local before_pull_hash after_pull_hash
     before_pull_hash=$(git -C "$SCRIPT_DIR" rev-parse HEAD)
 
-    # Stash any local changes
+    # Stash local changes before pull
     execute git -C "$SCRIPT_DIR" stash --quiet
+    
+    # Pull latest changes
+    debug "Running git pull in $SCRIPT_DIR"
+    if ! git -C "$SCRIPT_DIR" pull | grep -q "Already up to date"; then
+      # Get the new commit hash after pull
+      after_pull_hash=$(git -C "$SCRIPT_DIR" rev-parse HEAD)
 
-    # Pull the latest changes
-    debug "Executing git pull in $SCRIPT_DIR"
-    if git -C "$SCRIPT_DIR" pull | grep -q "Already up to date"; then
-      debug "No updates found in git repository."
-      return 0
+      # If the commit hash has changed, an update occurred
+      if [[ "$before_pull_hash" != "$after_pull_hash" ]]; then
+        echo "Detected installJRMC update, restarting"
+        execute git -C "$SCRIPT_DIR" stash pop
+        exec "$SCRIPT_PATH" "$@" "--no-update"
+      fi
     fi
-
-    # Get the new commit hash after pull
-    after_pull_hash=$(git -C "$SCRIPT_DIR" rev-parse HEAD)
-
-    # If the commit hash has changed, an update occurred
-    if [[ "$before_pull_hash" != "$after_pull_hash" ]]; then
-      echo "Detected installJRMC update, restarting"
-      exec "$SCRIPT_PATH" "$@" "--no-update"
-    else
-      debug "Git pull did not change the commit hash. No update applied."
-      return 0
-    fi
+    execute git -C "$SCRIPT_DIR" stash pop
   else
     debug "Not in a git repository or not the installJRMC repository. Checking for updates via download."
 
