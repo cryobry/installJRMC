@@ -339,30 +339,30 @@ init() {
     fedora|centos)
       local rpm_mgr
       rpm_mgr=$(command -v dnf &>/dev/null && echo "dnf" || echo "yum")
-      PKG_INSTALL=(execute sudo "$rpm_mgr" install -y)
-      PKG_REMOVE=(execute sudo "$rpm_mgr" remove -y)
-      PKG_UPDATE=(execute sudo "$rpm_mgr" makecache)
+      PKG_INSTALL=(sudo "$rpm_mgr" install -y)
+      PKG_REMOVE=(sudo "$rpm_mgr" remove -y)
+      PKG_UPDATE=(sudo "$rpm_mgr" makecache)
       PKG_QUERY=(rpm -q)
       PKG_INSTALL_LOCAL() { install_mc_rhel; }
       ;;
     debian|ubuntu)
-      PKG_INSTALL=(execute sudo apt-get -f install -y -q0)
-      PKG_REMOVE=(execute sudo apt-get remove --auto-remove -y -q0)
-      PKG_UPDATE=(execute sudo apt-get update -y -q0)
+      PKG_INSTALL=(sudo apt-get -f install -y -q0)
+      PKG_REMOVE=(sudo apt-get remove --auto-remove -y -q0)
+      PKG_UPDATE=(sudo apt-get update -y -q0)
       PKG_QUERY=(dpkg -s)
       PKG_INSTALL_LOCAL() { install_mc_deb "$@"; }
       ;;
     suse)
-      PKG_INSTALL=(execute sudo zypper --gpg-auto-import-keys --non-interactive --quiet install --force --no-confirm)
-      PKG_REMOVE=(execute sudo zypper --non-interactive --quiet remove --clean-deps)
-      PKG_UPDATE=(execute sudo zypper --non-interactive --quiet refresh jriver)
+      PKG_INSTALL=(sudo zypper --gpg-auto-import-keys --non-interactive --quiet install --force --no-confirm)
+      PKG_REMOVE=(sudo zypper --non-interactive --quiet remove --clean-deps)
+      PKG_UPDATE=(sudo zypper --non-interactive --quiet refresh jriver)
       PKG_QUERY=(rpm -q)
       PKG_INSTALL_LOCAL() { install_mc_suse; }
       ;;
     arch)
-      PKG_INSTALL=(execute sudo pacman -Sy --noconfirm)
-      PKG_REMOVE=(execute sudo pacman -Rs --noconfirm)
-      PKG_UPDATE=(execute sudo pacman -Syy)
+      PKG_INSTALL=(sudo pacman -Sy --noconfirm)
+      PKG_REMOVE=(sudo pacman -Rs --noconfirm)
+      PKG_UPDATE=(sudo pacman -Syy)
       PKG_QUERY=(sudo pacman -Qs)
       PKG_INSTALL_LOCAL() { install_mc_arch; }
       ;;
