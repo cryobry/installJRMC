@@ -18,7 +18,7 @@
 # * Be careful with tabs in heredocs
 shopt -s extglob
 
-declare -g SCRIPT_VERSION="1.4.7"
+declare -g SCRIPT_VERSION="1.4.8-dev"
 declare -g MC_REPO="bullseye" # should match the MC_VERSION
 declare -g MC_VERSION="33.0.61" # Do find all replace
 declare -g BOARD_URL="https://yabb.jriver.com/interact/index.php/board,86.0.html" # MC33
@@ -241,7 +241,7 @@ init() {
   fi
 
   # Parse input commands with getopt
-  if [[ $# -eq 0 || ! "$*" =~ (--install|--service|--container|--createrepo) ]]; then
+  if [[ $# -eq 0 || ! "$*" =~ (--install|--service|--container|--createrepo|--uninstall) ]]; then
     debug "Automatically using --install=repo"
     declare -gi REPO_INSTALL_SWITCH=1
   else
