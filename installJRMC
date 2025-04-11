@@ -710,17 +710,18 @@ acquire_deb() {
   fi
 
   # Loop through the repositories and attempt to download
+  local found=0
   for repo in "${repos[@]}"; do
     echo "Checking $repo for DEB package"
     if download "$repo" "$MC_DEB"; then
       echo "Found"
+      found=1
       break
     fi
-    err "DEB file not found/downloaded"
-    return 1
   done
 
-  [[ -f $MC_DEB ]]
+  # Return if the download was successful
+  ((found)) && [[ -f $MC_DEB ]]
 }
 
 # @description Creates a SPEC file and builds the RPM from the source DEB using rpmbuild
