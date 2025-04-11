@@ -838,7 +838,7 @@ build_rpm() {
   # Create spec file
   cat <<-EOF > "$OUTPUT_DIR/SPECS/mediacenter.spec"
 		Name:  mediacenter$MC_MVERSION
-		Version: $MC_VERSION
+		Version: ${MC_VERSION%%-*}
 		Release: 1
 		Summary: JRiver Media Center
 		Group:   Applications/Media
