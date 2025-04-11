@@ -20,7 +20,7 @@ shopt -s extglob
 
 declare -g SCRIPT_VERSION="1.4.9-dev"
 declare -g MC_REPO="bullseye" # should match the MC_VERSION
-declare -g MC_VERSION="33.0.71" # Do find all replace
+declare -g MC_VERSION="33.0.72" # Do find all replace
 declare -g BOARD_URL="https://yabb.jriver.com/interact/index.php/board,86.0.html" # MC33
 declare -gi UPDATE_SWITCH=1 # set to 0 to disable automatic self-update
 declare -g SCRIPT_URL="https://git.bryanroessler.com/bryan/installJRMC/raw/master/installJRMC"
