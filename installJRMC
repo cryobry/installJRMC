@@ -898,6 +898,7 @@ build_rpm() {
       -bb
       "$OUTPUT_DIR/SPECS/mediacenter.spec"
   )
+  declare -p
   if execute "${rpmbuild_cmd[@]}" && [[ -f $MC_RPM ]] ; then
     echo "Build successful. The RPM file is located at: $MC_RPM"
   else
