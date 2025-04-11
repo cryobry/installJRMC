@@ -148,9 +148,9 @@ parse_input() {
         --outputdir) shift; OUTPUT_DIR="$1" ;;
         --mcversion)
           shift
-          if [[ $1 =~ ([0-9]+.[0-9]+.[0-9]+) ]]; then
+          if [[ $1 =~ [0-9]+\.[0-9]+\.[0-9]+|[0-9]+\.[0-9]+\.[0-9]+-[0-9]+ ]]; then
             USER_MC_VERSION="$1"
-          elif [[ $1 =~ ([0-9][0-9]) ]]; then
+          elif [[ $1 =~ [0-9][0-9] ]]; then
             case $1 in
               33) ;; # use update check to determine latest version
               32) USER_MC_VERSION="32.0.58" ;;
@@ -422,12 +422,12 @@ get_latest_mc_version() {
   && buildah run "$cnt" -- sh -c \
     "apt update --allow-insecure-repositories &>/dev/null" &>/dev/null \
   && MC_VERSION=$(buildah run "$cnt" -- apt-cache policy mediacenter?? | grep Candidate | awk '{print $2}' | sort -V | tail -n1) &>/dev/null \
-  && [[ $MC_VERSION =~ ([0-9]+.[0-9]+.[0-9]+) ]]; then
+  && [[ $MC_VERSION =~ [0-9]+\.[0-9]+\.[0-9]+ ]]; then
     mc_version_source="containerized package manager"
     execute buildah rm "$cnt"
   # Fallback to webscrape
   elif MC_VERSION=$(download "$BOARD_URL" | grep -o "[0-9][0-9]\.[0-9]\.[0-9]\+" | head -n 1) \
-  && [[ $MC_VERSION =~ ([0-9]+.[0-9]+.[0-9]+) ]]; then
+  && [[ $MC_VERSION =~ [0-9]+\.[0-9]+\.[0-9]+ ]]; then
     mc_version_source="webscrape"
   # Fallback to hardcoded value
   else
@@ -835,11 +835,17 @@ build_rpm() {
     stub="%{_bindir}/mc$MC_MVERSION"
   fi
 
+  # Get release version or set to 1
+  local release=1
+  if [[ $MC_VERSION =~ [0-9]+\.[0-9]+\.[0-9]+-[0-9]+ ]]; then
+    release="${MC_VERSION##*-}"
+  fi
+
   # Create spec file
   cat <<-EOF > "$OUTPUT_DIR/SPECS/mediacenter.spec"
 		Name:  mediacenter$MC_MVERSION
 		Version: ${MC_VERSION%%-*}
-		Release: 1
+		Release: $release
 		Summary: JRiver Media Center
 		Group:   Applications/Media
 		Source0: http://files.jriver-cdn.com/mediacenter/channels/v$MC_MVERSION/latest/MediaCenter-$MC_VERSION-$ARCH.deb
@@ -1693,7 +1699,7 @@ main() {
     [[ -d $OUTPUT_DIR/SOURCES ]] || execute mkdir -p "$OUTPUT_DIR/SOURCES"
     acquire_deb || { err "Could not download Media Center DEB package"; return 1; }
 
-    if [[ $BUILD_TARGET =~ (centos|fedora|suse) || $CREATEREPO_TARGET =~ (centos|fedora|suse) ]]; then
+    if [[ $BUILD_TARGET =~ centos|fedora|suse || $CREATEREPO_TARGET =~ centos|fedora|suse ]]; then
       install_package dpkg rpm-build
       [[ -d $OUTPUT_DIR/SPECS ]] || execute mkdir -p "$OUTPUT_DIR/SPECS"
       build_rpm
