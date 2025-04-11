@@ -18,7 +18,7 @@
 # * Be careful with tabs in heredocs
 shopt -s extglob
 
-declare -g SCRIPT_VERSION="1.4.8"
+declare -g SCRIPT_VERSION="1.4.9-dev"
 declare -g MC_REPO="bullseye" # should match the MC_VERSION
 declare -g MC_VERSION="33.0.71" # Do find all replace
 declare -g BOARD_URL="https://yabb.jriver.com/interact/index.php/board,86.0.html" # MC33
@@ -550,7 +550,7 @@ install_external_repos() {
       if ! "${PKG_QUERY[@]}" rpmfusion-free-release &>/dev/null; then
         echo "Installing the RPMFusion repository"
         install_package --no-install-check \
-          "https://download1.rpmfusion.org/free/el/rpmfusion-free-release-$VERSION_ID.noarch.rpm"
+          "https://download1.rpmfusion.org/free/el/rpmfusion-free-release-${VERSION_ID%%.*}.noarch.rpm"
       fi
       # Install mesa-va-drivers-freeworld separately from the RPM using dnf swap
       install_mesa_freeworld
