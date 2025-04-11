@@ -120,7 +120,7 @@ parse_input() {
   declare -gi BUILD_SWITCH REPO_INSTALL_SWITCH LOCAL_INSTALL_SWITCH \
     CONTAINER_INSTALL_SWITCH CREATEREPO_SWITCH \
     COMPAT_SWITCH UNINSTALL_SWITCH YES_SWITCH DEBUG=0
-  declare -g USER_MC_VERSION USER_MC_REPO MJR_FILE \
+  declare -g USER_MC_VERSION USER_MC_RELEASE USER_MC_REPO MJR_FILE \
     BETAPASS SERVICE_TYPE VNCPASS USER_DISPLAY BUILD_TARGET CREATEREPO_TARGET
   local long_opts short_opts input
   long_opts="install:,build::,outputdir:,mcversion:,arch:,mcrepo:,compat,"
@@ -148,7 +148,10 @@ parse_input() {
         --outputdir) shift; OUTPUT_DIR="$1" ;;
         --mcversion)
           shift
-          if [[ $1 =~ [0-9]+\.[0-9]+\.[0-9]+|[0-9]+\.[0-9]+\.[0-9]+-[0-9]+ ]]; then
+          if [[ $1 =~ [0-9]+\.[0-9]+\.[0-9]+-[0-9]+ ]]; then
+            USER_MC_VERSION="${1%-*}"
+            USER_MC_RELEASE="${1#*-}"
+          elif [[ $1 =~ [0-9]+\.[0-9]+\.[0-9]+ ]]; then
             USER_MC_VERSION="$1"
           elif [[ $1 =~ [0-9][0-9] ]]; then
             case $1 in
@@ -391,7 +394,8 @@ init() {
   MC_VERSION="${USER_MC_VERSION:-$MC_VERSION}"
   MC_MVERSION="${MC_VERSION%%.*}"
   MC_PKG="mediacenter$MC_MVERSION"
-  MC_RPM="$OUTPUT_DIR/RPMS/x86_64/mediacenter$MC_MVERSION-$MC_VERSION.x86_64.rpm"
+  # The release number isn't used in the rpmbuild spec file
+  MC_RPM="$OUTPUT_DIR/RPMS/x86_64/mediacenter$MC_MVERSION-${MC_VERSION%-}.x86_64.rpm"
   MC_ROOT="/usr/lib/jriver/Media Center $MC_MVERSION"
 
   if [[ -n $USER_MC_VERSION ]]; then
@@ -835,17 +839,11 @@ build_rpm() {
     stub="%{_bindir}/mc$MC_MVERSION"
   fi
 
-  # Get release version or set to 1
-  local release=1
-  if [[ $MC_VERSION =~ [0-9]+\.[0-9]+\.[0-9]+-[0-9]+ ]]; then
-    release="${MC_VERSION##*-}"
-  fi
-
   # Create spec file
   cat <<-EOF > "$OUTPUT_DIR/SPECS/mediacenter.spec"
 		Name:  mediacenter$MC_MVERSION
 		Version: ${MC_VERSION%%-*}
-		Release: $release
+		Release: ${USER_MC_RELEASE:-1}
 		Summary: JRiver Media Center
 		Group:   Applications/Media
 		Source0: http://files.jriver-cdn.com/mediacenter/channels/v$MC_MVERSION/latest/MediaCenter-$MC_VERSION-$ARCH.deb
@@ -899,7 +897,7 @@ build_rpm() {
       "$OUTPUT_DIR/SPECS/mediacenter.spec"
   )
   declare -p
-  if execute "${rpmbuild_cmd[@]}" && [[ -f $MC_RPM ]] ; then
+  if execute "${rpmbuild_cmd[@]}" && [[ -f ${MC_RPM} ]] ; then
     echo "Build successful. The RPM file is located at: $MC_RPM"
   else
     err "Build failed"
