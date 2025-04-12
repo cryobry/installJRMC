@@ -360,7 +360,7 @@ init() {
       PKG_INSTALL_LOCAL() { install_mc_deb "$@"; }
       ;;
     suse)
-      PKG_INSTALL=(sudo zypper --gpg-auto-import-keys --non-interactive --quiet install --force --no-confirm)
+      PKG_INSTALL=(sudo zypper --gpg-auto-import-keys --non-interactive --quiet install --force-resolution --no-confirm)
       PKG_REMOVE=(sudo zypper --non-interactive --quiet remove --clean-deps)
       PKG_UPDATE=(sudo zypper --non-interactive --quiet refresh jriver)
       PKG_QUERY=(rpm -q)
