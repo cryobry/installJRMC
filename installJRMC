@@ -1021,7 +1021,7 @@ install_mc_arch() {
 		arch=('x86_64')
 		url="http://www.jriver.com/"
 		license=('custom')
-		depends=('alsa-lib' 'ca-certificates' 'gtk3' 'gcc-libs' 'libx11' 'libxext' 'libxcb' 'libxau' 'libxdmcp' 'util-linux' 'libxext' 'gtk3' 'mesa-libgl' 'webkit2gtk')
+		depends=('alsa-lib' 'ca-certificates' 'gtk3' 'gcc-libs' 'libx11' 'libxext' 'libxcb' 'libxau' 'libxdmcp' 'util-linux' 'mesa-libgl' 'webkit2gtk')
 		optdepends=(
 			'mesa-libgl: nouveau video support' 
 			'nvidia-libgl: nvidia video support' 
