@@ -695,7 +695,16 @@ install_mc_repo() {
 # @description Acquires the source DEB package from JRiver
 acquire_deb() {
   debug "Running: ${FUNCNAME[0]}"
-  local fname="MediaCenter-$MC_VERSION-$ARCH.deb"
+  local fname
+
+  # Usually JRiver exlcudes the release number from the filename
+  # but in some cases (test builds) it may be included
+  if [[ $MC_RELEASE -gt 1 ]]; then
+    fname="MediaCenter-$MC_VERSION-$MC_RELEASE-$ARCH.deb"
+  else
+    fname="MediaCenter-$MC_VERSION-$ARCH.deb"
+  fi
+
   declare -g MC_DEB="$OUTPUT_DIR/SOURCES/$fname"
 
   # If deb file already exists, skip download
