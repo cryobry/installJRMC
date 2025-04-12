@@ -1787,38 +1787,24 @@ execute() {
 download() {
   local url="$1"
   local output="${2:-}"
-  local -a download_cmd
+  local -a cmd
 
-  if command -v curl &>/dev/null; then
+  if command -v curl &>/dev/null || install_package --silent curl; then
+    cmd=(curl --silent --fail --location)
     if [[ -n "$output" ]]; then
-      download_cmd=(curl --silent --location --output "$output" "$url")
+      cmd+=(--output "$output")
     else
-      download_cmd=(curl --silent --location -O "$url")
+      cmd+=(-O)
     fi
-  elif command -v wget &>/dev/null; then
-    if [[ -n "$output" ]]; then
-      download_cmd=(wget --quiet "--output-document=$output" "$url")
-    else
-      download_cmd=(wget --quiet "$url")
-    fi
-  elif install_package --silent curl; then
-    if [[ -n "$output" ]]; then
-      download_cmd=(curl --silent --location --output "$output" "$url")
-    else
-      download_cmd=(curl --silent --location -O "$url")
-    fi
-  elif install_package --silent wget; then
-    if [[ -n "$output" ]]; then
-      download_cmd=(wget --quiet "--output-document=$output" "$url")
-    else
-      download_cmd=(wget --quiet "$url")
-    fi
+  elif command -v wget &>/dev/null || install_package --silent wget; then
+    cmd=(wget --quiet)
+    [[ -n "$output" ]] && cmd+=("--output-document=$output")
   else
     err "Unable to install wget or curl"
     return 1
   fi
 
-  "${download_cmd[@]}"
+  "${cmd[@]}" "$url"
 }
 
 # Roughly turn debugging on for pre-init
