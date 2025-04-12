@@ -796,7 +796,8 @@ build_rpm() {
       requires=("${requires[@]/libvulkan1/vulkan-loader}")
       requires=("${requires[@]/libepoxy0/libepoxy}")
       requires=("${requires[@]/python/python3}")
-      requires=("${requires[@]/libwebkit2gtk*/webkit2gtk4.0}")
+      requires=("${requires[@]/libwebkit2gtk-4.0*/webkit2gtk4.0}")
+      requires=("${requires[@]/libwebkit2gtk-4.1*/webkit2gtk4.1}")
       recommends+=(mesa-va-drivers-freeworld)
       ;;
     suse)
