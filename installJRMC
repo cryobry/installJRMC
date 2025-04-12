@@ -552,7 +552,11 @@ install_external_repos() {
     centos)
       if ! command -v dpkg &>/dev/null; then
         echo "Adding EPEL repository"
-        install_package epel-release
+        if ! install_package epel-release; then
+          # If epel-release is not available, install it manually
+          install_package --no-install-check \
+            "https://dl.fedoraproject.org/pub/epel/epel-release-latest-${VERSION_ID%%.*}.noarch.rpm"
+        fi
       fi
       if ! "${PKG_QUERY[@]}" rpmfusion-free-release &>/dev/null; then
         echo "Installing the RPMFusion repository"
