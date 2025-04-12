@@ -18,7 +18,7 @@
 # * Be careful with tabs in heredocs
 shopt -s extglob
 
-declare -g SCRIPT_VERSION="1.4.9-dev"
+declare -g SCRIPT_VERSION="1.5.0-dev"
 declare -g MC_REPO="bullseye" # should match the MC_VERSION
 # declare -g MC_REPO="bookworm" # should match the MC_VERSION
 declare -g MC_VERSION="33.0.72" # do find all replace
@@ -148,12 +148,12 @@ parse_input() {
         --outputdir) shift; OUTPUT_DIR="$1" ;;
         --mcversion)
           shift
-          if [[ $1 =~ [0-9]+\.[0-9]+\.[0-9]+-[0-9]+ ]]; then
+          if [[ $1 =~ ^[0-9]+\.[0-9]+\.[0-9]+-[0-9]+$ ]]; then
             USER_MC_VERSION="${1%-*}"
             USER_MC_RELEASE="${1#*-}"
-          elif [[ $1 =~ [0-9]+\.[0-9]+\.[0-9]+ ]]; then
+          elif [[ $1 =~ ^[0-9]+\.[0-9]+\.[0-9]+$ ]]; then
             USER_MC_VERSION="$1"
-          elif [[ $1 =~ [0-9][0-9] ]]; then
+          elif [[ $1 =~ ^[0-9][0-9]$ ]]; then
             case $1 in
               33) ;; # use update check to determine latest version
               32) USER_MC_VERSION="32.0.58" ;;
@@ -426,12 +426,12 @@ get_latest_mc_version() {
   && buildah run "$cnt" -- sh -c \
     "apt update --allow-insecure-repositories &>/dev/null" &>/dev/null \
   && MC_VERSION=$(buildah run "$cnt" -- apt-cache policy mediacenter?? | grep Candidate | awk '{print $2}' | sort -V | tail -n1) &>/dev/null \
-  && [[ $MC_VERSION =~ [0-9]+\.[0-9]+\.[0-9]+ ]]; then
+  && [[ $MC_VERSION =~ ^[0-9]+\.[0-9]+\.[0-9]+ ]]; then
     mc_version_source="containerized package manager"
     execute buildah rm "$cnt"
   # Fallback to webscrape
   elif MC_VERSION=$(download "$BOARD_URL" | grep -o "[0-9][0-9]\.[0-9]\.[0-9]\+" | head -n 1) \
-  && [[ $MC_VERSION =~ [0-9]+\.[0-9]+\.[0-9]+ ]]; then
+  && [[ $MC_VERSION =~ ^[0-9]+\.[0-9]+\.[0-9]+ ]]; then
     mc_version_source="webscrape"
   # Fallback to hardcoded value
   else
