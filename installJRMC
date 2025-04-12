@@ -360,7 +360,7 @@ init() {
       PKG_INSTALL_LOCAL() { install_mc_deb "$@"; }
       ;;
     suse)
-      PKG_INSTALL=(sudo zypper --gpg-auto-import-keys --non-interactive --quiet install --force --force-resolution --no-confirm)
+      PKG_INSTALL=(sudo zypper --gpg-auto-import-keys --non-interactive --quiet install --force --force-resolution --replacefiles --no-confirm)
       PKG_REMOVE=(sudo zypper --non-interactive --quiet remove --clean-deps)
       PKG_UPDATE=(sudo zypper --non-interactive --quiet refresh jriver)
       PKG_QUERY=(rpm -q)
@@ -1021,7 +1021,7 @@ install_mc_arch() {
 		arch=('x86_64')
 		url="http://www.jriver.com/"
 		license=('custom')
-		depends=('alsa-lib' 'gcc-libs' 'libx11' 'libxext' 'libxcb' 'libxau' 'libxdmcp' 'util-linux' 'libxext' 'gtk3')
+		depends=('alsa-lib' 'ca-certificates' 'gtk3' 'gcc-libs' 'libx11' 'libxext' 'libxcb' 'libxau' 'libxdmcp' 'util-linux' 'libxext' 'gtk3' 'mesa-libgl' 'webkit2gtk')
 		optdepends=(
 			'mesa-libgl: nouveau video support' 
 			'nvidia-libgl: nvidia video support' 
