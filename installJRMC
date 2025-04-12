@@ -403,7 +403,7 @@ init() {
     # Append explicit package version when user provides --mcversion
     case $ID in
       fedora|centos|suse) MC_PKG+="-$MC_VERSION" ;;
-      debian|ubuntu) MC_PKG+="=$MC_VERSION-$MC_RELEASE" ;;
+      debian|ubuntu) MC_PKG+="=$MC_VERSION" ;;
     esac
   fi
 
