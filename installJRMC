@@ -395,8 +395,7 @@ init() {
   MC_RELEASE="${USER_MC_RELEASE:-1}"
   MC_MVERSION="${MC_VERSION%%.*}"
   MC_PKG="mediacenter$MC_MVERSION"
-  # The release number isn't used in the rpmbuild spec file
-  MC_RPM="$OUTPUT_DIR/RPMS/x86_64/mediacenter$MC_MVERSION-${MC_VERSION%-}.x86_64.rpm"
+  MC_RPM="$OUTPUT_DIR/RPMS/x86_64/mediacenter$MC_MVERSION-$MC_VERSION-$MC_RELEASE.x86_64.rpm"
   MC_ROOT="/usr/lib/jriver/Media Center $MC_MVERSION"
 
   if [[ -n $USER_MC_VERSION ]]; then
@@ -695,6 +694,7 @@ install_mc_repo() {
 # @description Acquires the source DEB package from JRiver
 acquire_deb() {
   debug "Running: ${FUNCNAME[0]}"
+  declare -g MC_SOURCE
   local fname
 
   # Usually JRiver exlcudes the release number from the filename
@@ -734,6 +734,7 @@ acquire_deb() {
     if download "$repo" "$MC_DEB"; then
       echo "Found"
       found=1
+      MC_SOURCE="$repo"
       break
     fi
   done
@@ -826,7 +827,7 @@ build_rpm() {
       requires=("${requires[@]/libfribidi0/fribidi}")
       requires=("${requires[@]/libfontconfig1/fontconfig}")
       requires=("${requires[@]/libharfbuzz0b/libharfbuzz0}")
-      requires=("${requires[@]/libwebkit2gtk*/libwebkit2gtk-4_0-37}")
+      requires=("${requires[@]/libwebkit2gtk-4.0*/libwebkit2gtk-4_0-37}")
       for i in "${!requires[@]}"; do
         [[ ${requires[$i]} == "mesa-vulkan-drivers" ]] && unset -v 'requires[i]'
       done
@@ -857,13 +858,13 @@ build_rpm() {
   # Create spec file
   cat <<-EOF > "$OUTPUT_DIR/SPECS/mediacenter.spec"
 		Name:  mediacenter$MC_MVERSION
-		Version: ${MC_VERSION%%-*}
+		Version: $MC_VERSION
 		Release: $MC_RELEASE
 		Summary: JRiver Media Center
 		Group:   Applications/Media
-		Source0: http://files.jriver-cdn.com/mediacenter/channels/v$MC_MVERSION/latest/MediaCenter-$MC_VERSION-$ARCH.deb
+		Source0: $MC_SOURCE
 		BuildArch: x86_64
-		%define _rpmfilename %%{ARCH}/%%{NAME}-%%{version}.%%{ARCH}.rpm
+		%define _rpmfilename %%{ARCH}/%%{NAME}-%%{version}-%%{release}.%%{ARCH}.rpm
 
 		AutoReq:  0
 
@@ -911,7 +912,7 @@ build_rpm() {
       -bb
       "$OUTPUT_DIR/SPECS/mediacenter.spec"
   )
-  if execute "${rpmbuild_cmd[@]}" && [[ -f ${MC_RPM} ]] ; then
+  if execute "${rpmbuild_cmd[@]}" && [[ -f $MC_RPM ]] ; then
     echo "Build successful. The RPM file is located at: $MC_RPM"
   else
     err "Build failed"
