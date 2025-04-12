@@ -829,6 +829,7 @@ build_rpm() {
       requires=("${requires[@]/libfontconfig1/fontconfig}")
       requires=("${requires[@]/libharfbuzz0b/libharfbuzz0}")
       requires=("${requires[@]/libwebkit2gtk-4.0*/libwebkit2gtk-4_0-37}")
+      requires=("${requires[@]/libwebkit2gtk-4.1*/libwebkit2gtk-4_1-0}")
       for i in "${!requires[@]}"; do
         [[ ${requires[$i]} == "mesa-vulkan-drivers" ]] && unset -v 'requires[i]'
       done
