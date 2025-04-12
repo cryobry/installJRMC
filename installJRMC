@@ -1789,33 +1789,36 @@ download() {
   local output="${2:-}"
   local -a download_cmd
 
-  if command -v wget &>/dev/null; then
-    download_cmd=(wget --quiet)
-  elif command -v curl &>/dev/null; then
-    download_cmd=(curl --silent --location)
-  else
-    if install_package --silent wget; then
-      download_cmd=(wget --quiet)
-    elif install_package --silent curl; then
-      download_cmd=(curl --silent --location)
-    else
-      err "Unable to install wget or curl"
-      return 1
-    fi
-  fi
-
-  if [[ ${download_cmd[0]} == "wget" ]]; then
-    "${download_cmd[@]}" --output-document="${output:--}" "$url"
-  elif [[ ${download_cmd[0]} == "curl" ]]; then
+  if command -v curl &>/dev/null; then
     if [[ -n "$output" ]]; then
-      "${download_cmd[@]}" --output "$output" "$url"
+      download_cmd=(curl --silent --location --output "$output" "$url")
     else
-      "${download_cmd[@]}" "$url"
+      download_cmd=(curl --silent --location -O "$url")
+    fi
+  elif command -v wget &>/dev/null; then
+    if [[ -n "$output" ]]; then
+      download_cmd=(wget --quiet "--output-document=$output" "$url")
+    else
+      download_cmd=(wget --quiet "$url")
+    fi
+  elif install_package --silent curl; then
+    if [[ -n "$output" ]]; then
+      download_cmd=(curl --silent --location --output "$output" "$url")
+    else
+      download_cmd=(curl --silent --location -O "$url")
+    fi
+  elif install_package --silent wget; then
+    if [[ -n "$output" ]]; then
+      download_cmd=(wget --quiet "--output-document=$output" "$url")
+    else
+      download_cmd=(wget --quiet "$url")
     fi
   else
-    err "Unsupported download command: ${download_cmd[*]}"
+    err "Unable to install wget or curl"
     return 1
   fi
+
+  "${download_cmd[@]}"
 }
 
 # Roughly turn debugging on for pre-init
