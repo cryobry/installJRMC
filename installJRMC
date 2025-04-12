@@ -811,6 +811,7 @@ build_rpm() {
       recommends+=(mesa-va-drivers-freeworld)
       ;;
     suse)
+      requires=("${requires[@]/python/python3}")
       requires=("${requires[@]/libc6/glibc}")
       requires=("${requires[@]/libasound2/alsa-lib}")
       requires=("${requires[@]/libx11-6/libX11-6}")
