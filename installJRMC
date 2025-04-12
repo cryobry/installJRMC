@@ -237,7 +237,7 @@ init() {
   declare -g CREATEREPO_WEBROOT="/var/www/jriver"
   declare -g CREATEREPO_USER="$USER" # can be root
   declare -g ID VERSION_ID ARCH NAME
-  declare -g MC_MVERSION MC_PKG MC_RPM MC_ROOT
+  declare -g MC_MVERSION MC_RELEASE MC_PKG MC_RPM MC_ROOT
   declare -ga PKG_INSTALL PKG_REMOVE PKG_UPDATE PKG_QUERY
   declare -ga SERVICES CONTAINERS
 
@@ -392,6 +392,7 @@ init() {
   # Set MC version variables
   MC_REPO="${USER_MC_REPO:-$MC_REPO}"
   MC_VERSION="${USER_MC_VERSION:-$MC_VERSION}"
+  MC_RELEASE="${USER_MC_RELEASE:-1}"
   MC_MVERSION="${MC_VERSION%%.*}"
   MC_PKG="mediacenter$MC_MVERSION"
   # The release number isn't used in the rpmbuild spec file
@@ -402,7 +403,7 @@ init() {
     # Append explicit package version when user provides --mcversion
     case $ID in
       fedora|centos|suse) MC_PKG+="-$MC_VERSION" ;;
-      debian|ubuntu) MC_PKG+="=$MC_VERSION" ;;
+      debian|ubuntu) MC_PKG+="=$MC_VERSION-$MC_RELEASE" ;;
     esac
   fi
 
@@ -843,7 +844,7 @@ build_rpm() {
   cat <<-EOF > "$OUTPUT_DIR/SPECS/mediacenter.spec"
 		Name:  mediacenter$MC_MVERSION
 		Version: ${MC_VERSION%%-*}
-		Release: ${USER_MC_RELEASE:-1}
+		Release: $MC_RELEASE
 		Summary: JRiver Media Center
 		Group:   Applications/Media
 		Source0: http://files.jriver-cdn.com/mediacenter/channels/v$MC_MVERSION/latest/MediaCenter-$MC_VERSION-$ARCH.deb
@@ -896,7 +897,6 @@ build_rpm() {
       -bb
       "$OUTPUT_DIR/SPECS/mediacenter.spec"
   )
-  declare -p
   if execute "${rpmbuild_cmd[@]}" && [[ -f ${MC_RPM} ]] ; then
     echo "Build successful. The RPM file is located at: $MC_RPM"
   else
