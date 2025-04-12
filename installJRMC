@@ -1,7 +1,7 @@
 #!/usr/bin/env bash
 # shellcheck disable=SC2317
 # @file installJRMC
-# @brief Install JRiver Media Center and associated services
+# @brief Installs JRiver Media Center and associated services
 # @description See installJRMC --help or print_help() below for usage
 # Copyright (c) 2021-2025 Bryan C. Roessler
 # This software is released under the Apache License.
@@ -18,7 +18,7 @@
 # * Be careful with tabs in heredocs
 shopt -s extglob
 
-declare -g SCRIPT_VERSION="1.5.0"
+declare -g SCRIPT_VERSION="1.5.1-dev"
 declare -g MC_REPO="bullseye" # should match the MC_VERSION
 # declare -g MC_REPO="bookworm" # should match the MC_VERSION
 declare -g MC_VERSION="33.0.72" # do find all replace
@@ -350,7 +350,7 @@ init() {
       PKG_REMOVE=(sudo "$rpm_mgr" remove -y)
       PKG_UPDATE=(sudo "$rpm_mgr" makecache)
       PKG_QUERY=(rpm -q)
-      PKG_INSTALL_LOCAL() { install_mc_rhel; }
+      PKG_INSTALL_LOCAL() { install_mc_rpm; }
       ;;
     debian|ubuntu)
       PKG_INSTALL=(sudo apt-get -f install -y -q0)
@@ -364,7 +364,7 @@ init() {
       PKG_REMOVE=(sudo zypper --non-interactive --quiet remove --clean-deps)
       PKG_UPDATE=(sudo zypper --non-interactive --quiet refresh jriver)
       PKG_QUERY=(rpm -q)
-      PKG_INSTALL_LOCAL() { install_mc_suse; }
+      PKG_INSTALL_LOCAL() { install_mc_rpm; }
       ;;
     arch)
       PKG_INSTALL=(sudo pacman -Sy --noconfirm)
@@ -969,14 +969,8 @@ install_mc_deb() {
   fi
 }
 
-# @description Installs Media Center RPM package on RHEL distros
-install_mc_rhel() {
-  debug "Running: ${FUNCNAME[0]}"
-  install_package --no-install-check --no-gpg-check --allow-downgrades "$MC_RPM"
-}
-
-# @description Installs Media Center RPM package on SUSE
-install_mc_suse() {
+# @description Installs Media Center RPM package
+install_mc_rpm() {
   debug "Running: ${FUNCNAME[0]}"
   install_package --no-install-check --no-gpg-check --allow-downgrades "$MC_RPM"
 }
