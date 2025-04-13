@@ -430,7 +430,7 @@ get_latest_mc_version() {
     mc_version_source="containerized package manager"
     execute buildah rm "$cnt"
   # Fallback to webscrape
-  elif MC_VERSION=$(download "$BOARD_URL" | grep -o "[0-9][0-9]\.[0-9]\.[0-9]\+" | head -n 1) \
+  elif MC_VERSION=$(download_stdout "$BOARD_URL" | grep -o "[0-9][0-9]\.[0-9]\.[0-9]\+" | head -n 1) \
   && [[ $MC_VERSION =~ ^[0-9]+\.[0-9]+\.[0-9]+ ]]; then
     mc_version_source="webscrape"
   # Fallback to hardcoded value
@@ -1801,6 +1801,21 @@ download() {
   fi
 
   "${cmd[@]}" "$url"
+}
+download_stdout() {
+  local url="$1"
+  local -a cmd
+
+  if command -v curl &>/dev/null; then
+    cmd=(curl --silent --fail --location -o - "$url")
+  elif command -v wget &>/dev/null; then
+    cmd=(wget --quiet -O - "$url")
+  else
+    err "Neither curl nor wget is available"
+    return 1
+  fi
+
+  "${cmd[@]}"
 }
 
 # Roughly turn debugging on for pre-init

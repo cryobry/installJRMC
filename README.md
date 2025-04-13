@@ -114,6 +114,10 @@ Multiple services (but not `--service-types`) can be installed at one time using
 
     Install the latest version of MC from the best available repository.
 
+* `installJRMC --mcversion 32 --debug`
+
+    Install the latest version of MC32 from the best available repository with debugging output.
+
 * `installJRMC --install local --compat`
 
     Install a more widely-compatible version of the latest MC (for older distros).
