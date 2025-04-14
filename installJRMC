@@ -1062,6 +1062,7 @@ install_mc_snap() {
 
   execute mkdir -p "$snap_dir" || { err "Could not create snap dir"; return 1; }
 
+  # Create snapcraft.yaml file
   cat <<-EOF > "$snap_yaml"
 	  name: ${MC_PKG}
 	  version: "${MC_VERSION}"
@@ -1122,6 +1123,9 @@ install_mc_snap() {
 	EOF
 
   echo "snapcraft.yaml created at $snap_yaml"
+
+  echo "Linking /snap to /var/lib/snapd/snap for --classic snapcraft"
+  execute sudo ln -s /var/lib/snapd/snap /snap
   echo "Building snap package..."
   if execute snapcraft -v -o "$OUTPUT_DIR/${MC_PKG}_${MC_VERSION}.snap" --destructive-build -d "$snap_dir"; then
     echo "Snap package built successfully: $OUTPUT_DIR/${MC_PKG}_${MC_VERSION}.snap"
