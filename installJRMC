@@ -1900,7 +1900,7 @@ download() {
     return 1
   fi
 
-  "${cmd[@]}" "$url"
+  execute "${cmd[@]}" "$url"
 }
 download_stdout() {
   local url="$1"
