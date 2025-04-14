@@ -18,7 +18,7 @@
 # * Be careful with tabs in heredocs
 shopt -s extglob
 
-declare -g SCRIPT_VERSION="1.5.1"
+declare -g SCRIPT_VERSION="1.5.2-dev"
 declare -g MC_REPO="bullseye" # should match the MC_VERSION
 # declare -g MC_REPO="bookworm" # should match the MC_VERSION
 declare -g MC_VERSION="33.0.72" # do find all replace
@@ -40,7 +40,7 @@ print_help() {
 		  If no options (excluding -d or --debug) are provided installJRMC defaults to '--install repo'.
 
 		OPTIONS
-		  --install, -i repo|local
+		  --install, -i repo|local|snap
 		    repo: Install MC from repository, updates are handled by the system package manager
 		    local: Build and install MC package locally from official source release
 		  --build[=suse|fedora|centos]
@@ -118,7 +118,7 @@ print_help() {
 parse_input() {
   debug "Running: ${FUNCNAME[0]} $*"
   declare -gi BUILD_SWITCH REPO_INSTALL_SWITCH LOCAL_INSTALL_SWITCH \
-    CONTAINER_INSTALL_SWITCH CREATEREPO_SWITCH \
+    CONTAINER_INSTALL_SWITCH CREATEREPO_SWITCH SNAP_INSTALL_SWITCH \
     COMPAT_SWITCH UNINSTALL_SWITCH YES_SWITCH DEBUG=0
   declare -g USER_MC_VERSION USER_MC_RELEASE USER_MC_REPO MJR_FILE \
     BETAPASS SERVICE_TYPE VNCPASS USER_DISPLAY BUILD_TARGET CREATEREPO_TARGET
@@ -141,13 +141,13 @@ parse_input() {
             local|rpm|deb) BUILD_SWITCH=1; LOCAL_INSTALL_SWITCH=1 ;;
             repo|remote) REPO_INSTALL_SWITCH=1 ;;
             container) CONTAINER_INSTALL_SWITCH=1 ;;
+            snap) SNAP_INSTALL_SWITCH=1 ;;
             *) err "Invalid --install option passed"; exit 1 ;;
           esac
           ;;
         --build|-b) BUILD_SWITCH=1; shift; BUILD_TARGET="$1" ;;
         --outputdir) shift; OUTPUT_DIR="$1" ;;
-        --mcversion)
-          shift
+        --mcversion) shift;
           if [[ $1 =~ ^[0-9]+\.[0-9]+\.[0-9]+-[0-9]+$ ]]; then
             USER_MC_VERSION="${1%-*}"
             USER_MC_RELEASE="${1#*-}"
@@ -205,7 +205,7 @@ parse_input() {
 
   # Fallback to default install method in some scenarios
   if ! ((UNINSTALL_SWITCH + BUILD_SWITCH + CREATEREPO_SWITCH + 
-    LOCAL_INSTALL_SWITCH + CONTAINER_INSTALL_SWITCH)) &&
+    LOCAL_INSTALL_SWITCH + CONTAINER_INSTALL_SWITCH + SNAP_INSTALL_SWITCH)) &&
     [[ ${#SERVICES[@]} -eq 0 && ${#CONTAINERS[@]} -eq 0 ]]; then
     debug "Automatically using --install=repo"
     REPO_INSTALL_SWITCH=1
@@ -213,7 +213,7 @@ parse_input() {
 
   # Print some warnings for unsupported argument combinations
   if [[ -n $USER_MC_REPO ]] && ((LOCAL_INSTALL_SWITCH)); then
-    err "--install=local is not compatible with --mcrepo as only the default ($MC_REPO) DEB is available"
+    err "--install=local is incompatible with --mcrepo as only the default ($MC_REPO) DEB is available"
   fi
 
   if [[ -n $BETA_PASS ]] && ((REPO_INSTALL_SWITCH)); then
@@ -924,7 +924,7 @@ build_rpm() {
   fi
 }
 
-# @description Installs Media Center DEB package and optional compatability fixes
+# @description Installs Media Center via DEB package w/ optional compatability fixes
 install_mc_deb() {
   debug "Running: ${FUNCNAME[0]}"  
 
@@ -969,7 +969,7 @@ install_mc_deb() {
   fi
 }
 
-# @description Installs Media Center RPM package
+# @description Installs MC via RPM package
 install_mc_rpm() {
   debug "Running: ${FUNCNAME[0]}"
   install_package --no-install-check --no-gpg-check --allow-downgrades "$MC_RPM"
@@ -1003,7 +1003,7 @@ install_mc_generic() {
   return 0
 }
 
-# @description Installs Media Center Arch PKGBUILD
+# @description Installs MC via PKGBUILD
 install_mc_arch() {
   debug "Running: ${FUNCNAME[0]}"
 
@@ -1050,6 +1050,93 @@ install_mc_arch() {
   fi
 
   popd &>/dev/null || return
+}
+
+# @description Installs MC via snap
+install_mc_snap() {
+  debug "Running: ${FUNCNAME[0]}"
+  local snap_dir="$OUTPUT_DIR/snap"
+  local snap_yaml="$snap_dir/snapcraft.yaml"
+
+  execute mkdir -p "$snap_dir" || { err "Could not create snap dir"; return 1; }
+
+  cat <<-EOF > "$snap_yaml"
+	  name: ${MC_PKG}
+	  version: "${MC_VERSION}"
+	  summary: "JRiver Media Center"
+	  description: |
+	    JRiver Media Center packaged as a snap
+	  base: core22
+	  confinement: strict
+	  grade: stable
+
+	  parts:
+	    mediacenter:
+	      plugin: dump
+	      source: "$MC_DEB"
+	      override-build: |
+	        mkdir -p \$SNAPCRAFT_PART_INSTALL
+	        dpkg-deb -x "$MC_DEB" \$SNAPCRAFT_PART_INSTALL
+	      stage-packages:
+	        - libc6
+	        - libasound2
+	        - libuuid1
+	        - libx11-6
+	        - libxext6
+	        - libxcb1
+	        - libxdmcp6
+	        - libstdc++6
+	        - libgtk-3-0
+	        - libgl1
+	        - libpango-1.0-0
+	        - libpangoft2-1.0-0
+	        - libnss3
+	        - libnspr4
+	        - python3
+	        - xdg-utils
+	        - libgomp1
+	        - libfribidi0
+	        - libfontconfig1
+	        - libfreetype6
+	        - libharfbuzz0b
+	        - libgbm1
+	        - libva2
+	        - libva-drm2
+	        - libvulkan1
+	        - mesa-vulkan-drivers
+	        - libwebkit2gtk-4.1-0
+
+	  apps:
+	    mediacenter:
+	      command: /usr/bin/mediacenter${MC_MVERSION}
+	      plugs:
+	        - network
+	        - home
+	        - x11
+	        - pulseaudio
+	        - alsa
+	        - opengl
+	        - removable-media
+	EOF
+
+  echo "snapcraft.yaml created at $snap_yaml"
+  echo "Building snap package..."
+  if execute snapcraft -v -o "$OUTPUT_DIR/${MC_PKG}_${MC_VERSION}.snap" --destructive-build -d "$snap_dir"; then
+    echo "Snap package built successfully: $OUTPUT_DIR/${MC_PKG}_${MC_VERSION}.snap"
+  else
+    err "Snap package build failed."
+    return 1
+  fi
+
+  # Offer to install the built snap package
+  if ask_ok "Do you want to install the MC snap package?"; then
+    if sudo snap install --dangerous "$OUTPUT_DIR/${MC_PKG}_${MC_VERSION}.snap"; then
+      echo "Snap package installed successfully."
+    else
+      err "Snap installation failed."
+      return 1
+    fi
+  fi
 }
 
 # @description Copy the RPM to createrepo-webroot and run createrepo as the createrepo-user
@@ -1727,6 +1814,19 @@ main() {
     restore_license
     open_firewall "jriver-mediacenter" "52100-52200/tcp" "1900/udp"
     disable_btrfs_cow
+  fi
+
+  if ((SNAP_INSTALL_SWITCH)); then
+    acquire_deb || { err "Could not download Media Center DEB package"; return 1; }
+    install_package snapd
+    execute sudo systemctl enable --now snapd.socket
+    execute sudo snap install snapcraft --classic
+    if install_mc_snap; then
+      echo "JRiver Media Center installed successfully from snap"
+    else
+      err "JRiver Media Center snap installation failed"
+      return 1
+    fi
   fi
 
   if ((CREATEREPO_SWITCH)); then
