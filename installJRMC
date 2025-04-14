@@ -1123,9 +1123,6 @@ install_mc_snap() {
 	EOF
 
   echo "snapcraft.yaml created at $snap_yaml"
-
-  echo "Linking /snap to /var/lib/snapd/snap for --classic snapcraft"
-  execute sudo ln -s /var/lib/snapd/snap /snap
   echo "Building snap package..."
   if execute snapcraft -v -o "$OUTPUT_DIR/${MC_PKG}_${MC_VERSION}.snap" --destructive-build -d "$snap_dir"; then
     echo "Snap package built successfully: $OUTPUT_DIR/${MC_PKG}_${MC_VERSION}.snap"
@@ -1825,6 +1822,7 @@ main() {
     acquire_deb || { err "Could not download Media Center DEB package"; return 1; }
     install_package snapd
     execute sudo systemctl enable --now snapd.socket
+    execute sudo ln -s /var/lib/snapd/snap /snap
     execute sudo snap install snapcraft --classic
     if install_mc_snap; then
       echo "JRiver Media Center installed successfully from snap"
