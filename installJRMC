@@ -1126,7 +1126,7 @@ install_mc_snap() {
   echo "Building snap package..."
 
   if execute podman run --rm -it \
-    -v "$snap_dir:/build" \
+    -v "$OUTPUT_DIR:/build" \
     -w /build \
     docker.io/snapcore/snapcraft:stable \
     snapcraft snap -o "${MC_PKG}_${MC_VERSION}-${MC_RELEASE}.snap" --destructive-mode; then
