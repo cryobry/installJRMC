@@ -1129,7 +1129,7 @@ install_mc_snap() {
     -v "$snap_dir:/build" \
     -w /build \
     docker.io/snapcore/snapcraft:stable \
-    snapcraft -o "${MC_PKG}_${MC_VERSION}-${MC_RELEASE}.snap" --destructive-build; then
+    snapcraft snap -v -o "${MC_PKG}_${MC_VERSION}-${MC_RELEASE}.snap" --destructive-build; then
       echo "Snap package built successfully: $snap_dir/${MC_PKG}_${MC_VERSION}-${MC_RELEASE}.snap"
   else
     err "Snap package build failed."
