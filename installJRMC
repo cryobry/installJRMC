@@ -1125,7 +1125,7 @@ install_mc_snap() {
   echo "snapcraft.yaml created at $snap_yaml"
   echo "Building snap package..."
 
-  if podman run --rm -it \
+  if execute podman run --rm -it \
     -v "$snap_dir:/build" \
     -w /build \
     docker.io/snapcore/snapcraft:stable \
