@@ -697,7 +697,9 @@ acquire_deb() {
   declare -g MC_SOURCE
   local fname
 
-  # Usually JRiver exlcudes the release number from the filename
+  [[ -d $OUTPUT_DIR/SOURCES ]] || execute mkdir -p "$OUTPUT_DIR/SOURCES"
+
+  # Usually JRiver excludes the release number from the filename
   # but in some cases (test builds) it may be included
   if [[ $MC_RELEASE -gt 1 ]]; then
     fname="MediaCenter-$MC_VERSION-$MC_RELEASE-$ARCH.deb"
@@ -1793,7 +1795,6 @@ main() {
   fi
 
   if ((BUILD_SWITCH)) && [[ $ID != "arch" ]]; then
-    [[ -d $OUTPUT_DIR/SOURCES ]] || execute mkdir -p "$OUTPUT_DIR/SOURCES"
     acquire_deb || { err "Could not download Media Center DEB package"; return 1; }
 
     if [[ $BUILD_TARGET =~ centos|fedora|suse || $CREATEREPO_TARGET =~ centos|fedora|suse ]]; then
