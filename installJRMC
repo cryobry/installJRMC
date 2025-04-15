@@ -1131,8 +1131,9 @@ install_mc_snap() {
   if execute podman run --rm -it \
     -v "$OUTPUT_DIR:/build:Z" \
     -w /build \
+    --entrypoint "" \
     ghcr.io/canonical/snapcraft:8_core24 \
-    pack -o "${MC_PKG}_${MC_VERSION}-${MC_RELEASE}.snap" --destructive-mode; then
+    snapcraft pack -o "${MC_PKG}_${MC_VERSION}-${MC_RELEASE}.snap" --destructive-mode; then
       echo "Snap package built successfully: $snap_dir/${MC_PKG}_${MC_VERSION}-${MC_RELEASE}.snap"
   else
     err "Snap package build failed."
