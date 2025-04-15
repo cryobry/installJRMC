@@ -1128,12 +1128,15 @@ install_mc_snap() {
   echo "snapcraft.yaml created at $snap_yaml"
   echo "Building snap package..."
 
+  # Be careful with snapcraft container paths
+  # The container does not respect the --workdir
+  # Also has incompatible --entrypoint so need to override manually
   if execute podman run --rm -it \
     -v "$OUTPUT_DIR:/build:Z" \
     -w /build \
     --entrypoint "" \
     ghcr.io/canonical/snapcraft:8_core24 \
-    snapcraft pack -o "${MC_PKG}_${MC_VERSION}-${MC_RELEASE}.snap" --destructive-mode \
+    snapcraft pack -o "/build/${MC_PKG}_${MC_VERSION}-${MC_RELEASE}.snap" --destructive-mode \
     && [[ -f "$snap_dir/${MC_PKG}_${MC_VERSION}-${MC_RELEASE}.snap" ]]; then
       echo "Snap package built successfully: $snap_dir/${MC_PKG}_${MC_VERSION}-${MC_RELEASE}.snap"
   else
