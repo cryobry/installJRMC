@@ -1107,8 +1107,8 @@ install_mc_snap() {
 		      - libfreetype6
 		      - libharfbuzz0b
 		      - libgbm1
-		      - libva2
-		      - libva-drm2
+		      - libva1
+		      - libva-drm1
 		      - libvulkan1
 		      - mesa-vulkan-drivers
 		      - libwebkit2gtk-4.1
