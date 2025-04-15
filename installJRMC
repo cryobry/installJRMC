@@ -1120,7 +1120,7 @@ install_mc_snap() {
 		      - make
 		      - libglib2.0-dev
 		      - git
-		      - pkg-config
+		      - pkgconf
 		    stage-packages:
 		      - libgtk-3-0
 
