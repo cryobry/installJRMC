@@ -1069,7 +1069,7 @@ install_mc_snap() {
 		summary: "JRiver Media Center"
 		description: |
 		  JRiver Media Center packaged as a snap
-		base: core22
+		base: core24
 		confinement: strict
 		grade: stable
 
@@ -1111,9 +1111,10 @@ install_mc_snap() {
 
 		apps:
 		  mediacenter:
-		    command: /usr/bin/mediacenter${MC_MVERSION}
+		    command: usr/bin/mediacenter${MC_MVERSION}
 		    plugs:
 		      - network
+		      - desktop
 		      - home
 		      - x11
 		      - pulseaudio
