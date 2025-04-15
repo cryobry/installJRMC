@@ -1064,62 +1064,62 @@ install_mc_snap() {
 
   # Create snapcraft.yaml file
   cat <<-EOF > "$snap_yaml"
-	  name: ${MC_PKG}
-	  version: "${MC_VERSION}"
-	  summary: "JRiver Media Center"
-	  description: |
-	    JRiver Media Center packaged as a snap
-	  base: core22
-	  confinement: strict
-	  grade: stable
+		name: ${MC_PKG}
+		version: "${MC_VERSION}"
+		summary: "JRiver Media Center"
+		description: |
+		  JRiver Media Center packaged as a snap
+		base: core22
+		confinement: strict
+		grade: stable
 
-	  parts:
-	    mediacenter:
-	      plugin: dump
-	      source: "$MC_DEB"
-	      override-build: |
-	        mkdir -p \$SNAPCRAFT_PART_INSTALL
-	        dpkg-deb -x "$MC_DEB" \$SNAPCRAFT_PART_INSTALL
-	      stage-packages:
-	        - libc6
-	        - libasound2
-	        - libuuid1
-	        - libx11-6
-	        - libxext6
-	        - libxcb1
-	        - libxdmcp6
-	        - libstdc++6
-	        - libgtk-3-0
-	        - libgl1
-	        - libpango-1.0-0
-	        - libpangoft2-1.0-0
-	        - libnss3
-	        - libnspr4
-	        - python3
-	        - xdg-utils
-	        - libgomp1
-	        - libfribidi0
-	        - libfontconfig1
-	        - libfreetype6
-	        - libharfbuzz0b
-	        - libgbm1
-	        - libva2
-	        - libva-drm2
-	        - libvulkan1
-	        - mesa-vulkan-drivers
-	        - libwebkit2gtk-4.1-0
+		parts:
+		  mediacenter:
+		    plugin: dump
+		    source: "$MC_DEB"
+		    override-build: |
+		      mkdir -p \$SNAPCRAFT_PART_INSTALL
+		      dpkg-deb -x "$MC_DEB" \$SNAPCRAFT_PART_INSTALL
+		    stage-packages:
+		      - libc6
+		      - libasound2
+		      - libuuid1
+		      - libx11-6
+		      - libxext6
+		      - libxcb1
+		      - libxdmcp6
+		      - libstdc++6
+		      - libgtk-3-0
+		      - libgl1
+		      - libpango-1.0-0
+		      - libpangoft2-1.0-0
+		      - libnss3
+		      - libnspr4
+		      - python3
+		      - xdg-utils
+		      - libgomp1
+		      - libfribidi0
+		      - libfontconfig1
+		      - libfreetype6
+		      - libharfbuzz0b
+		      - libgbm1
+		      - libva2
+		      - libva-drm2
+		      - libvulkan1
+		      - mesa-vulkan-drivers
+		      - libwebkit2gtk-4.1-0
 
-	  apps:
-	    mediacenter:
-	      command: /usr/bin/mediacenter${MC_MVERSION}
-	      plugs:
-	        - network
-	        - home
-	        - x11
-	        - pulseaudio
-	        - alsa
-	        - opengl
-	        - removable-media
+		apps:
+		  mediacenter:
+		    command: /usr/bin/mediacenter${MC_MVERSION}
+		    plugs:
+		      - network
+		      - home
+		      - x11
+		      - pulseaudio
+		      - alsa
+		      - opengl
+		      - removable-media
 	EOF
 
   echo "snapcraft.yaml created at $snap_yaml"
