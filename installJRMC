@@ -1070,7 +1070,7 @@ install_mc_snap() {
 		description: |
 		  JRiver Media Center $MC_VERSION packaged as a snap
 		base: core24
-		confinement: devmode
+		confinement: strict
 		grade: stable
 
 		parts:
