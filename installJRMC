@@ -1116,6 +1116,9 @@ install_mc_snap() {
 		    plugin: make
 		    source: https://github.com/ubuntu/snapcraft-desktop-helpers.git
 		    source-subdir: gtk
+		    override-pull: |
+		      apt-get update
+		      snapcraftctl build
 		    build-packages:
 		      - make
 		      - gcc
@@ -1123,9 +1126,6 @@ install_mc_snap() {
 		      - libglib2.0-dev
 		    stage-packages:
 		      - libgtk-3-0
-		    override-pull: |
-		      apt-get update
-		      snapcraftctl build
 
 		apps:
 		  mediacenter:
