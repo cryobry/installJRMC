@@ -1111,7 +1111,7 @@ install_mc_snap() {
 		      - libva-drm2
 		      - libvulkan1
 		      - mesa-vulkan-drivers
-		      - libwebkit2gtk-4.1-0
+		      - libwebkit2gtk-4.1
 
 		apps:
 		  mediacenter:
@@ -1119,6 +1119,7 @@ install_mc_snap() {
 		    plugs:
 		      - network
 		      - desktop
+		      - devices
 		      - home
 		      - x11
 		      - pulseaudio
