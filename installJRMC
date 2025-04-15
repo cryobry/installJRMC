@@ -1374,11 +1374,11 @@ set_service_vars() {
   fi
 
   # systemctl commands
-  RELOAD=(execute "${systemctl_prefix[@]}" daemon-reload)
-  ENABLE=(execute "${systemctl_prefix[@]}" enable --now)
-  DISABLE=(execute "${systemctl_prefix[@]}" disable --now)
-  IS_ENABLED=(execute "${systemctl_prefix[@]}" is-enabled -q)
-  IS_ACTIVE=(execute "${systemctl_prefix[@]}" is-active -q)
+  RELOAD=("${systemctl_prefix[@]}" daemon-reload)
+  ENABLE=("${systemctl_prefix[@]}" enable --now)
+  DISABLE=("${systemctl_prefix[@]}" disable --now)
+  IS_ENABLED=("${systemctl_prefix[@]}" is-enabled --quiet)
+  IS_ACTIVE=("${systemctl_prefix[@]}" is-active --quiet)
 
   [[ -d $service_dir ]] || execute sudo mkdir -p "$service_dir"
 
@@ -1834,7 +1834,9 @@ main() {
   if ((SNAP_INSTALL_SWITCH)); then
     acquire_deb || { err "Could not download Media Center DEB package"; return 1; }
     install_package snapd podman
-    execute sudo systemctl enable --now snapd.socket
+    if ! systemctl is-active --quiet snapd.socket; then
+      execute sudo systemctl enable --now snapd.socket
+    fi
     if install_mc_snap; then
       echo "JRiver Media Center installed successfully from snap"
     else
