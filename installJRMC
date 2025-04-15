@@ -1064,9 +1064,9 @@ install_mc_snap() {
 
   # Create snapcraft.yaml file
   cat <<-EOF > "$snap_yaml"
-		name: ${MC_PKG}
-		version: "${MC_VERSION}"
-		summary: "JRiver Media Center $MC_VERSION"
+		name: $MC_PKG
+		version: $MC_VERSION
+		summary: JRiver Media Center $MC_VERSION
 		description: |
 		  JRiver Media Center $MC_VERSION packaged as a snap
 		base: core24
@@ -1076,11 +1076,11 @@ install_mc_snap() {
 		parts:
 		  mediacenter:
 		    plugin: dump
-		    source: "$MC_DEB"
+        source: ${MC_DEB##*/}
 		    override-build: |
 		      set -x # adds debug tracing
 		      mkdir -p \$SNAPCRAFT_PART_INSTALL
-		      dpkg-deb -x "$MC_DEB" \$SNAPCRAFT_PART_INSTALL
+		      dpkg-deb -x "${MC_DEB##*/}" \$SNAPCRAFT_PART_INSTALL
 		    stage-packages:
 		      - libc6
 		      - libasound2
