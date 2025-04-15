@@ -1076,7 +1076,7 @@ install_mc_snap() {
 		parts:
 		  mediacenter:
 		    plugin: dump
-        source: SOURCES/${MC_DEB##*/}
+		    source: SOURCES/${MC_DEB##*/}
 		    override-build: |
 		      set -x # adds debug tracing
 		      mkdir -p \$SNAPCRAFT_PART_INSTALL
