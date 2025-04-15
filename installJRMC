@@ -1066,9 +1066,9 @@ install_mc_snap() {
   cat <<-EOF > "$snap_yaml"
 		name: ${MC_PKG}
 		version: "${MC_VERSION}"
-		summary: "JRiver Media Center"
+		summary: "JRiver Media Center $MC_VERSION"
 		description: |
-		  JRiver Media Center packaged as a snap
+		  JRiver Media Center $MC_VERSION packaged as a snap
 		base: core24
 		confinement: strict
 		grade: stable
@@ -1077,11 +1077,8 @@ install_mc_snap() {
 		  mediacenter:
 		    plugin: dump
 		    source: "$MC_DEB"
-		    override-pull: |
-		      snapcraftctl pull
-		      add-apt-repository -y universe
-		      apt-get update
 		    override-build: |
+		      set -x # adds debug tracing
 		      mkdir -p \$SNAPCRAFT_PART_INSTALL
 		      dpkg-deb -x "$MC_DEB" \$SNAPCRAFT_PART_INSTALL
 		    stage-packages:
