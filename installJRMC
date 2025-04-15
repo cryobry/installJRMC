@@ -1078,9 +1078,12 @@ install_mc_snap() {
 		    plugin: dump
 		    source: /build/SOURCES/${MC_DEB##*/}
 		    override-build: |
-		      set -x # adds debug tracing
 		      mkdir -p \$SNAPCRAFT_PART_INSTALL
 		      dpkg-deb -x /build/SOURCES/${MC_DEB##*/} \$SNAPCRAFT_PART_INSTALL
+		      mkdir -p \$SNAPCRAFT_PART_INSTALL/meta/gui
+		      cp usr/share/applications/media_center_${MC_MVERSION}.desktop \$SNAPCRAFT_PART_INSTALL/meta/gui/mediacenter${MC_MVERSION}.desktop
+		      sed -i 's|^Icon=.*|Icon=mediacenter|' \$SNAPCRAFT_PART_INSTALL/meta/gui/mediacenter${MC_MVERSION}.desktop
+		      cp "usr/lib/jriver/Media Center ${MC_MVERSION}/Data/Default Art/Logo.png" \$SNAPCRAFT_PART_INSTALL/meta/gui/mediacenter.png
 		    stage-packages:
 		      - libc6
 		      - libasound2
@@ -1109,14 +1112,25 @@ install_mc_snap() {
 		      - libvulkan1
 		      - mesa-vulkan-drivers
 		      - libwebkit2gtk-4.1-0
+		  desktop-helpers:
+		    plugin: nil
+		    source: https://github.com/ubuntu/snapcraft-desktop-helpers.git
+		    source-subdir: gtk
+		    build-packages:
+		      - make
+		      - libglib2.0-dev
+		    override-build: |
+		      make install PREFIX=\$SNAPCRAFT_PART_INSTALL
 
 		apps:
 		  mediacenter:
-		    command: /usr/bin/mediacenter${MC_MVERSION}
+		    command: usr/bin/mediacenter${MC_MVERSION}
+		    command-chain:
+		      - bin/desktop-launch
 		    plugs:
 		      - network
 		      - desktop
-		      - devices
+		      - desktop-legacy
 		      - home
 		      - x11
 		      - pulseaudio
@@ -1146,6 +1160,7 @@ install_mc_snap() {
 
   # Offer to install the built snap package
   if ask_ok "Do you want to install the MC snap package?"; then
+    # Must use --dangerous for local unsigned snaps
     if execute sudo snap install --dangerous "$snap_dir/${MC_PKG}_${MC_VERSION}-${MC_RELEASE}.snap"; then
       echo "Snap package installed successfully."
     else
