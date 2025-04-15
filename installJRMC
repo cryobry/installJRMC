@@ -1120,6 +1120,9 @@ install_mc_snap() {
 		      - make
 		      - libglib2.0-dev
 		      - git
+		      - pkg-config
+		    stage-packages:
+		      - libgtk-3-0
 		    override-build: |
 		      make install PREFIX=\$SNAPCRAFT_PART_INSTALL
 
