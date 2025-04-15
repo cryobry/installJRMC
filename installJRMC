@@ -1123,7 +1123,7 @@ install_mc_snap() {
 		      - pkg-config
 		    stage-packages:
 		      - libgtk-3-0
-		    override-build: |
+		    override-pull: |
 		      apt-get update
 		      snapcraftctl build
 
