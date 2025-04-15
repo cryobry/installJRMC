@@ -1136,7 +1136,7 @@ install_mc_snap() {
     -w /build \
     --entrypoint "" \
     ghcr.io/canonical/snapcraft:8_core24 \
-    snapcraft pack -o "/build/${MC_PKG}_${MC_VERSION}-${MC_RELEASE}.snap" --destructive-mode \
+    snapcraft pack -o "/build/snap/${MC_PKG}_${MC_VERSION}-${MC_RELEASE}.snap" --destructive-mode \
     && [[ -f "$snap_dir/${MC_PKG}_${MC_VERSION}-${MC_RELEASE}.snap" ]]; then
       echo "Snap package built successfully: $snap_dir/${MC_PKG}_${MC_VERSION}-${MC_RELEASE}.snap"
   else
