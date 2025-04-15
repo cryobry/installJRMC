@@ -1070,17 +1070,17 @@ install_mc_snap() {
 		description: |
 		  JRiver Media Center $MC_VERSION packaged as a snap
 		base: core24
-		confinement: strict
+		confinement: devmode
 		grade: stable
 
 		parts:
 		  mediacenter:
 		    plugin: dump
-        source: /build/SOURCES/${MC_DEB##*/}
+        source: SOURCES/${MC_DEB##*/}
 		    override-build: |
 		      set -x # adds debug tracing
 		      mkdir -p \$SNAPCRAFT_PART_INSTALL
-		      dpkg-deb -x /build/SOURCES/${MC_DEB##*/} \$SNAPCRAFT_PART_INSTALL
+		      dpkg-deb -x SOURCES/${MC_DEB##*/} \$SNAPCRAFT_PART_INSTALL
 		    stage-packages:
 		      - libc6
 		      - libasound2
