@@ -1076,11 +1076,11 @@ install_mc_snap() {
 		parts:
 		  mediacenter:
 		    plugin: dump
-        source: ${MC_DEB##*/}
+        source: /build/SOURCES/${MC_DEB##*/}
 		    override-build: |
 		      set -x # adds debug tracing
 		      mkdir -p \$SNAPCRAFT_PART_INSTALL
-		      dpkg-deb -x "${MC_DEB##*/}" \$SNAPCRAFT_PART_INSTALL
+		      dpkg-deb -x /build/SOURCES/${MC_DEB##*/} \$SNAPCRAFT_PART_INSTALL
 		    stage-packages:
 		      - libc6
 		      - libasound2
@@ -1112,7 +1112,7 @@ install_mc_snap() {
 
 		apps:
 		  mediacenter:
-		    command: usr/bin/mediacenter${MC_MVERSION}
+		    command: /usr/bin/mediacenter${MC_MVERSION}
 		    plugs:
 		      - network
 		      - desktop
