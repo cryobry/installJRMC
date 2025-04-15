@@ -1119,6 +1119,7 @@ install_mc_snap() {
 		    build-packages:
 		      - make
 		      - libglib2.0-dev
+		      - git
 		    override-build: |
 		      make install PREFIX=\$SNAPCRAFT_PART_INSTALL
 
