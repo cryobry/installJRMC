@@ -1113,7 +1113,7 @@ install_mc_snap() {
 		      - mesa-vulkan-drivers
 		      - libwebkit2gtk-4.1-0
 		  desktop-helpers:
-		    plugin: nil
+		    plugin: make
 		    source: https://github.com/ubuntu/snapcraft-desktop-helpers.git
 		    source-subdir: gtk
 		    build-packages:
@@ -1123,8 +1123,6 @@ install_mc_snap() {
 		      - pkg-config
 		    stage-packages:
 		      - libgtk-3-0
-		    override-build: |
-		      make install PREFIX=\$SNAPCRAFT_PART_INSTALL
 
 		apps:
 		  mediacenter:
