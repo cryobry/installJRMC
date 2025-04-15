@@ -1117,7 +1117,7 @@ install_mc_snap() {
 		    source: https://github.com/ubuntu/snapcraft-desktop-helpers.git
 		    source-subdir: gtk
 		    build-packages:
-		      - make
+		      - build-essential
 		      - libglib2.0-dev
 		      - git
 		      - pkg-config
