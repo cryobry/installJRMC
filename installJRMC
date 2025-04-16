@@ -119,7 +119,7 @@ parse_input() {
   debug "Running: ${FUNCNAME[0]} $*"
   declare -gi BUILD_SWITCH REPO_INSTALL_SWITCH LOCAL_INSTALL_SWITCH \
     CONTAINER_INSTALL_SWITCH CREATEREPO_SWITCH SNAP_INSTALL_SWITCH \
-    COMPAT_SWITCH UNINSTALL_SWITCH YES_SWITCH DEBUG=0
+    APPIMAGE_INSTALL_SWITCH COMPAT_SWITCH UNINSTALL_SWITCH YES_SWITCH DEBUG=0
   declare -g USER_MC_VERSION USER_MC_RELEASE USER_MC_REPO MJR_FILE \
     BETAPASS SERVICE_TYPE VNCPASS USER_DISPLAY BUILD_TARGET CREATEREPO_TARGET
   local long_opts short_opts input
@@ -142,6 +142,7 @@ parse_input() {
             repo|remote) REPO_INSTALL_SWITCH=1 ;;
             container) CONTAINER_INSTALL_SWITCH=1 ;;
             snap) SNAP_INSTALL_SWITCH=1 ;;
+            appimage) APPIMAGE_INSTALL_SWITCH=1 ;;
             *) err "Invalid --install option passed"; exit 1 ;;
           esac
           ;;
@@ -1158,6 +1159,65 @@ install_mc_snap() {
   fi
 }
 
+# @description Installs MC via AppImage
+install_mc_appimage() {
+  debug "Running: ${FUNCNAME[0]}"
+  local appimage_dir="$OUTPUT_DIR/appimage"
+  local tool="$appimage_dir/appimagetool"
+  local app_dir="$appimage_dir/AppDir"
+  local icon_rel="usr/lib/jriver/Media Center ${MC_MVERSION}/Data/Default Art/Logo.png"
+  local desktop_rel="usr/share/applications/media_center_${MC_MVERSION}.desktop"
+  local output_appimage="$appimage_dir/${MC_PKG}-${MC_VERSION}.AppImage"
+  local install_dir="/opt/jriver"
+
+  # Create build directory and extract .deb
+  execute mkdir -p "$app_dir" || { err "Could not create AppDir"; return 1; }
+  execute dpkg-deb -x "$MC_DEB" "$app_dir" || { err "Failed to extract .deb"; return 1; }
+
+  # Create AppRun using a heredoc with tabs (no extra spaces)
+  cat <<-EOF > "$app_dir/AppRun"
+		#!/usr/bin/env bash
+		exec "\${APPDIR}/usr/bin/mediacenter${MC_MVERSION}" "\$@"
+	EOF
+  execute chmod +x "$app_dir/AppRun"
+
+  # Prepare desktop file at AppDir root
+  execute cp "$app_dir/$desktop_rel" "$app_dir/mediacenter.desktop"
+  execute sed -i \
+    -e 's|^Icon=.*|Icon=mediacenter|' \
+    -e "s|^Exec=.*|Exec=mediacenter${MC_MVERSION} %U|" \
+    "$app_dir/mediacenter.desktop"
+
+  # Copy icon into standard location
+  execute mkdir -p "$app_dir/usr/share/icons/hicolor/256x256/apps"
+  execute cp "$app_dir/$icon_rel" "$app_dir/usr/share/icons/hicolor/256x256/apps/mediacenter.png"
+
+  # Get appimagetool
+  if ! command -v appimagetool &>/dev/null && [[ ! -x "$tool" ]]; then
+    download "https://github.com/AppImage/AppImageKit/releases/latest/download/appimagetool-${ARCH}.AppImage" "$tool"
+    execute chmod +x "$tool"
+  fi
+
+  # Build the AppImage
+  if execute "$tool" "$app_dir" "$output_appimage"; then
+    echo "AppImage built: $output_appimage"
+  else
+    err "AppImage build failed"
+    return 1
+  fi
+
+  [[ -d "$install_dir" ]] || execute sudo mkdir -p "$install_dir"
+
+  # Copy the AppImage to /opt/jriver
+  if execute sudo cp "$output_appimage" "$install_dir/$MC_PKG"; then
+    execute sudo chmod +x "$install_dir/$MC_PKG"
+    echo "AppImage installed to $install_dir/$MC_PKG"
+  else
+    err "Failed to install the AppImage to $install_dir"
+    return 1
+  fi
+}
+
 # @description Copy the RPM to createrepo-webroot and run createrepo as the createrepo-user
 run_createrepo() {
   debug "Running: ${FUNCNAME[0]}"
@@ -1844,6 +1904,17 @@ main() {
       echo "JRiver Media Center installed successfully from snap"
     else
       err "JRiver Media Center snap installation failed"
+      return 1
+    fi
+  fi
+
+  if ((APPIMAGE_INSTALL_SWITCH)); then
+    acquire_deb || { err "Could not download Media Center DEB package"; return 1; }
+    install_package dpkg
+    if install_mc_appimage; then
+      echo "JRiver Media Center installed successfully from AppImage"
+    else
+      err "JRiver Media Center AppImage installation failed"
       return 1
     fi
   fi
