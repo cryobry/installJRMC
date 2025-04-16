@@ -1192,6 +1192,7 @@ install_mc_appimage() {
   # Copy icon into standard location
   execute mkdir -p "$app_dir/usr/share/icons/hicolor/256x256/apps"
   execute cp "$app_dir/$icon_rel" "$app_dir/usr/share/icons/hicolor/256x256/apps/mediacenter.png"
+  execute cp "$app_dir/$icon_rel" "$app_dir/mediacenter.png"
 
   # Get appimagetool
   local arch; arch=$(uname -m) # TODO use host arch
