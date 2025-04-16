@@ -1170,6 +1170,7 @@ install_mc_appimage() {
   local desktop_rel="usr/share/applications/media_center_${MC_MVERSION}.desktop"
   local output_appimage="$appimage_dir/${MC_PKG}-${MC_VERSION}.AppImage"
   local install_dir="/opt/jriver"
+  local installed_app="$install_dir/$MC_PKG"
 
   # Create build directory and extract .deb
   execute mkdir -p "$app_dir" || { err "Could not create AppDir"; return 1; }
@@ -1178,8 +1179,23 @@ install_mc_appimage() {
   # Create AppRun using a heredoc with tabs (no extra spaces)
   cat <<-EOF > "$app_dir/AppRun"
 		#!/usr/bin/env bash
-		exec "\${APPDIR}/usr/bin/mediacenter${MC_MVERSION}" "\$@"
+		cmd=\$(basename "\$0") # determine the name used to invoke this AppImage
+  	case "\$cmd" in
+		  mc${MC_MVERSION})
+		    # If invoked as "mc33", run the stub binary from usr/lib/jriver/Media Center 33
+		    exec "\${APPDIR}/usr/lib/jriver/Media Center ${MC_MVERSION}/mc${MC_MVERSION}" "\$@"
+		    ;;
+		  mediacenter${MC_MVERSION})
+		    # If invoked as "mediacenter33", run the main binary from usr/bin
+		    exec "\${APPDIR}/usr/bin/mediacenter${MC_MVERSION}" "\$@"
+		    ;;
+		  *) 
+		    # Default to main binary
+		    exec "\${APPDIR}/usr/bin/mediacenter${MC_MVERSION}" "\$@"
+		    ;;
+		esac
 	EOF
+
   execute chmod +x "$app_dir/AppRun"
 
   # Prepare desktop file at AppDir root
@@ -1209,15 +1225,25 @@ install_mc_appimage() {
     return 1
   fi
 
+  # Create /opt/jriver directory if needed and copy the AppImage
   [[ -d "$install_dir" ]] || execute sudo mkdir -p "$install_dir"
-
-  # Copy the AppImage to /opt/jriver
-  if execute sudo cp "$output_appimage" "$install_dir/$MC_PKG"; then
-    execute sudo chmod +x "$install_dir/$MC_PKG"
-    echo "AppImage installed to $install_dir/$MC_PKG"
+  if execute sudo cp "$output_appimage" "$installed_app"; then
+    execute sudo chmod +x "$installed_app"
+    echo "AppImage installed to $installed_app"
   else
     err "Failed to install the AppImage to $install_dir"
     return 1
+  fi
+
+  # Optionally create symlinks in /usr/local/bin for easy host access to both binaries
+  if ask_ok "Create symlinks for mediacenter${MC_MVERSION} and mc${MC_MVERSION} in /usr/local/bin?"; then
+    execute sudo ln -sf "$installed_app" "/usr/local/bin/mediacenter${MC_MVERSION}"
+    execute sudo ln -sf "$installed_app" "/usr/local/bin/mc${MC_MVERSION}"
+  fi
+
+  # Optionally run the installed AppImage immediately
+  if ask_ok "Do you want to run $MC_PKG now?"; then
+    execute "$installed_app" || { err "Running $MC_PKG failed"; return 1; }
   fi
 }
 
