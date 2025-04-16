@@ -1233,7 +1233,7 @@ install_mc_appimage() {
   if command -v appimage-builder &>/dev/null; then
     builder_app="appimage-builder"
   else
-    download "https://github.com/AppImage/AppImageBuilder/releases/latest/download/appimage-builder-$(arch -m).AppImage" "$builder_dir/appimage-builder"
+    download "https://github.com/AppImage/AppImageBuilder/releases/latest/download/appimage-builder-$(uname -m).AppImage" "$builder_dir/appimage-builder"
     chmod +x "$builder_dir/appimage-builder"
     builder_app="$builder_dir/appimage-builder"
   fi
