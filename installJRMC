@@ -206,7 +206,8 @@ parse_input() {
 
   # Fallback to default install method in some scenarios
   if ! ((UNINSTALL_SWITCH + BUILD_SWITCH + CREATEREPO_SWITCH + 
-    LOCAL_INSTALL_SWITCH + CONTAINER_INSTALL_SWITCH + SNAP_INSTALL_SWITCH)) &&
+    LOCAL_INSTALL_SWITCH + CONTAINER_INSTALL_SWITCH + SNAP_INSTALL_SWITCH +
+    APPIMAGE_INSTALL_SWITCH)) &&
     [[ ${#SERVICES[@]} -eq 0 && ${#CONTAINERS[@]} -eq 0 ]]; then
     debug "Automatically using --install=repo"
     REPO_INSTALL_SWITCH=1
