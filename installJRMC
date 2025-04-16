@@ -1194,8 +1194,9 @@ install_mc_appimage() {
   execute cp "$app_dir/$icon_rel" "$app_dir/usr/share/icons/hicolor/256x256/apps/mediacenter.png"
 
   # Get appimagetool
+  local arch; arch=$(uname -m) # TODO use host arch
   if ! command -v appimagetool &>/dev/null && [[ ! -x "$tool" ]]; then
-    download "https://github.com/AppImage/AppImageKit/releases/latest/download/appimagetool-${ARCH}.AppImage" "$tool"
+    download "https://github.com/AppImage/AppImageKit/releases/latest/download/appimagetool-${arch}.AppImage" "$tool"
     execute chmod +x "$tool"
   fi
 
