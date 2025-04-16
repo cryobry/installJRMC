@@ -1018,7 +1018,7 @@ install_mc_arch() {
 		pkgver=$MC_VERSION
 		pkgrel=1
 		pkgdesc="The Most Comprehensive Media Software"
-		arch=('x86_64')
+    arch=('$(uname -m)')
 		url="http://www.jriver.com/"
 		license=('custom')
 		depends=('alsa-lib' 'ca-certificates' 'gtk3' 'gcc-libs' 'libx11' 'libxext' 'libxcb' 'libxau' 'libxdmcp' 'util-linux' 'mesa-libgl' 'webkit2gtk')
@@ -1163,88 +1163,111 @@ install_mc_snap() {
 # @description Installs MC via AppImage
 install_mc_appimage() {
   debug "Running: ${FUNCNAME[0]}"
-  local appimage_dir="$OUTPUT_DIR/appimage"
-  local tool="$appimage_dir/appimagetool"
-  local app_dir="$appimage_dir/AppDir"
-  local icon_rel="usr/lib/jriver/Media Center ${MC_MVERSION}/Data/Default Art/Logo.png"
-  local desktop_rel="usr/share/applications/media_center_${MC_MVERSION}.desktop"
-  local output_appimage="$appimage_dir/${MC_PKG}-${MC_VERSION}.AppImage"
+  local builder_dir
+  builder_dir=$(mktemp -d) || { err "Failed to create temporary directory"; return 1; }
   local install_dir="/opt/jriver"
   local installed_app="$install_dir/$MC_PKG"
+  local config_file="$builder_dir/appimage-builder.yml"
+  local icon_rel="usr/lib/jriver/Media Center ${MC_MVERSION}/Data/Default Art/Logo.png"
+  local desktop_rel="usr/share/applications/media_center_${MC_MVERSION}.desktop"
 
-  # Create build directory and extract .deb
-  execute mkdir -p "$app_dir" || { err "Could not create AppDir"; return 1; }
-  execute dpkg-deb -x "$MC_DEB" "$app_dir" || { err "Failed to extract .deb"; return 1; }
-
-  # Create AppRun using a heredoc with tabs (no extra spaces)
-  cat <<-EOF > "$app_dir/AppRun"
-		#!/usr/bin/env bash
-		cmd=\$(basename "\$0") # determine the name used to invoke this AppImage
-  	case "\$cmd" in
-		  mc${MC_MVERSION})
-		    # If invoked as "mc33", run the stub binary from usr/lib/jriver/Media Center 33
-		    exec "\${APPDIR}/usr/lib/jriver/Media Center ${MC_MVERSION}/mc${MC_MVERSION}" "\$@"
-		    ;;
-		  mediacenter${MC_MVERSION})
-		    # If invoked as "mediacenter33", run the main binary from usr/bin
-		    exec "\${APPDIR}/usr/bin/mediacenter${MC_MVERSION}" "\$@"
-		    ;;
-		  *) 
-		    # Default to main binary
-		    exec "\${APPDIR}/usr/bin/mediacenter${MC_MVERSION}" "\$@"
-		    ;;
-		esac
+  # Generate a YAML configuration for appimage-builder.
+  cat <<-EOF > "$config_file"
+		app:
+		  id: $MC_PKG
+		  version: "$MC_VERSION"
+		  exec: "mediacenter${MC_MVERSION}"
+		  app-run: |
+		    #!/usr/bin/env bash
+		    cmd=\$(basename "\$0")
+		    case "\$cmd" in
+		      mc${MC_MVERSION})
+		        # If invoked as "mc${MC_MVERSION}", run the stub binary from usr/lib/jriver/Media Center ${MC_MVERSION}/mc${MC_MVERSION}
+		        exec "\${APPDIR}/usr/lib/jriver/Media Center ${MC_MVERSION}/mc${MC_MVERSION}" "\$@"
+		        ;;
+		    	mediacenter${MC_MVERSION})
+		        # If invoked as "mediacenter${MC_MVERSION}", run the main binary from usr/bin
+		        exec "\${APPDIR}/usr/bin/mediacenter${MC_MVERSION}" "\$@"
+		        ;;
+	      	*)
+		        # Default to main binary
+		        exec "\${APPDIR}/usr/bin/mediacenter${MC_MVERSION}" "\$@"
+		        ;;
+		    esac
+		  icon: "mediacenter.png"
+		  desktop-file: "mediacenter.desktop"
+		ingredients:
+		  sources:
+		    - type: deb
+		      url: "file://$MC_DEB"
+		      extract: true
+		build: {}
+		output: "$builder_dir"
 	EOF
 
-  execute chmod +x "$app_dir/AppRun"
-
-  # Prepare desktop file at AppDir root
-  execute cp "$app_dir/$desktop_rel" "$app_dir/mediacenter.desktop"
-  execute sed -i \
-    -e 's|^Icon=.*|Icon=mediacenter|' \
-    -e "s|^Exec=.*|Exec=mediacenter${MC_MVERSION} %U|" \
-    "$app_dir/mediacenter.desktop"
-
-  # Copy icon into standard location
-  execute mkdir -p "$app_dir/usr/share/icons/hicolor/256x256/apps"
-  execute cp "$app_dir/$icon_rel" "$app_dir/usr/share/icons/hicolor/256x256/apps/mediacenter.png"
-  execute cp "$app_dir/$icon_rel" "$app_dir/mediacenter.png"
-
-  # Get appimagetool
-  local arch; arch=$(uname -m) # TODO use host arch
-  if ! command -v appimagetool &>/dev/null && [[ ! -x "$tool" ]]; then
-    download "https://github.com/AppImage/AppImageKit/releases/latest/download/appimagetool-${arch}.AppImage" "$tool"
-    execute chmod +x "$tool"
-  fi
-
-  # Build the AppImage
-  if execute "$tool" "$app_dir" "$output_appimage"; then
-    echo "AppImage built: $output_appimage"
-  else
-    err "AppImage build failed"
+  # To supply required assets, extract them from the DEB.
+  local temp_extract
+  temp_extract=$(mktemp -d) || { err "Failed to create temporary extraction directory"; return 1; }
+  if ! dpkg-deb -x "$MC_DEB" "$temp_extract"; then
+    err "Failed to extract DEB for assets"
+    execute rm -rf "$temp_extract"
     return 1
   fi
 
-  # Create /opt/jriver directory if needed and copy the AppImage
+  # Copy the icon and desktop file into the builder directory
+  if ! cp "$temp_extract/$icon_rel" "$builder_dir/mediacenter.png"; then
+    err "Failed to copy icon"
+    execute rm -rf "$temp_extract" "$builder_dir"
+    return 1
+  fi
+
+  if ! cp "$temp_extract/$desktop_rel" "$builder_dir/mediacenter.desktop"; then
+    err "Failed to copy desktop file"
+    execute rm -rf "$temp_extract" "$builder_dir"
+    return 1
+  fi
+  execute rm -rf "$temp_extract"
+
+  # Run appimage-builder with the generated YAML config
+  if appimage-builder --config "$config_file" --verbose; then
+    local built_appimage
+    built_appimage="$builder_dir/${MC_PKG}-${MC_VERSION}-$(uname -m).AppImage"
+    if [[ ! -f "$built_appimage" ]]; then
+      err "Built AppImage not found in $builder_dir"
+      execute rm -rf "$builder_dir"
+      return 1
+    fi
+    echo "AppImage built: $built_appimage"
+  else
+    err "appimage-builder failed"
+    execute rm -rf "$builder_dir"
+    return 1
+  fi
+
+  # Install the AppImage
   [[ -d "$install_dir" ]] || execute sudo mkdir -p "$install_dir"
-  if execute sudo cp "$output_appimage" "$installed_app"; then
+  if execute sudo cp "$built_appimage" "$installed_app"; then
     execute sudo chmod +x "$installed_app"
     echo "AppImage installed to $installed_app"
   else
     err "Failed to install the AppImage to $install_dir"
+    execute rm -rf "$builder_dir"
     return 1
   fi
 
-  # Optionally create symlinks in /usr/local/bin for easy host access to both binaries
+  # Optionally create symlinks in /usr/local/bin for both invocation names
   if ask_ok "Create symlinks for mediacenter${MC_MVERSION} and mc${MC_MVERSION} in /usr/local/bin?"; then
     execute sudo ln -sf "$installed_app" "/usr/local/bin/mediacenter${MC_MVERSION}"
     execute sudo ln -sf "$installed_app" "/usr/local/bin/mc${MC_MVERSION}"
   fi
 
   # Optionally run the installed AppImage immediately
-  if ask_ok "Do you want to run $MC_PKG now?"; then
-    execute "$installed_app" || { err "Running $MC_PKG failed"; return 1; }
+  if ask_ok "Do you want to run the $MC_PKG AppImage now?"; then
+    execute "$installed_app" || { err "Running $MC_PKG failed"; execute rm -rf "$builder_dir"; return 1; }
   fi
+
+  execute rm -rf "$builder_dir"
+  return 0
 }
 
 # @description Copy the RPM to createrepo-webroot and run createrepo as the createrepo-user
