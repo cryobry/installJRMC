@@ -40,7 +40,7 @@ print_help() {
 		  If no options (excluding -d or --debug) are provided installJRMC defaults to '--install repo'.
 
 		OPTIONS
-		  --install, -i repo|local|snap
+		  --install, -i repo|local
 		    repo: Install MC from repository, updates are handled by the system package manager
 		    local: Build and install MC package locally from official source release
 		  --build[=suse|fedora|centos]
@@ -432,7 +432,7 @@ get_latest_mc_version() {
     mc_version_source="containerized package manager"
     execute buildah rm "$cnt"
   # Fallback to webscrape
-  elif MC_VERSION=$(download_stdout "$BOARD_URL" | grep -o "[0-9][0-9]\.[0-9]\.[0-9]\+" | head -n 1) \
+  elif MC_VERSION=$(download "$BOARD_URL" "-" | grep -o "[0-9][0-9]\.[0-9]\.[0-9]\+" | head -n 1) \
   && [[ $MC_VERSION =~ ^[0-9]+\.[0-9]+\.[0-9]+ ]]; then
     mc_version_source="webscrape"
   # Fallback to hardcoded value
@@ -664,7 +664,7 @@ install_mc_repo() {
         repo_text="deb [signed-by=$keyfile arch=amd64,i386,armhf,arm64] http://dist.jriver.com/$channel/mediacenter/ $MC_REPO main"
       fi
       echo "Installing JRiver Media Center RPM key"
-      download "http://dist.jriver.com/mediacenter@jriver.com.gpg.key" | 
+      download "http://dist.jriver.com/mediacenter@jriver.com.gpg.key" "-" | 
       gpg --dearmor | sudo tee "$keyfile" &>/dev/null
       ;;
     *)
@@ -1054,230 +1054,6 @@ install_mc_arch() {
   fi
 
   popd &>/dev/null || return
-}
-
-# @description Installs MC via snap
-install_mc_snap() {
-  debug "Running: ${FUNCNAME[0]}"
-  local snap_dir="$OUTPUT_DIR/snap"
-  local snap_yaml="$snap_dir/snapcraft.yaml"
-
-  execute mkdir -p "$snap_dir" || { err "Could not create snap dir"; return 1; }
-
-  # Create snapcraft.yaml file
-  cat <<-EOF > "$snap_yaml"
-		name: $MC_PKG
-		version: $MC_VERSION
-		summary: JRiver Media Center $MC_VERSION
-		description: |
-		  JRiver Media Center $MC_VERSION packaged as a snap
-		base: core24
-		confinement: strict
-		grade: stable
-
-		parts:
-		  mediacenter:
-		    plugin: dump
-		    source: /build/SOURCES/${MC_DEB##*/}
-		    override-build: |
-		      mkdir -p \$SNAPCRAFT_PART_INSTALL
-		      dpkg-deb -x /build/SOURCES/${MC_DEB##*/} \$SNAPCRAFT_PART_INSTALL
-		      mkdir -p \$SNAPCRAFT_PART_INSTALL/meta/gui
-		      cp usr/share/applications/media_center_${MC_MVERSION}.desktop \$SNAPCRAFT_PART_INSTALL/meta/gui/mediacenter${MC_MVERSION}.desktop
-		      sed -i 's|^Icon=.*|Icon=mediacenter|' \$SNAPCRAFT_PART_INSTALL/meta/gui/mediacenter${MC_MVERSION}.desktop
-		      cp "usr/lib/jriver/Media Center ${MC_MVERSION}/Data/Default Art/Logo.png" \$SNAPCRAFT_PART_INSTALL/meta/gui/mediacenter.png
-		    stage-packages:
-		      - libc6
-		      - libasound2
-		      - libuuid1
-		      - libx11-6
-		      - libxext6
-		      - libxcb1
-		      - libxdmcp6
-		      - libstdc++6
-		      - libgtk-3-0
-		      - libgl1
-		      - libpango-1.0-0
-		      - libpangoft2-1.0-0
-		      - libnss3
-		      - libnspr4
-		      - python3
-		      - xdg-utils
-		      - libgomp1
-		      - libfribidi0
-		      - libfontconfig1
-		      - libfreetype6
-		      - libharfbuzz0b
-		      - libgbm1
-		      - libva2
-		      - libva-drm2
-		      - libvulkan1
-		      - mesa-vulkan-drivers
-		      - libwebkit2gtk-4.1-0
-
-		apps:
-		  mediacenter:
-		    command: usr/bin/mediacenter${MC_MVERSION}
-		    extensions:
-		      - gnome
-		    plugs:
-		      - network
-		      - desktop
-		      - desktop-legacy
-		      - home
-		      - x11
-		      - pulseaudio
-		      - alsa
-		      - opengl
-		      - removable-media
-	EOF
-
-  # Be careful with snapcraft container paths
-  # The container does not respect the --workdir
-  # Also has incompatible --entrypoint so need to override manually
-  if execute podman run --rm -it \
-    -v "$OUTPUT_DIR:/build:Z" \
-    -w /build \
-    --entrypoint "" \
-    ghcr.io/canonical/snapcraft:8_core24 \
-    snapcraft snap -o "/build/snap/${MC_PKG}_${MC_VERSION}-${MC_RELEASE}.snap" --destructive-mode \
-    && [[ -f "$snap_dir/${MC_PKG}_${MC_VERSION}-${MC_RELEASE}.snap" ]]; then
-      echo "Snap package built successfully: $snap_dir/${MC_PKG}_${MC_VERSION}-${MC_RELEASE}.snap"
-  else
-    err "Snap package build failed."
-    return 1
-  fi
-
-  # Offer to install the built snap package
-  if ask_ok "Do you want to install the MC snap package?"; then
-    # Must use --dangerous for local unsigned snaps
-    if execute sudo snap install --dangerous "$snap_dir/${MC_PKG}_${MC_VERSION}-${MC_RELEASE}.snap"; then
-      echo "Snap package installed successfully."
-    else
-      err "Snap installation failed."
-      return 1
-    fi
-  fi
-}
-
-# @description Installs MC via AppImage
-install_mc_appimage() {
-  debug "Running: ${FUNCNAME[0]}"
-  local builder_dir
-  builder_dir=$(mktemp -d) || { err "Failed to create temporary directory"; return 1; }
-  local install_dir="/opt/jriver"
-  local installed_app="$install_dir/$MC_PKG"
-  local config_file="$builder_dir/appimage-builder.yml"
-  local icon_rel="usr/lib/jriver/Media Center ${MC_MVERSION}/Data/Default Art/Logo.png"
-  local desktop_rel="usr/share/applications/media_center_${MC_MVERSION}.desktop"
-
-  # Generate a YAML configuration for appimage-builder.
-  cat <<-EOF > "$config_file"
-		app:
-		  id: $MC_PKG
-		  version: "$MC_VERSION"
-		  exec: "mediacenter${MC_MVERSION}"
-		  app-run: |
-		    #!/usr/bin/env bash
-		    cmd=\$(basename "\$0")
-		    case "\$cmd" in
-		      mc${MC_MVERSION})
-		        # If invoked as "mc${MC_MVERSION}", run the stub binary from usr/lib/jriver/Media Center ${MC_MVERSION}/mc${MC_MVERSION}
-		        exec "\${APPDIR}/usr/lib/jriver/Media Center ${MC_MVERSION}/mc${MC_MVERSION}" "\$@"
-		        ;;
-		    	mediacenter${MC_MVERSION})
-		        # If invoked as "mediacenter${MC_MVERSION}", run the main binary from usr/bin
-		        exec "\${APPDIR}/usr/bin/mediacenter${MC_MVERSION}" "\$@"
-		        ;;
-	      	*)
-		        # Default to main binary
-		        exec "\${APPDIR}/usr/bin/mediacenter${MC_MVERSION}" "\$@"
-		        ;;
-		    esac
-		  icon: "mediacenter.png"
-		  desktop-file: "mediacenter.desktop"
-		ingredients:
-		  sources:
-		    - type: deb
-		      url: "file://$MC_DEB"
-		      extract: true
-		build: {}
-		output: "$builder_dir"
-	EOF
-
-  # To supply required assets, extract them from the DEB.
-  local temp_extract
-  temp_extract=$(mktemp -d) || { err "Failed to create temporary extraction directory"; return 1; }
-  if ! dpkg-deb -x "$MC_DEB" "$temp_extract"; then
-    err "Failed to extract DEB for assets"
-    execute rm -rf "$temp_extract"
-    return 1
-  fi
-
-  # Copy the icon and desktop file into the builder directory
-  if ! cp "$temp_extract/$icon_rel" "$builder_dir/mediacenter.png"; then
-    err "Failed to copy icon"
-    execute rm -rf "$temp_extract" "$builder_dir"
-    return 1
-  fi
-
-  if ! cp "$temp_extract/$desktop_rel" "$builder_dir/mediacenter.desktop"; then
-    err "Failed to copy desktop file"
-    execute rm -rf "$temp_extract" "$builder_dir"
-    return 1
-  fi
-  execute rm -rf "$temp_extract"
-
-  # Determine which appimage-builder binary to use
-  local builder_app
-  if command -v appimage-builder &>/dev/null; then
-    builder_app="appimage-builder"
-  else
-    download "https://github.com/AppImage/AppImageBuilder/releases/latest/download/appimage-builder-$(uname -m).AppImage" "$builder_dir/appimage-builder"
-    chmod +x "$builder_dir/appimage-builder"
-    builder_app="$builder_dir/appimage-builder"
-  fi
-
-  # Run appimage-builder with the generated YAML config
-  if "$builder_app" --config "$config_file" --verbose; then
-    local built_appimage
-    built_appimage="$builder_dir/${MC_PKG}-${MC_VERSION}-$(uname -m).AppImage"
-    if [[ ! -f "$built_appimage" ]]; then
-      err "Built AppImage not found in $builder_dir"
-      execute rm -rf "$builder_dir"
-      return 1
-    fi
-    echo "AppImage built: $built_appimage"
-  else
-    err "appimage-builder failed"
-    execute rm -rf "$builder_dir"
-    return 1
-  fi
-
-  # Install the AppImage
-  [[ -d "$install_dir" ]] || execute sudo mkdir -p "$install_dir"
-  if execute sudo cp "$built_appimage" "$installed_app"; then
-    execute sudo chmod +x "$installed_app"
-    echo "AppImage installed to $installed_app"
-  else
-    err "Failed to install the AppImage to $install_dir"
-    execute rm -rf "$builder_dir"
-    return 1
-  fi
-
-  # Optionally create symlinks in /usr/local/bin for both invocation names
-  if ask_ok "Create symlinks for mediacenter${MC_MVERSION} and mc${MC_MVERSION} in /usr/local/bin?"; then
-    execute sudo ln -sf "$installed_app" "/usr/local/bin/mediacenter${MC_MVERSION}"
-    execute sudo ln -sf "$installed_app" "/usr/local/bin/mc${MC_MVERSION}"
-  fi
-
-  # Optionally run the installed AppImage immediately
-  if ask_ok "Do you want to run the $MC_PKG AppImage now?"; then
-    execute "$installed_app" || { err "Running $MC_PKG failed"; execute rm -rf "$builder_dir"; return 1; }
-  fi
-
-  execute rm -rf "$builder_dir"
-  return 0
 }
 
 # @description Copy the RPM to createrepo-webroot and run createrepo as the createrepo-user
@@ -1956,31 +1732,6 @@ main() {
     disable_btrfs_cow
   fi
 
-  if ((SNAP_INSTALL_SWITCH)); then
-    acquire_deb || { err "Could not download Media Center DEB package"; return 1; }
-    install_package snapd podman
-    if ! systemctl is-active --quiet snapd.socket; then
-      execute sudo systemctl enable --now snapd.socket
-    fi
-    if install_mc_snap; then
-      echo "JRiver Media Center installed successfully from snap"
-    else
-      err "JRiver Media Center snap installation failed"
-      return 1
-    fi
-  fi
-
-  if ((APPIMAGE_INSTALL_SWITCH)); then
-    acquire_deb || { err "Could not download Media Center DEB package"; return 1; }
-    install_package dpkg
-    if install_mc_appimage; then
-      echo "JRiver Media Center installed successfully from AppImage"
-    else
-      err "JRiver Media Center AppImage installation failed"
-      return 1
-    fi
-  fi
-
   if ((CREATEREPO_SWITCH)); then
     if run_createrepo; then
       echo "Successfully updated repo"
@@ -2004,16 +1755,6 @@ main() {
     done
     unset service
   fi
-
-  # for _container in "${CONTAINERS[@]}"; do
-  #   if ! "_container_$_container"; then
-  #     if [[ $? -eq 127 ]]; then
-  #       err "Container $_container does not exist, check container name"
-  #     else
-  #       err "Failed to create container: $_container"
-  #     fi
-  #   fi
-  # done
 }
 
 # @section Helper functions
@@ -2042,32 +1783,17 @@ download() {
     if [[ -n "$output" ]]; then
       cmd+=(--output "$output")
     else
-      cmd+=(-O)
+      cmd+=(--remote-name)
     fi
   elif command -v wget &>/dev/null || install_package --silent wget; then
     cmd=(wget --quiet)
-    [[ -n "$output" ]] && cmd+=("--output-document=$output")
+    [[ -n "$output" ]] && cmd+=(--output-document="$output")
   else
     err "Unable to install wget or curl"
     return 1
   fi
 
   execute "${cmd[@]}" "$url"
-}
-download_stdout() {
-  local url="$1"
-  local -a cmd
-
-  if command -v curl &>/dev/null; then
-    cmd=(curl --silent --fail --location -o - "$url")
-  elif command -v wget &>/dev/null; then
-    cmd=(wget --quiet -O - "$url")
-  else
-    err "Neither curl nor wget is available"
-    return 1
-  fi
-
-  "${cmd[@]}"
 }
 
 # Roughly turn debugging on for pre-init
