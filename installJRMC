@@ -1799,7 +1799,8 @@ download() {
     return 1
   fi
 
-  execute "${cmd[@]}" "$url"
+  debug "${cmd[@]}" "$url"
+  "${cmd[@]}" "$url"
 }
 
 # Roughly turn debugging on for pre-init
