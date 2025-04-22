@@ -1569,14 +1569,13 @@ uninstall() {
   echo "Uninstalling JRiver Media Center package"
   if "${PKG_REMOVE[@]}" "${MC_PKG%%=*}"; then # remove version specifier
     echo "JRiver Media Center has been completely uninstalled"
-    echo "To remove your MC library: rm -rf $HOME/.jriver"
   elif [[ $? -eq 100 ]]; then
     err "JRiver Media Center package '${MC_PKG%%=*}' is not present and was not uninstalled"
   else
     err "Could not remove Media Center package"
   fi
 
-  echo "Uninstalling JRiver Media Center GPG keys"
+  echo "Uninstalling JRiver Media Center GPG key"
   local keyfile="/usr/share/keyrings/jriver-com-archive-keyring.gpg"
   [[ -f $keyfile ]] && execute sudo rm -f "$keyfile"
 
@@ -1588,6 +1587,7 @@ uninstall() {
     mv "$SCRIPT_DIR/.uninstall" "$SCRIPT_DIR/.uninstall.bk"
   fi
 
+  echo "To remove your MC library: rm -rf $HOME/.jriver"
   return 0
 }
 
