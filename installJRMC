@@ -18,7 +18,7 @@
 # * Be careful with tabs in heredocs
 shopt -s extglob
 
-declare -g SCRIPT_VERSION="1.5.2-dev"
+declare -g SCRIPT_VERSION="1.5.2"
 declare -g MC_REPO="bullseye" # should match the MC_VERSION
 # declare -g MC_REPO="bookworm" # should match the MC_VERSION
 declare -g MC_VERSION="33.0.72" # do find all replace
@@ -647,6 +647,7 @@ install_mc_repo() {
         for f in "${old_repo_files[@]}"; do
           [[ -f $f ]] && execute sudo rm -f "$f"
         done
+
         read -r -d '' repo_text <<-EOF
 					Types: deb
 					URIs: http://dist.jriver.com/$channel/mediacenter/
@@ -663,7 +664,7 @@ install_mc_repo() {
         fi
         repo_text="deb [signed-by=$keyfile arch=amd64,i386,armhf,arm64] http://dist.jriver.com/$channel/mediacenter/ $MC_REPO main"
       fi
-      echo "Installing JRiver Media Center RPM key"
+      echo "Installing JRiver Media Center GPG key"
       download "http://dist.jriver.com/mediacenter@jriver.com.gpg.key" "-" | 
       gpg --dearmor | sudo tee "$keyfile" &>/dev/null
       ;;
@@ -943,7 +944,7 @@ install_mc_deb() {
     # Remove libwebkit2gtk and their fantastic package versioning strategy
     sed -i 's/,\s*libwebkit2gtk[^,]*,\?|libwebkit2gtk[^,]*,\?//g' "control"
 
-    # TODO workaround for ZorinOS
+    # TODO workaround for legacy ZorinOS
     [[ $ID == "ubuntu" && ${VERSION_ID%.*} -le 16 ]] \
     && grep -q zorin /etc/os-release \
     && sed -i 's/libva2/libva1/g' "control"
