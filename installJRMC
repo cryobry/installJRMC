@@ -1576,6 +1576,10 @@ uninstall() {
     err "Could not remove Media Center package"
   fi
 
+  echo "Uninstalling JRiver Media Center GPG keys"
+  local keyfile="/usr/share/keyrings/jriver-com-archive-keyring.gpg"
+  [[ -f $keyfile ]] && execute sudo rm -f "$keyfile"
+
   if [[ -f $SCRIPT_DIR/.uninstall ]]; then
     echo "Removing files from .uninstall log"
     while read -r p; do
