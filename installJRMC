@@ -769,6 +769,7 @@ build_rpm() {
   local -a requires recommends
 
   # skip rebuilding the rpm if it already exists
+  debug "Checking for existing MC RPM: $MC_RPM"
   if [[ -f $MC_RPM ]]; then
     echo "$MC_RPM already exists. Skipping build step"
     return 0
