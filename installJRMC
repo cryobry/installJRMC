@@ -437,7 +437,7 @@ get_latest_mc_version() {
   && buildah run "$cnt" -- sh -c \
     "apk add apt" &>/dev/null \
   && buildah run "$cnt" -- sh -c \
-    "echo 'deb [trusted=no arch=amd64,i386,armhf,arm64] http://dist.jriver.com/latest/mediacenter/ $1 main' > /etc/apt/sources.list 2>&1" &>/dev/null \
+    "echo 'deb [trusted=no arch=amd64,i386,armhf,arm64] https://dist.jriver.com/latest/mediacenter/ $1 main' > /etc/apt/sources.list 2>&1" &>/dev/null \
   && buildah run "$cnt" -- sh -c \
     "apt update --allow-insecure-repositories &>/dev/null" &>/dev/null \
   && MC_VERSION=$(buildah run "$cnt" -- apt-cache policy mediacenter?? | grep Candidate | awk '{print $2}' | sort -V | tail -n1) &>/dev/null \
@@ -663,7 +663,7 @@ install_mc_repo() {
 
         read -r -d '' repo_text <<-EOF
 					Types: deb
-					URIs: http://dist.jriver.com/$channel/mediacenter/
+					URIs: https://dist.jriver.com/$channel/mediacenter/
 					Signed-By: $keyfile
 					Suites: $MC_REPO
 					Components: main
@@ -675,10 +675,10 @@ install_mc_repo() {
         else
           repo_file="/etc/apt/sources.list.d/jriver.list"
         fi
-        repo_text="deb [signed-by=$keyfile arch=amd64,i386,armhf,arm64] http://dist.jriver.com/$channel/mediacenter/ $MC_REPO main"
+        repo_text="deb [signed-by=$keyfile arch=amd64,i386,armhf,arm64] https://dist.jriver.com/$channel/mediacenter/ $MC_REPO main"
       fi
       echo "Installing JRiver Media Center GPG key"
-      download "http://dist.jriver.com/mediacenter@jriver.com.gpg.key" "-" | 
+      download "https://dist.jriver.com/mediacenter@jriver.com.gpg.key" "-" | 
       gpg --dearmor | sudo tee "$keyfile" &>/dev/null
       ;;
     *)
@@ -903,7 +903,7 @@ build_rpm() {
 		Provides: mediacenter$MC_MVERSION
 
 		License: Copyright 1998-$(date +%Y), JRiver, Inc.  All rights reserved.  Protected by U.S. patents #7076468 and #7062468
-		URL: http://www.jriver.com/
+		URL: https://www.jriver.com/
 
 		%define __provides_exclude_from ^%{_libdir}/jriver/.*/.*\\.so.*$
 
@@ -1040,7 +1040,7 @@ install_mc_arch() {
 		pkgrel=1
 		pkgdesc="The Most Comprehensive Media Software"
     arch=('$(uname -m)')
-		url="http://www.jriver.com/"
+		url="https://www.jriver.com/"
 		license=('custom')
 		depends=('alsa-lib' 'ca-certificates' 'gtk3' 'gcc-libs' 'libx11' 'libxext' 'libxcb' 'libxau' 'libxdmcp' 'util-linux' 'mesa-libgl' 'webkit2gtk')
 		optdepends=(
@@ -1052,7 +1052,7 @@ install_mc_arch() {
 			'vorbis-tools: ogg vorbis support' 
 			'musepack-tools: musepack support'
 		)
-		source=("http://files.jriver-cdn.com/mediacenter/channels/v$MC_MVERSION/latest/MediaCenter-$MC_VERSION-$MC_ARCH.deb")
+		source=("$MC_SOURCE")
 
 		package() {
 			cd "\$srcdir"
