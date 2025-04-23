@@ -603,11 +603,9 @@ install_external_repos() {
 # @description Installs mesa-va-drivers-freeworld
 install_mesa_freeworld() {
   debug "Running: ${FUNCNAME[0]}"
-
-  swap_or_install_freeworld_package() {
-    local pkg=$1
-    local freeworld_pkg="${pkg}-freeworld"
-
+  local pkg freeworld_pkg
+  for pkg in mesa-va-drivers mesa-vdpau-drivers mesa-vulkan-drivers; do
+    freeworld_pkg="${pkg}-freeworld"
     if ! "${PKG_QUERY[@]}" "$freeworld_pkg" &>/dev/null; then
       if "${PKG_QUERY[@]}" "$pkg" &>/dev/null; then
         if ! execute sudo dnf swap -y "$pkg" "$freeworld_pkg"; then
@@ -617,10 +615,7 @@ install_mesa_freeworld() {
         "${PKG_INSTALL[@]}" "$freeworld_pkg"
       fi
     fi
-  }
-
-  swap_or_install_freeworld_package "mesa-va-drivers"
-  swap_or_install_freeworld_package "mesa-vdpau-drivers"
+  done
 }
 
 # @description Installs JRiver Media Center from a remote repository
@@ -806,13 +801,15 @@ build_rpm() {
       requires=("${requires[@]/libxext6/libXext}")
       requires=("${requires[@]/libxcb1*/libxcb}") # TODO Remove minimum version for MC31 (*)
       requires=("${requires[@]/libxau6/libXau}")
-      requires=("${requires[@]/libgles2/libglvnd-gles}")
-      requires=("${requires[@]/libegl-mesa0/mesa-libEGL}")
       requires=("${requires[@]/libxdmcp6/libXdmcp}")
       requires=("${requires[@]/libstdc++6/libstdc++}")
       requires=("${requires[@]/libgtk-3-0/gtk3}")
       requires=("${requires[@]/libegl1/mesa-libEGL}")
       requires=("${requires[@]/libgl1/mesa-libGL}")
+      requires=("${requires[@]/libgles2/libglvnd-gles}")
+      requires=("${requires[@]/libgbm1/mesa-libgbm}")
+      requires=("${requires[@]/libegl-mesa0/mesa-libEGL}")
+      requires=("${requires[@]/libvulkan1/vulkan-loader}")
       requires=("${requires[@]/libpango1.0-0/pango}")
       requires=("${requires[@]/libpango-1.0-0/pango}")
       requires=("${requires[@]/libpangoft2-1.0-0/pango}")
@@ -825,12 +822,10 @@ build_rpm() {
       requires=("${requires[@]/libfontconfig1/fontconfig}")
       requires=("${requires[@]/libfreetype6/freetype}")
       requires=("${requires[@]/libharfbuzz0b/harfbuzz}")
-      requires=("${requires[@]/libgbm1/mesa-libgbm}")
       requires=("${requires[@]/libva2/libva}")
       requires=("${requires[@]/libva-drm2/libva}")
       requires=("${requires[@]/libepoxy0/libepoxy}")
       requires=("${requires[@]/liblcms2-2/lcms2}")
-      requires=("${requires[@]/libvulkan1/vulkan-loader}")
       requires=("${requires[@]/python/python3}")
       requires=("${requires[@]/libwebkit2gtk-4.0*/webkit2gtk4.0}")
       requires=("${requires[@]/libwebkit2gtk-4.1*/webkit2gtk4.1}")
