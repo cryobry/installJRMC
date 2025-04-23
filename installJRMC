@@ -52,7 +52,7 @@ print_help() {
 		  --mcversion VERSION
 		    Specify the MC version, ex. "$MC_VERSION" or "${MC_VERSION%%.*}" (default: latest)
 		  --arch VERSION
-		    Specify the MC architecture, ex. "amd64", "arm64", etc (default: host architecture)
+		    Specify the target MC architecture, ex. "amd64", "arm64", etc (default: host architecture)
 		  --mcrepo REPO
 		    Specify the MC repository, ex. "bullseye", "bookworm", "noble", etc (default: latest official)
 		  --outputdir PATH
@@ -411,7 +411,7 @@ init() {
   MC_RELEASE="${USER_MC_RELEASE:-1}"
   MC_MVERSION="${MC_VERSION%%.*}"
   MC_PKG="mediacenter$MC_MVERSION"
-  MC_RPM="$OUTPUT_DIR/RPMS/x86_64/mediacenter$MC_MVERSION-$MC_VERSION-$MC_RELEASE.x86_64.rpm"
+  MC_RPM="$OUTPUT_DIR/RPMS/$ARCH/mediacenter$MC_MVERSION-$MC_VERSION-$MC_RELEASE.$ARCH.rpm"
   MC_ROOT="/usr/lib/jriver/Media Center $MC_MVERSION"
 
   if [[ -n $USER_MC_VERSION ]]; then
