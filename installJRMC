@@ -16,9 +16,10 @@
 #
 # NOTES
 # * Be careful with tabs in heredocs
+# * Avoid execute() for stdout
 shopt -s extglob
 
-declare -g SCRIPT_VERSION="1.5.3"
+declare -g SCRIPT_VERSION="1.5.4-dev"
 declare -g MC_REPO="bullseye" # should match the MC_VERSION
 # declare -g MC_REPO="bookworm" # should match the MC_VERSION
 declare -g MC_VERSION="33.0.72" # do find all replace
@@ -120,7 +121,7 @@ parse_input() {
   declare -gi BUILD_SWITCH REPO_INSTALL_SWITCH LOCAL_INSTALL_SWITCH \
     CONTAINER_INSTALL_SWITCH CREATEREPO_SWITCH SNAP_INSTALL_SWITCH \
     APPIMAGE_INSTALL_SWITCH COMPAT_SWITCH UNINSTALL_SWITCH YES_SWITCH DEBUG=0
-  declare -g USER_MC_VERSION USER_MC_RELEASE USER_MC_REPO MJR_FILE \
+  declare -g USER_MC_VERSION USER_MC_RELEASE USER_MC_REPO USER_ARCH MJR_FILE \
     BETAPASS SERVICE_TYPE VNCPASS USER_DISPLAY BUILD_TARGET CREATEREPO_TARGET
   local long_opts short_opts input
   long_opts="install:,build::,outputdir:,mcversion:,arch:,mcrepo:,compat,"
@@ -176,7 +177,7 @@ parse_input() {
             err "Bad --mcversion"; print_help; exit 1
           fi
           ;;
-        --arch) shift; echo "Switching arch from $ARCH to $1"; ARCH="$1" ;;
+        --arch) shift; USER_ARCH="$1" ;;
         --mcrepo) shift; USER_MC_REPO="$1" ;;
         --restorefile) shift; MJR_FILE="$1" ;;
         --betapass) shift; BETAPASS="$1" ;;
@@ -223,9 +224,9 @@ parse_input() {
     echo "If the MC package is unavailable, try using --mcrepo to select another repository"
   fi
 
-  if [[ -n $CONTAINER_INSTALL_SWITCH ]] && ((LOCAL_INSTALL_SWITCH || REPO_INSTALL_SWITCH)); then
-    err "Some --install methods are incompatible"
-  fi
+  # if [[ -n $CONTAINER_INSTALL_SWITCH ]] && ((LOCAL_INSTALL_SWITCH || REPO_INSTALL_SWITCH)); then
+  #   err "Some --install methods are incompatible"
+  # fi
 }
 
 # @description Perform OS detection and generate OS-specific functions
@@ -238,7 +239,7 @@ init() {
   declare -g OUTPUT_DIR="$SCRIPT_DIR/output"
   declare -g CREATEREPO_WEBROOT="/var/www/jriver"
   declare -g CREATEREPO_USER="$USER" # can be root
-  declare -g ID VERSION_ID ARCH NAME
+  declare -g ID VERSION_ID ARCH MC_ARCH NAME
   declare -g MC_MVERSION MC_RELEASE MC_PKG MC_RPM MC_ROOT
   declare -ga PKG_INSTALL PKG_REMOVE PKG_UPDATE PKG_QUERY
   declare -ga SERVICES CONTAINERS
@@ -263,18 +264,31 @@ init() {
   # Get host information
   [[ -f /etc/os-release ]] && source /etc/os-release
 
-  # Detect architecture and translate to MC convention
+  # Detect host architecture and translate to MC convention
   if ARCH=$(uname -m); then
     case $ARCH in
-      x86_64) ARCH="amd64" ;;
-      aarch64) ARCH="arm64" ;;
+      x86_64) MC_ARCH="amd64" ;;
+      aarch64) MC_ARCH="arm64" ;;
+      *) MC_ARCH="$ARCH" ;;
     esac
   else
-    ARCH="amd64"
+    ARCH="x86_64"
+    MC_ARCH="amd64"
     err "Failed to detect host arch, using default: $ARCH"
   fi
 
-  debug "Detected host platform: $ID $VERSION_ID $ARCH"
+  debug "Host: $ID $VERSION_ID $ARCH"
+
+  # Parse user-provided architecture, allow either convention
+  if [[ -n $USER_ARCH ]]; then
+    case $USER_ARCH in
+      x86_64|amd64) ARCH="x86_64"; MC_ARCH="amd64" ;;
+      aarch64|arm64) ARCH="aarch64"; MC_ARCH="arm64" ;;
+      *) ARCH="$USER_ARCH" ;;
+    esac
+  fi
+
+  debug "Target: $ARCH ($MC_ARCH)"
 
   # Normalize ID and set host-specific vars
   case $ID in
@@ -408,7 +422,6 @@ init() {
     esac
   fi
 
-  debug "Host platform: $ID $VERSION_ID"
   debug "MC repository: $MC_REPO"
 }
 
@@ -576,7 +589,7 @@ install_external_repos() {
       # Install mesa-va-drivers-freeworld separately from the RPM using dnf swap
       install_mesa_freeworld
       ;;
-    suse) : # TODO may eventually be needed if X11_XOrg is not available by default
+    suse) : # TODO may be needed if X11_XOrg is unavailable in default repos
       # if ! zypper repos | grep -q "X11_XOrg"; then
       #   echo "Installing the X11 repository"
       #   execute sudo zypper  --non-interactive --quiet addrepo \
@@ -705,9 +718,9 @@ acquire_deb() {
   # Usually JRiver excludes the release number from the filename
   # but in some cases (test builds) it may be included
   if [[ $MC_RELEASE -gt 1 ]]; then
-    fname="MediaCenter-$MC_VERSION-$MC_RELEASE-$ARCH.deb"
+    fname="MediaCenter-$MC_VERSION-$MC_RELEASE-$MC_ARCH.deb"
   else
-    fname="MediaCenter-$MC_VERSION-$ARCH.deb"
+    fname="MediaCenter-$MC_VERSION-$MC_ARCH.deb"
   fi
 
   declare -g MC_DEB="$OUTPUT_DIR/SOURCES/$fname"
@@ -870,7 +883,7 @@ build_rpm() {
 		Summary: JRiver Media Center
 		Group:   Applications/Media
 		Source0: $MC_SOURCE
-		BuildArch: x86_64
+		BuildArch: $ARCH
 		%define _rpmfilename %%{ARCH}/%%{NAME}-%%{version}-%%{release}.%%{ARCH}.rpm
 
 		AutoReq:  0
@@ -1032,7 +1045,7 @@ install_mc_arch() {
 			'vorbis-tools: ogg vorbis support' 
 			'musepack-tools: musepack support'
 		)
-		source=("http://files.jriver-cdn.com/mediacenter/channels/v$MC_MVERSION/latest/MediaCenter-$MC_VERSION-$ARCH.deb")
+		source=("http://files.jriver-cdn.com/mediacenter/channels/v$MC_MVERSION/latest/MediaCenter-$MC_VERSION-$MC_ARCH.deb")
 
 		package() {
 			cd "\$srcdir"
