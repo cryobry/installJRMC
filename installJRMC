@@ -765,11 +765,12 @@ build_rpm() {
 
   local i rpmbuild_cmd stub
   local -a requires recommends
+  local spec_file="$OUTPUT_DIR/SPECS/mediacenter$MC_MVERSION-$MC_VERSION-$MC_RELEASE-$BUILD_TARGET-$ARCH.spec"
 
   # skip rebuilding the rpm if it already exists
   debug "Checking for existing MC RPM: $MC_RPM"
-  if [[ -f $MC_RPM ]]; then
-    echo "$MC_RPM already exists. Skipping build step"
+  if [[ -f $MC_RPM && -f $spec_file ]]; then
+    echo "Spec file and $MC_RPM already exists. Skipping build step"
     return 0
   fi
 
@@ -879,7 +880,7 @@ build_rpm() {
   fi
 
   # Create spec file
-  cat <<-EOF > "$OUTPUT_DIR/SPECS/mediacenter.spec"
+  cat <<-EOF > "$spec_file"
 		Name:  mediacenter$MC_MVERSION
 		Version: $MC_VERSION
 		Release: $MC_RELEASE
@@ -933,7 +934,7 @@ build_rpm() {
       --define="_libdir /usr/lib"
       --target="$ARCH"
       -bb
-      "$OUTPUT_DIR/SPECS/mediacenter.spec"
+      "$spec_file"
   )
   if execute "${rpmbuild_cmd[@]}" && [[ -f $MC_RPM ]] ; then
     echo "Build successful. The RPM file is located at: $MC_RPM"
