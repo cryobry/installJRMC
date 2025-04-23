@@ -937,8 +937,6 @@ build_rpm() {
     rpmbuild 
       --define="_topdir $OUTPUT_DIR" 
       --define="_libdir /usr/lib"
-      --define="_arch $ARCH"
-      --target="$ARCH"
       -bb
       "$OUTPUT_DIR/SPECS/mediacenter.spec"
   )
