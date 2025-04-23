@@ -732,6 +732,9 @@ acquire_deb() {
       execute rm "$MC_DEB"
     else
       echo "Using existing DEB: $MC_DEB"
+      # Use dummy source since we don't know where it came from
+      # TODO could attach source tag to filename
+      MC_SOURCE="https://files.jriver-cdn.com/mediacenter/channels/v$MC_MVERSION/latest/$fname"
       return 0
     fi
   fi
