@@ -1195,7 +1195,7 @@ open_firewall() {
   if command -v firewall-cmd &>/dev/null; then
     if ! sudo firewall-cmd --get-services | grep -q "$service"; then
       execute sudo firewall-cmd --permanent "--new-service=$service"
-      execute sudo firewall-cmd --permanent "--service=$service" "--set-description=$service" installed by installJRMC
+      execute sudo firewall-cmd --permanent "--service=$service" "--set-description=$service installed by installJRMC"
       execute sudo firewall-cmd --permanent "--service=$service" "--set-short=$service"
       for port in "${f_ports[@]}"; do
         execute sudo firewall-cmd --permanent "--service=$service" "--add-port=$port"
