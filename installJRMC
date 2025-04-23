@@ -891,7 +891,6 @@ build_rpm() {
 		Summary: JRiver Media Center
 		Group:   Applications/Media
 		Source0: $MC_SOURCE
-		BuildArch: $ARCH
 		%define _rpmfilename %%{ARCH}/%%{NAME}-%%{version}-%%{release}.%%{ARCH}.rpm
 
 		AutoReq:  0
@@ -937,6 +936,7 @@ build_rpm() {
     rpmbuild 
       --define="_topdir $OUTPUT_DIR" 
       --define="_libdir /usr/lib"
+      --target="$ARCH"
       -bb
       "$OUTPUT_DIR/SPECS/mediacenter.spec"
   )
