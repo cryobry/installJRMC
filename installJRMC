@@ -121,7 +121,7 @@ parse_input() {
   declare -gi BUILD_SWITCH REPO_INSTALL_SWITCH LOCAL_INSTALL_SWITCH \
     CONTAINER_INSTALL_SWITCH CREATEREPO_SWITCH SNAP_INSTALL_SWITCH \
     APPIMAGE_INSTALL_SWITCH COMPAT_SWITCH UNINSTALL_SWITCH YES_SWITCH DEBUG=0
-  declare -g USER_MC_VERSION USER_MC_RELEASE USER_MC_REPO USER_ARCH MJR_FILE \
+  declare -g USER_MC_VERSION USER_MC_MVERSION USER_MC_RELEASE USER_MC_REPO USER_ARCH MJR_FILE \
     BETAPASS SERVICE_TYPE VNCPASS USER_DISPLAY BUILD_TARGET CREATEREPO_TARGET
   local long_opts short_opts input
   long_opts="install:,build::,outputdir:,mcversion:,arch:,mcrepo:,compat,"
@@ -151,12 +151,15 @@ parse_input() {
         --outputdir) shift; OUTPUT_DIR="$1" ;;
         --mcversion) shift;
           if [[ $1 =~ ^([0-9]+)(\.[0-9]+\.[0-9]+)?(-([0-9]+))?$ ]]; then
+            # Major version is required
+            USER_MC_MVERSION="${BASH_REMATCH[1]}"
             # If we get the full version, use it
             [[ -n ${BASH_REMATCH[2]} ]] && USER_MC_VERSION="${BASH_REMATCH[1]}${BASH_REMATCH[2]}"
+            # Set default release to 1 if not provided
             USER_MC_RELEASE="${BASH_REMATCH[4]:-1}"
             
             # Set major version defaults
-            case "${BASH_REMATCH[1]}" in
+            case "$USER_MC_MVERSION" in
               34) MC_VERSION="${USER_MC_VERSION:-$MC_VERSION}" MC_REPO="bookworm" BOARD_ID="89.0" ;;
               33) MC_VERSION="${USER_MC_VERSION:-33.0.72}" MC_REPO="bullseye" BOARD_ID="86.0" ;;
               32) MC_VERSION="${USER_MC_VERSION:-32.0.58}" MC_REPO="bullseye" BOARD_ID="83.0" ;;
@@ -284,7 +287,7 @@ init() {
     esac
   fi
 
-  debug "Target: $ARCH ($MC_ARCH)"
+  debug "Target: $ARCH (MC: $MC_ARCH)"
 
   # Normalize ID and set host-specific vars
   case $ID in
@@ -333,15 +336,6 @@ init() {
       ;;
   esac
 
-  # Set default targets
-  BUILD_TARGET="${BUILD_TARGET:-$ID}"
-  CREATEREPO_TARGET="${CREATEREPO_TARGET:-$ID}"
-
-  # Match the MC repo to the host unless specified by user
-  if [[ $ID =~ debian|ubuntu && -z $USER_MC_REPO && -z $USER_MC_VERSION ]]; then
-    MC_REPO=${UBUNTU_CODENAME:-${VERSION_CODENAME:-$MC_REPO}}
-  fi
-
   # Set distro-specific package manager commands for normalized IDs
   case $ID in
     fedora|centos)
@@ -383,6 +377,15 @@ init() {
       ;;
   esac
 
+  # Set default targets
+  BUILD_TARGET="${BUILD_TARGET:-$ID}"
+  CREATEREPO_TARGET="${CREATEREPO_TARGET:-$ID}"
+
+  # Match the MC repo to the host unless specified by user
+  if [[ $ID =~ debian|ubuntu && -z $USER_MC_REPO && -z $USER_MC_MVERSION ]]; then
+    MC_REPO=${UBUNTU_CODENAME:-${VERSION_CODENAME:-$MC_REPO}}
+  fi
+
   # Don't check for latest MC version if set by user or using --install=repo only
   if [[ -z $USER_MC_VERSION ]] \
   && ((BUILD_SWITCH || LOCAL_INSTALL_SWITCH || CREATEREPO_SWITCH)); then
@@ -393,11 +396,13 @@ init() {
   # Set MC version variables
   MC_VERSION="${USER_MC_VERSION:-$MC_VERSION}"
   MC_RELEASE="${USER_MC_RELEASE:-1}"
-  MC_MVERSION="${MC_VERSION%%.*}"
+  MC_MVERSION="${USER_MC_MVERSION:-${MC_VERSION%%.*}}"
+  MC_REPO="${USER_MC_REPO:-$MC_REPO}"
   MC_PKG="mediacenter$MC_MVERSION"
   MC_RPM="$OUTPUT_DIR/RPMS/$ARCH/mediacenter$MC_MVERSION-$MC_VERSION-$MC_RELEASE.$ARCH.rpm"
   MC_ROOT="/usr/lib/jriver/Media Center $MC_MVERSION"
 
+  # Generate explicit package name
   if [[ -n $USER_MC_VERSION ]]; then
     # Append explicit package version when user provides --mcversion
     case $ID in
@@ -420,7 +425,7 @@ get_latest_mc_version() {
     cat <<-EOF > /etc/apt/sources.list.d/jriver.sources
 			Types: deb
 			URIs: https://dist.jriver.com/latest/mediacenter/
-			Suites: '"${USER_MC_REPO:-$MC_REPO}"'
+			Suites: '"$MC_REPO"'
 			Components: main
 			Architectures: amd64,armhf,arm64
 		EOF
@@ -439,7 +444,7 @@ get_latest_mc_version() {
     err "Warning! Using hardcoded version number"
   fi
   
-  echo "Using latest MC version $MC_VERSION from the ${USER_MC_REPO:-$MC_REPO} repo (determined by $mc_version_source)"
+  echo "Using latest MC version $MC_VERSION from the $MC_REPO repo (determined by $mc_version_source)"
 }
 
 # @description Installs a package using the system package manager
@@ -645,7 +650,7 @@ install_mc_repo() {
 					Types: deb
 					URIs: https://dist.jriver.com/$channel/mediacenter/
 					Signed-By: $keyfile
-					Suites: ${USER_MC_REPO:-$MC_REPO}
+					Suites: $MC_REPO
 					Components: main
 					Architectures: amd64,i386,armhf,arm64
 				EOF
@@ -656,7 +661,7 @@ install_mc_repo() {
         else
           repo_file="/etc/apt/sources.list.d/jriver.list"
         fi
-        repo_text="deb [signed-by=$keyfile arch=amd64,i386,armhf,arm64] https://dist.jriver.com/$channel/mediacenter/ ${USER_MC_REPO:-$MC_REPO} main"
+        repo_text="deb [signed-by=$keyfile arch=amd64,i386,armhf,arm64] https://dist.jriver.com/$channel/mediacenter/ $MC_REPO main"
       fi
       echo "Installing JRiver Media Center GPG key"
       download "https://dist.jriver.com/mediacenter@jriver.com.gpg.key" "-" | 
