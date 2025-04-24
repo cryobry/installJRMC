@@ -711,9 +711,9 @@ acquire_deb() {
   fi
 
   # Download the deb file using the containerized package manager
-  if ! { create_mc_apt_container "cd /tmp && apt-get -t $MC_REPO download --allow-unauthenticated mediacenter$MC_MVERSION &>/dev/null" &&
+  if ! { create_mc_apt_container "apt-get -t $MC_REPO download --allow-unauthenticated mediacenter$MC_MVERSION &>/dev/null" &&
   mnt="$(sudo buildah mount "$CNT")" &&
-  execute sudo find "$mnt/tmp" -maxdepth 1 -type f -name "*.deb" -exec cp {} "$MC_DEB" \; &&
+  execute sudo find "$mnt" -maxdepth 1 -type f -name "*.deb" -exec cp {} "$MC_DEB" \; &&
   [[ -f $MC_DEB ]] &&
   execute sudo chown "_apt:$USER" "$MC_DEB" &&
   execute sudo buildah umount "$CNT" &&
@@ -980,21 +980,29 @@ install_mc_deb() {
     fi
   fi
 
+  # Copy the DEB to a temporary file so _apt can read it
+  debug "Creating temporary deb file owned byq _apt"
+  local temp_deb
+  temp_deb=$(mktemp)
+  execute sudo cp "$MC_DEB" "$temp_deb"
+  execute sudo chown _apt "$temp_deb"
+
   # Use --reinstall to make sure local package is installed over repo package
   if ! install_package \
   --no-install-check \
   --no-gpg-check \
   --allow-downgrades \
   --reinstall \
-  "$MC_DEB"; then
+  "$temp_deb"; then
     err "Local MC DEB installation failed"
     ((remove_jammy)) && { echo "Removing jammy repo"; execute sudo rm -f "$repo_file"; }
     if ask_ok "Remove source DEB and retry"; then
-      execute rm -f "$MC_DEB"
+      execute rm -f "$MC_DEB" "$temp_deb"
       exec "$SCRIPT_PATH" "$@" "--no-update"
     fi
   fi
   ((remove_jammy)) && { echo "Removing jammy repo"; execute sudo rm -f "$repo_file"; }
+  execute rm -f "$temp_deb"
 }
 
 # @description Installs MC via RPM package
