@@ -436,12 +436,12 @@ get_latest_mc_version() {
   cnt=$(buildah from --quiet alpine:edge 2>/dev/null) &&
   buildah run "$cnt" -- sh -c "apk add apt" &>/dev/null &&
   buildah run "$cnt" -- sh -c \
-    "cat <<-EOF > /etc/apt/sources.list.d/dist.jriver.com.sources
+    'cat <<-EOF > /etc/apt/sources.list.d/dist.jriver.com.sources
 			Types: deb
 			URIs: https://dist.jriver.com/latest/mediacenter/
-			Suites: $1
+			Suites: '"$1"'
 			Components: main
-		EOF" &&
+		EOF' &&
   buildah run "$cnt" -- sh -c \
     "apt update --allow-insecure-repositories" &&
   MC_VERSION=$(buildah run "$cnt" -- apt-cache policy mediacenter?? | grep Candidate | awk '{print $2}' | sort -V | tail -n1) &>/dev/null &&
