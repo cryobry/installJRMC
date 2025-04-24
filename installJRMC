@@ -381,10 +381,12 @@ init() {
   BUILD_TARGET="${BUILD_TARGET:-$ID}"
   CREATEREPO_TARGET="${CREATEREPO_TARGET:-$ID}"
 
+  # Repo selection
   # Match newer MC repos to the host unless overriden by user
-  if [[ $ID =~ debian|ubuntu && (-z $USER_MC_REPO || $USER_MC_MVERSION -ge 31) ]]; then
+  if [[ $ID =~ debian|ubuntu && $USER_MC_MVERSION -ge 31 ]]; then
     MC_REPO=${UBUNTU_CODENAME:-${VERSION_CODENAME:-$MC_REPO}}
   fi
+  MC_REPO="${USER_MC_REPO:-$MC_REPO}" # allow user override
 
   # Don't check for latest MC version if set by user or using --install=repo only
   if [[ -z $USER_MC_VERSION ]] &&
@@ -397,7 +399,6 @@ init() {
   MC_VERSION="${USER_MC_VERSION:-$MC_VERSION}"
   MC_RELEASE="${USER_MC_RELEASE:-1}"
   MC_MVERSION="${USER_MC_MVERSION:-${MC_VERSION%%.*}}"
-  MC_REPO="${USER_MC_REPO:-$MC_REPO}"
   MC_PKG="mediacenter$MC_MVERSION"
   MC_RPM="$OUTPUT_DIR/RPMS/$ARCH/mediacenter$MC_MVERSION-$MC_VERSION-$MC_RELEASE.$ARCH.rpm"
   MC_ROOT="/usr/lib/jriver/Media Center $MC_MVERSION"
