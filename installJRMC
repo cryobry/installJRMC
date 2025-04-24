@@ -1017,6 +1017,25 @@ install_mc_deb() {
     execute rm -rf "$extract_dir"
   fi
 
+  # On Ubuntu 24.04+, add jammy repos for libwebkit2gtk-4.0-37
+  if [[ "$ID" == "ubuntu" ]]; then
+    major_version="${VERSION_ID%%.*}"
+    minor_version="${VERSION_ID##*.}"
+    if (( major_version > 24 || (major_version == 24 && minor_version >= 4) )); then
+      repo_file="/etc/apt/sources.list.d/jammy.sources"
+      read -r -d '' repo_text <<-EOF
+				Types: deb
+				URIs: https://archive.ubuntu.com/ubuntu
+				Suites: jammy
+				Components: main
+				Architectures: $MC_ARCH
+				Signed-By: /usr/share/keyrings/ubuntu-archive-keyring.gpg
+			EOF
+      echo "Creating repository file at $repo_file for jammy"
+      sudo tee "$repo_file" >/dev/null <<< "$repo_text"
+    fi
+  fi
+
   # Use --reinstall to make sure local package is installed over repo package
   if ! install_package \
     --no-install-check \
