@@ -738,8 +738,7 @@ acquire_deb() {
 
 acquire_deb_new() {
   debug "${FUNCNAME[0]}()"
-  declare -g MC_DEB
-  declare -g MC_SOURCE="https://files.jriver-cdn.com/mediacenter/channels/v$MC_MVERSION/latest/$fname"
+  declare -g MC_DEB MC_SOURCE
   local fname mnt
 
   [[ -d $OUTPUT_DIR/SOURCES ]] || execute mkdir -p "$OUTPUT_DIR/SOURCES"
