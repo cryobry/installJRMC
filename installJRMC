@@ -429,7 +429,7 @@ get_latest_mc_version() {
 			Signed-By: /usr/share/keyrings/jriver-com-archive-keyring.gpg
 			Suites: '"$MC_REPO"'
 			Components: main
-			Architectures: '"$ARCH"'
+			Architectures: '"$MC_ARCH"'
 		EOF
     apt-get update --allow-insecure-repositories' &&
   MC_VERSION=$(sudo buildah run "$cnt" -- apt-cache policy "mediacenter$MC_MVERSION" | grep Candidate | awk '{print $2}' | sort -V | tail -n1) &>/dev/null &&
