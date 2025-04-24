@@ -1774,7 +1774,7 @@ main() {
   fi
 
   if ((BUILD_SWITCH)) && [[ $ID != "arch" ]]; then
-    acquire_deb_new || { err "Could not download Media Center DEB package"; return 1; }
+    acquire_deb_new || acquire_deb || { err "Could not download Media Center DEB package"; return 1; }
 
     if [[ $BUILD_TARGET =~ centos|fedora|suse || $CREATEREPO_TARGET =~ centos|fedora|suse ]]; then
       install_package dpkg rpm-build
