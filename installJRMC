@@ -20,11 +20,11 @@
 shopt -s extglob
 
 declare -g SCRIPT_VERSION="1.6.0-dev"
+declare -g MC_VERSION="33.0.72" # do find all replace
 declare -g MC_REPO="bullseye" # should match the MC_VERSION
 # declare -g MC_REPO="bookworm" # should match the MC_VERSION
-declare -g MC_VERSION="33.0.72" # do find all replace
-declare -g BOARD_URL="https://yabb.jriver.com/interact/index.php/board,86.0.html" # MC33
-# declare -g BOARD_URL="https://yabb.jriver.com/interact/index.php/board,89.0.html" # MC34
+declare -g BOARD_ID="86.0" # MC33
+# declare -g BOARD_ID="89.0" # MC34
 declare -gi UPDATE_SWITCH=1 # set to 0 to disable automatic self-update
 declare -g SCRIPT_URL="https://git.bryanroessler.com/bryan/installJRMC/raw/master/installJRMC"
 # declare -g SCRIPT_URL="https://raw.githubusercontent.com/cryobry/installJRMC/refs/heads/master/installJRMC"
@@ -139,7 +139,7 @@ parse_input() {
         --install|-i)
           shift
           case $1 in
-            local|rpm|deb) BUILD_SWITCH=1; LOCAL_INSTALL_SWITCH=1 ;;
+            local|rpm|deb) BUILD_SWITCH=1 LOCAL_INSTALL_SWITCH=1 ;;
             repo|remote) REPO_INSTALL_SWITCH=1 ;;
             container) CONTAINER_INSTALL_SWITCH=1 ;;
             snap) SNAP_INSTALL_SWITCH=1 ;;
@@ -150,27 +150,28 @@ parse_input() {
         --build|-b) BUILD_SWITCH=1; shift; BUILD_TARGET="$1" ;;
         --outputdir) shift; OUTPUT_DIR="$1" ;;
         --mcversion) shift;
-          if [[ $1 =~ ^[0-9]+\.[0-9]+\.[0-9]+-[0-9]+$ ]]; then
-            USER_MC_VERSION="${1%-*}"
-            USER_MC_RELEASE="${1#*-}"
-          elif [[ $1 =~ ^[0-9]+\.[0-9]+\.[0-9]+$ ]]; then
-            USER_MC_VERSION="$1"
-          elif [[ $1 =~ ^[0-9][0-9]$ ]]; then
-            case $1 in
-              33) ;; # use update check to determine latest version
-              32) USER_MC_VERSION="32.0.58" ;;
-              31) USER_MC_VERSION="31.0.83" ;;
-              30) USER_MC_VERSION="30.0.96" ;;
-              29) USER_MC_VERSION="29.0.91" ;;
-              28) USER_MC_VERSION="28.0.110" ;;
-              27) USER_MC_VERSION="27.0.88" ;;
-              26) USER_MC_VERSION="26.0.107" ;;
-              25) USER_MC_VERSION="25.0.114" ;;
-              24) USER_MC_VERSION="24.0.78" ;;
-              23) USER_MC_VERSION="23.0.104" ;;
-              22) USER_MC_VERSION="22.0.102" ;;
-              21) USER_MC_VERSION="21.0.90" ;;
-              20) USER_MC_VERSION="20.0.131" ;;
+          if [[ $1 =~ ^([0-9]+)(\.[0-9]+\.[0-9]+)?(-([0-9]+))?$ ]]; then
+            # If we get the full version, use it
+            [[ -n ${BASH_REMATCH[2]} ]] && USER_MC_VERSION="${BASH_REMATCH[1]}${BASH_REMATCH[2]}"
+            USER_MC_RELEASE="${BASH_REMATCH[4]:-1}"
+            
+            # Set major version defaults
+            case "${BASH_REMATCH[1]}" in
+              34) MC_VERSION="${USER_MC_VERSION:-$MC_VERSION}" MC_REPO="bookworm" BOARD_ID="89.0" ;;
+              33) MC_VERSION="${USER_MC_VERSION:-33.0.72}" MC_REPO="bullseye" BOARD_ID="86.0" ;;
+              32) MC_VERSION="${USER_MC_VERSION:-32.0.58}" MC_REPO="bullseye" BOARD_ID="83.0" ;;
+              31) MC_VERSION="${USER_MC_VERSION:-31.0.83}" MC_REPO="bullseye" BOARD_ID="80.0" ;;
+              30) MC_VERSION="${USER_MC_VERSION:-30.0.96}" MC_REPO="buster" BOARD_ID="76.0" ;;
+              29) MC_VERSION="${USER_MC_VERSION:-29.0.91}" MC_REPO="buster" BOARD_ID="74.0" ;;
+              28) MC_VERSION="${USER_MC_VERSION:-28.0.110}" MC_REPO="buster" BOARD_ID="71.0" ;;
+              27) MC_VERSION="${USER_MC_VERSION:-27.0.88}"  MC_REPO="buster" BOARD_ID="67.0" ;;
+              26) MC_VERSION="${USER_MC_VERSION:-26.0.107}" MC_REPO="jessie" BOARD_ID="64.0" ;;
+              25) MC_VERSION="${USER_MC_VERSION:-25.0.114}" MC_REPO="jessie" BOARD_ID="62.0" ;;
+              24) MC_VERSION="${USER_MC_VERSION:-24.0.78}" MC_REPO="jessie" BOARD_ID="58.0" ;;
+              23) MC_VERSION="${USER_MC_VERSION:-23.0.104}" MC_REPO="jessie" BOARD_ID="54.0" ;;
+              22) MC_VERSION="${USER_MC_VERSION:-22.0.102}" MC_REPO="jessie" BOARD_ID="51.0" ;;
+              21) MC_VERSION="${USER_MC_VERSION:-21.0.90}" MC_REPO="jessie" BOARD_ID="44.0" ;;
+              20) MC_VERSION="${USER_MC_VERSION:-20.0.131}" MC_REPO="jessie" BOARD_ID="35.0";;
               *) err "Bad --mcversion"; print_help; exit 1 ;;
             esac
           else
@@ -212,11 +213,6 @@ parse_input() {
     [[ ${#SERVICES[@]} -eq 0 && ${#CONTAINERS[@]} -eq 0 ]]; then
     debug "Automatically using --install=repo"
     REPO_INSTALL_SWITCH=1
-  fi
-
-  # Print some warnings for unsupported argument combinations
-  if [[ -n $USER_MC_REPO ]] && ((LOCAL_INSTALL_SWITCH)); then
-    err "--install=local is incompatible with --mcrepo as only the default ($MC_REPO) DEB is available"
   fi
 
   if [[ -n $BETA_PASS ]] && ((REPO_INSTALL_SWITCH)); then
@@ -341,20 +337,9 @@ init() {
   BUILD_TARGET="${BUILD_TARGET:-$ID}"
   CREATEREPO_TARGET="${CREATEREPO_TARGET:-$ID}"
 
-  # Match the MC repo to the system codename
-  if [[ -z $USER_MC_REPO && ($ID == debian || $ID == ubuntu) ]]; then
+  # Match the MC repo to the host unless specified by user
+  if [[ $ID =~ debian|ubuntu && -z $USER_MC_REPO && -z $USER_MC_VERSION ]]; then
     MC_REPO=${UBUNTU_CODENAME:-${VERSION_CODENAME:-$MC_REPO}}
-  fi
-
-  # Use the correct repo for legacy MC versions
-  if [[ -n $USER_MC_VERSION ]]; then
-    case ${USER_MC_VERSION%%.*} in # get MVERSION from user input
-      2[0-6]) USER_MC_REPO="jessie" ;;
-      2[7-9]|30) USER_MC_REPO="buster" ;;
-      31) USER_MC_REPO="bullseye" ;;
-      # After this point, things get messy with multiple repos for the same MC version
-      # Just use the default repo
-    esac
   fi
 
   # Set distro-specific package manager commands for normalized IDs
@@ -401,12 +386,11 @@ init() {
   # Don't check for latest MC version if set by user or using --install=repo only
   if [[ -z $USER_MC_VERSION ]] \
   && ((BUILD_SWITCH || LOCAL_INSTALL_SWITCH || CREATEREPO_SWITCH)); then
-    # Retrieves the latest MC version number from the specified MC_REPO
-    get_latest_mc_version "${USER_MC_REPO:-$MC_REPO}"
+    # Retrieves the latest MC version number
+    get_latest_mc_version
   fi
   
   # Set MC version variables
-  MC_REPO="${USER_MC_REPO:-$MC_REPO}"
   MC_VERSION="${USER_MC_VERSION:-$MC_VERSION}"
   MC_RELEASE="${USER_MC_RELEASE:-1}"
   MC_MVERSION="${MC_VERSION%%.*}"
@@ -421,14 +405,11 @@ init() {
       debian|ubuntu) MC_PKG+="=$MC_VERSION" ;;
     esac
   fi
-
-  debug "MC repository: $MC_REPO"
 }
 
 # @description Determines the latest JRiver MC version using several methods
-# @arg $1 string MC repository name
 get_latest_mc_version() {
-  debug "Running: ${FUNCNAME[0]}" "$*"
+  debug "Running: ${FUNCNAME[0]}"
   local cnt mc_version_source
 
   # Use generalized containerized package manager to determine latest MC version
@@ -439,7 +420,7 @@ get_latest_mc_version() {
     cat <<-EOF > /etc/apt/sources.list.d/jriver.sources
 			Types: deb
 			URIs: https://dist.jriver.com/latest/mediacenter/
-			Suites: '"$1"'
+			Suites: '"${USER_MC_REPO:-$MC_REPO}"'
 			Components: main
 			Architectures: amd64,armhf,arm64
 		EOF
@@ -449,7 +430,7 @@ get_latest_mc_version() {
     mc_version_source="containerized package manager"
     execute buildah rm "$cnt"
   # Fallback to webscrape
-  elif MC_VERSION=$(download "$BOARD_URL" "-" | grep -Eo '[0-9]+\.[0-9]+\.[0-9]+' | head -n 1) &&
+  elif MC_VERSION=$(download "https://yabb.jriver.com/interact/index.php/board,$BOARD_ID.html" "-" | grep -Eo '[0-9]+\.[0-9]+\.[0-9]+' | head -n 1) &&
   [[ $MC_VERSION =~ ^[0-9]+\.[0-9]+\.[0-9]+$ ]]; then
     mc_version_source="webscrape"
   # Fallback to hardcoded value
@@ -458,7 +439,7 @@ get_latest_mc_version() {
     err "Warning! Using hardcoded version number"
   fi
   
-  echo "Using latest MC version $MC_VERSION from the $MC_REPO repo (determined by $mc_version_source)"
+  echo "Using latest MC version $MC_VERSION from the ${USER_MC_REPO:-$MC_REPO} repo (determined by $mc_version_source)"
 }
 
 # @description Installs a package using the system package manager
@@ -664,7 +645,7 @@ install_mc_repo() {
 					Types: deb
 					URIs: https://dist.jriver.com/$channel/mediacenter/
 					Signed-By: $keyfile
-					Suites: $MC_REPO
+					Suites: ${USER_MC_REPO:-$MC_REPO}
 					Components: main
 					Architectures: amd64,i386,armhf,arm64
 				EOF
@@ -675,7 +656,7 @@ install_mc_repo() {
         else
           repo_file="/etc/apt/sources.list.d/jriver.list"
         fi
-        repo_text="deb [signed-by=$keyfile arch=amd64,i386,armhf,arm64] https://dist.jriver.com/$channel/mediacenter/ $MC_REPO main"
+        repo_text="deb [signed-by=$keyfile arch=amd64,i386,armhf,arm64] https://dist.jriver.com/$channel/mediacenter/ ${USER_MC_REPO:-$MC_REPO} main"
       fi
       echo "Installing JRiver Media Center GPG key"
       download "https://dist.jriver.com/mediacenter@jriver.com.gpg.key" "-" | 
@@ -1350,8 +1331,8 @@ service_jriver-mediacenter() {
 
   open_firewall "jriver-mediacenter" "52100-52200/tcp" "1900/udp"
 
-  "${RELOAD[@]}" \
-  && "${ENABLE[@]}" "$SERVICE_NAME"
+  "${RELOAD[@]}" &&
+  "${ENABLE[@]}" "$SERVICE_NAME"
 }
 
 # @description Starts and enables (at startup) a JRiver Media Server service
@@ -1482,9 +1463,9 @@ service_jriver-x11vnc() {
 
   open_firewall "jriver-x11vnc" "$PORT/tcp"
 
-  "${RELOAD[@]}" \
-  && "${ENABLE[@]}" "$SERVICE_NAME" \
-  && echo "x11vnc running on localhost:$PORT"
+  "${RELOAD[@]}" &&
+  "${ENABLE[@]}" "$SERVICE_NAME" && 
+  echo "x11vnc running on localhost:$PORT"
 }
 
 # @description Starts and enables (at startup) an hourly service to build the latest version of
@@ -1523,8 +1504,8 @@ service_jriver-createrepo() {
 		WantedBy=timers.target
 	EOF"
 
-  "${RELOAD[@]}" \
-  && "${ENABLE[@]}" "$TIMER_NAME"
+  "${RELOAD[@]}" &&
+  "${ENABLE[@]}" "$TIMER_NAME"
 }
 
 # @description Detects if MC is installed on btrfs and disables CoW
