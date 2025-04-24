@@ -402,8 +402,6 @@ init() {
   MC_RPM="$OUTPUT_DIR/RPMS/$ARCH/mediacenter$MC_MVERSION-$MC_VERSION-$MC_RELEASE.$ARCH.rpm"
   MC_ROOT="/usr/lib/jriver/Media Center $MC_MVERSION"
 
-  echo "$MC_MVERSION"; exit 1
-
   # Generate explicit package name
   if [[ -n $USER_MC_VERSION ]]; then
     # Append explicit package version when user provides --mcversion
@@ -434,9 +432,7 @@ get_latest_mc_version() {
 			Architectures: '"$MC_ARCH"'
 		EOF
     apt-get update --allow-insecure-repositories' &&
-  echo "MC_MVERSION=$MC_MVERSION" &&
-  MC_VERSION=$(sudo buildah run "$cnt" -- apt-cache policy "mediacenter$MC_MVERSION" | grep Candidate | awk '{print $2}' | sort -V | tail -n1) &&
-  echo "MC_VERSION: $MC_VERSION" &&
+  MC_VERSION=$(sudo buildah run "$cnt" -- apt-cache policy "mediacenter${USER_MC_MVERSION:-${MC_VERSION%%.*}}" | grep Candidate | awk '{print $2}' | sort -V | tail -n1) &&
   [[ $MC_VERSION =~ ^[0-9]+\.[0-9]+\.[0-9]+$ ]]; then
     mc_version_source="containerized package manager"
     execute sudo buildah rm "$cnt"
