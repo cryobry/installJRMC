@@ -387,6 +387,7 @@ init() {
     MC_REPO=${UBUNTU_CODENAME:-${VERSION_CODENAME:-$MC_REPO}}
   fi
   MC_REPO="${USER_MC_REPO:-$MC_REPO}" # allow user override
+  debug "MC_REPO: $MC_REPO"
 
   # Don't check for latest MC version if set by user or using --install=repo only
   if [[ -z $USER_MC_VERSION ]] &&
