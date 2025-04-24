@@ -432,21 +432,25 @@ get_latest_mc_version() {
   local cnt mc_version_source
 
   # Use generalized containerized package manager to determine latest MC version
-  if install_package --silent buildah \
-  && cnt=$(buildah from --quiet alpine:edge 2>/dev/null) \
-  && buildah run "$cnt" -- sh -c \
-    "apk add apt" &>/dev/null \
-  && buildah run "$cnt" -- sh -c \
-    "echo 'deb [trusted=no arch=amd64,i386,armhf,arm64] https://dist.jriver.com/latest/mediacenter/ $1 main' > /etc/apt/sources.list 2>&1" &>/dev/null \
-  && buildah run "$cnt" -- sh -c \
-    "apt update --allow-insecure-repositories &>/dev/null" &>/dev/null \
-  && MC_VERSION=$(buildah run "$cnt" -- apt-cache policy mediacenter?? | grep Candidate | awk '{print $2}' | sort -V | tail -n1) &>/dev/null \
-  && [[ $MC_VERSION =~ ^[0-9]+\.[0-9]+\.[0-9]+ ]]; then
+  if install_package --silent buildah && 
+  cnt=$(buildah from --quiet alpine:edge 2>/dev/null) &&
+  buildah run "$cnt" -- sh -c "apk add apt" &>/dev/null &&
+  buildah run "$cnt" -- sh -c \
+    "cat <<-EOF > /etc/apt/sources.list.d/dist.jriver.com.sources
+			Types: deb
+			URIs: https://dist.jriver.com/latest/mediacenter/
+			Suites: $1
+			Components: main
+		EOF" &>/dev/null &&
+  buildah run "$cnt" -- sh -c \
+    "apt update --allow-insecure-repositories &>/dev/null" &>/dev/null &&
+  MC_VERSION=$(buildah run "$cnt" -- apt-cache policy mediacenter?? | grep Candidate | awk '{print $2}' | sort -V | tail -n1) &>/dev/null &&
+  [[ $MC_VERSION =~ ^[0-9]+\.[0-9]+\.[0-9]+ ]]; then
     mc_version_source="containerized package manager"
     execute buildah rm "$cnt"
   # Fallback to webscrape
-  elif MC_VERSION=$(download "$BOARD_URL" "-" | grep -o "[0-9][0-9]\.[0-9]\.[0-9]\+" | head -n 1) \
-  && [[ $MC_VERSION =~ ^[0-9]+\.[0-9]+\.[0-9]+ ]]; then
+  elif MC_VERSION=$(download "$BOARD_URL" "-" | grep -o "[0-9][0-9]\.[0-9]\.[0-9]\+" | head -n 1) &&
+  [[ $MC_VERSION =~ ^[0-9]+\.[0-9]+\.[0-9]+ ]]; then
     mc_version_source="webscrape"
   # Fallback to hardcoded value
   else
