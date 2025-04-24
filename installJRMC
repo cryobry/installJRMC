@@ -781,7 +781,7 @@ acquire_deb_new() {
   fi
 
   # Define the repositories to search
-  cnt=$(buildah from --quiet alpine:edge) &&
+  cnt=$(sudo buildah from --quiet alpine:edge) &&
   buildah run "$cnt" -- sh -c '
     apk add apt &>/dev/null
     mkdir -p /download
