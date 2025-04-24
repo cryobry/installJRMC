@@ -32,7 +32,7 @@ declare -gi DEBUG=${DEBUG:-0} # set default debug and allow DEBUG env override (
 
 # @description Print help text
 print_help() {
-  debug "Running: ${FUNCNAME[0]}"
+  debug "${FUNCNAME[0]}()"
 
   cat <<-EOF
 		USAGE:
@@ -117,7 +117,7 @@ print_help() {
 # @description Parses user input and sets sensible defaults
 # @arg $@ User input
 parse_input() {
-  debug "Running: ${FUNCNAME[0]} $*"
+  debug "${FUNCNAME[0]}()" "$@"
   declare -gi BUILD_SWITCH REPO_INSTALL_SWITCH LOCAL_INSTALL_SWITCH \
     CONTAINER_INSTALL_SWITCH CREATEREPO_SWITCH SNAP_INSTALL_SWITCH \
     APPIMAGE_INSTALL_SWITCH COMPAT_SWITCH UNINSTALL_SWITCH YES_SWITCH DEBUG=0
@@ -231,7 +231,7 @@ parse_input() {
 # @description Perform OS detection and generate OS-specific functions
 # @see parse_input
 init() {
-  debug "Running: ${FUNCNAME[0]}"
+  debug "${FUNCNAME[0]}()"
   declare -g USER
   declare -g SCRIPT_PATH; SCRIPT_PATH=$(readlink -f "${BASH_SOURCE[0]}")
   declare -g SCRIPT_DIR; SCRIPT_DIR=$(readlink -f "$(dirname "${BASH_SOURCE[0]}")")
@@ -415,7 +415,7 @@ init() {
 
 # @description Determines the latest JRiver MC version using several methods
 get_latest_mc_version() {
-  debug "Running: ${FUNCNAME[0]}"
+  debug "${FUNCNAME[0]}()"
   local mc_version_source
 
   # Containerized package manager
@@ -444,7 +444,7 @@ get_latest_mc_version() {
 # @option --allow-downgrades Useful for installing specific MC versions
 # @option --silent | -s Do not print errors (useful for optional packages)
 install_package() {
-  debug "Running: ${FUNCNAME[0]}" "$@"
+  debug "${FUNCNAME[0]}()" "$@"
   local -a pkg_array install_flags
   local -A pkg_aliases
   local input pkg _pkg
@@ -532,7 +532,7 @@ install_package() {
 
 # @description install host-specific external repos
 install_external_repos() {
-  debug "Running: ${FUNCNAME[0]}"
+  debug "${FUNCNAME[0]}()"
 
   case $ID in
     ubuntu)
@@ -582,7 +582,7 @@ install_external_repos() {
 
 # @description Installs mesa-va-drivers-freeworld
 install_mesa_freeworld() {
-  debug "Running: ${FUNCNAME[0]}"
+  debug "${FUNCNAME[0]}()"
   local pkg freeworld_pkg
   for pkg in mesa-va-drivers mesa-vdpau-drivers mesa-vulkan-drivers; do
     freeworld_pkg="${pkg}-freeworld"
@@ -600,7 +600,7 @@ install_mesa_freeworld() {
 
 # @description Installs JRiver Media Center from a remote repository
 install_mc_repo() {
-  debug "Running: ${FUNCNAME[0]}"
+  debug "${FUNCNAME[0]}()"
   local repo_file repo_text channel
 
   case $ID in
@@ -686,7 +686,7 @@ install_mc_repo() {
 
 # @description Acquires the source DEB package from JRiver
 acquire_deb() {
-  debug "Running: ${FUNCNAME[0]}"
+  debug "${FUNCNAME[0]}()"
   declare -g MC_SOURCE
   local fname
 
@@ -740,7 +740,7 @@ acquire_deb() {
 }
 
 acquire_deb_new() {
-  debug "Running: ${FUNCNAME[0]}"
+  debug "${FUNCNAME[0]}()"
   declare -g MC_SOURCE
   local fname mnt
 
@@ -804,7 +804,7 @@ acquire_deb_new() {
 
 # @description Creates a SPEC file and builds the RPM from the source DEB using rpmbuild
 build_rpm() {
-  debug "Running: ${FUNCNAME[0]}"
+  debug "${FUNCNAME[0]}()"
 
   local i rpmbuild_cmd stub
   local -a requires recommends
@@ -991,7 +991,7 @@ build_rpm() {
 
 # @description Installs Media Center via DEB package w/ optional compatability fixes
 install_mc_deb() {
-  debug "Running: ${FUNCNAME[0]}"  
+  debug "${FUNCNAME[0]}()"  
 
   if ((COMPAT_SWITCH)); then
     local extract_dir; extract_dir="$(mktemp -d)"
@@ -1036,13 +1036,13 @@ install_mc_deb() {
 
 # @description Installs MC via RPM package
 install_mc_rpm() {
-  debug "Running: ${FUNCNAME[0]}"
+  debug "${FUNCNAME[0]}()"
   install_package --no-install-check --no-gpg-check --allow-downgrades "$MC_RPM"
 }
 
 # @description Installs Media Center generically for unsupported OSes
 install_mc_generic() {
-  debug "Running: ${FUNCNAME[0]}"
+  debug "${FUNCNAME[0]}()"
   local extract_dir
   local -a raw_files
 
@@ -1070,7 +1070,7 @@ install_mc_generic() {
 
 # @description Installs MC via PKGBUILD
 install_mc_arch() {
-  debug "Running: ${FUNCNAME[0]}"
+  debug "${FUNCNAME[0]}()"
 
   [[ -d $OUTPUT_DIR/PKGBUILD ]] || execute mkdir -p "$OUTPUT_DIR/PKGBUILD"
 
@@ -1119,7 +1119,7 @@ install_mc_arch() {
 
 # @description Copy the RPM to createrepo-webroot and run createrepo as the createrepo-user
 run_createrepo() {
-  debug "Running: ${FUNCNAME[0]}"
+  debug "${FUNCNAME[0]}()"
   local -a cr_cmd
 
   install_package createrepo_c
@@ -1162,7 +1162,7 @@ run_createrepo() {
 
 # @description Symlink certificates if they do not exist in default location
 link_ssl_certs() {
-  debug "Running: ${FUNCNAME[0]}"
+  debug "${FUNCNAME[0]}()"
   local target_cert f
   local mc_cert_link="$MC_ROOT/ca-certificates.crt"
   local -a source_certs=(
@@ -1186,7 +1186,7 @@ link_ssl_certs() {
 
 # @description Restore the mjr license file from MJR_FILE or other common locations
 restore_license() {
-  debug "Running: ${FUNCNAME[0]}"
+  debug "${FUNCNAME[0]}()"
   local newest f
   local -a mjrfiles
 
@@ -1226,7 +1226,7 @@ restore_license() {
 # @arg $1 string Service name
 # @arg $2 array List of ports in firewall-cmd format
 open_firewall() {
-  debug "Running: ${FUNCNAME[0]}" "$*"
+  debug "${FUNCNAME[0]}()" "$@"
   local service="$1"
   shift
   local -a f_ports=("$@") # for firewall-cmd
@@ -1264,7 +1264,7 @@ open_firewall() {
 # @description Create the xvnc or x11vnc password file
 # @arg $1 string Service type (xvnc, x11vnc)
 set_vnc_pass() {
-  debug "Running: ${FUNCNAME[0]}"
+  debug "${FUNCNAME[0]}()"
   local vncpassfile="$HOME/.vnc/jrmc_passwd"
 
   [[ -d ${vncpassfile%/*} ]] || execute mkdir -p "${vncpassfile%/*}"
@@ -1293,7 +1293,7 @@ set_vnc_pass() {
 
 # @description Set display and port variables
 set_display_vars() {
-  debug "Running: ${FUNCNAME[0]}"
+  debug "${FUNCNAME[0]}()"
   declare -g THIS_DISPLAY THIS_DISPLAY_NUM NEXT_DISPLAY
 
   # Check USER_DISPLAY, else environment DISPLAY, else set to :0
@@ -1312,7 +1312,7 @@ set_display_vars() {
 # @description Create associated service variables based on service name
 # @arg $1 string Service name
 set_service_vars() {
-  debug "Running: ${FUNCNAME[0]}" "$*"
+  debug "${FUNCNAME[0]}()" "$@"
   declare -g SERVICE_NAME SERVICE_FNAME TIMER_NAME TIMER_FNAME 
   declare -g USER_STRING GRAPHICAL_TARGET
   declare -ga RELOAD ENABLE DISABLE IS_ENABLED IS_ACTIVE
@@ -1363,7 +1363,7 @@ set_service_vars() {
 # @description Starts and enables (at startup) a JRiver Media Center service
 # @arg $1 string Passes arguments as startup options to /usr/bin/mediacenter??
 service_jriver-mediacenter() {
-  debug "Running: ${FUNCNAME[0]}"
+  debug "${FUNCNAME[0]}()"
 
   set_service_vars "${FUNCNAME[0]##*_}" "user"
 
@@ -1394,7 +1394,7 @@ service_jriver-mediacenter() {
 
 # @description Starts and enables (at startup) a JRiver Media Server service
 service_jriver-mediaserver() {
-  debug "Running: ${FUNCNAME[0]}"
+  debug "${FUNCNAME[0]}()"
   set_service_vars "${FUNCNAME[0]##*_}" "user"
   service_jriver-mediacenter "/MediaServer"
 }
@@ -1402,7 +1402,7 @@ service_jriver-mediaserver() {
 # @description Starts and enables (at startup) JRiver Media Center in a new Xvnc session
 # TODO https://github.com/TigerVNC/tigervnc/blob/master/unix/vncserver/HOWTO.md
 service_jriver-xvnc() {
-  debug "Running: ${FUNCNAME[0]}"
+  debug "${FUNCNAME[0]}()"
   local -a start_cmd
 
   set_service_vars "${FUNCNAME[0]##*_}" "system"
@@ -1467,7 +1467,7 @@ service_jriver-xvnc() {
 
 # @description Starts and enables (at startup) x11vnc screen sharing for the local desktop
 service_jriver-x11vnc() {
-  debug "Running: ${FUNCNAME[0]}"
+  debug "${FUNCNAME[0]}()"
   local -a start_cmd
   set_service_vars "${FUNCNAME[0]##*_}" "user"
   set_display_vars
@@ -1528,7 +1528,7 @@ service_jriver-x11vnc() {
 # @description Starts and enables (at startup) an hourly service to build the latest version of
 # JRiver Media Center RPM from the source DEB and create/update an RPM repository
 service_jriver-createrepo() {
-  debug "Running: ${FUNCNAME[0]}"
+  debug "${FUNCNAME[0]}()"
 
   if [[ $CREATEREPO_USER != "$USER" ]]; then
     USER="root" set_service_vars "${FUNCNAME[0]##*_}" "system"
@@ -1567,7 +1567,7 @@ service_jriver-createrepo() {
 
 # @description Detects if MC is installed on btrfs and disables CoW
 disable_btrfs_cow() {
-  debug "Running: ${FUNCNAME[0]}"
+  debug "${FUNCNAME[0]}()"
   local dir 
   local mc_user_path="$HOME/.jriver"
 
@@ -1583,7 +1583,7 @@ disable_btrfs_cow() {
 
 # @description Completely uninstalls MC, services, and firewall rules
 uninstall() {
-  debug "Running: ${FUNCNAME[0]}"
+  debug "${FUNCNAME[0]}()"
   local service type unit f
 
   echo "Stopping and removing all Media Center services"
@@ -1652,7 +1652,7 @@ uninstall() {
 
 # @description Checks for installJRMC update and re-executes, if necessary
 update() {
-  debug "Running: ${FUNCNAME[0]} $*"
+  debug "${FUNCNAME[0]}()" "$@"
   debug "Checking for installJRMC update"
 
   # Extract and normalize version from a script
@@ -1736,7 +1736,7 @@ update() {
 
 # @description installJRMC main function
 main() {
-  debug "Running: ${FUNCNAME[0]} $*"
+  debug "${FUNCNAME[0]}()" "$@"
 
   echo "Starting installJRMC $SCRIPT_VERSION"
   if ((DEBUG)); then
@@ -1838,7 +1838,7 @@ execute() {
   fi
 }
 download() {
-  debug "Running: ${FUNCNAME[0]} $*"
+  debug "${FUNCNAME[0]}()" "$@"
   local url="$1"
   local output="${2:-}"
   local -a cmd
