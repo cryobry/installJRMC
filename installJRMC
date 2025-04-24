@@ -438,7 +438,7 @@ get_latest_mc_version() {
   buildah run "$cnt" -- sh -c \
     "cat <<-EOF > /etc/apt/sources.list.d/dist.jriver.com.sources
 			Types: deb
-			URIs: https://dist.jriver.com/latest/mediacenter/
+			URIs: https://dist.jriver.com/$channel/mediacenter/
 			Suites: $1
 			Components: main
 		EOF" &&
