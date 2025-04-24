@@ -276,7 +276,7 @@ init() {
     err "Failed to detect host arch, using default: $ARCH"
   fi
 
-  debug "Host: $ID $VERSION_ID $ARCH"
+  echo "Host: $ID $VERSION_ID $ARCH"
 
   # Parse user-provided architecture, allow either convention
   if [[ -n $USER_ARCH ]]; then
@@ -287,7 +287,7 @@ init() {
     esac
   fi
 
-  debug "Target: $ARCH (MC: $MC_ARCH)"
+  echo "Target: $ARCH (MC: $MC_ARCH)"
 
   # Normalize ID and set host-specific vars
   case $ID in
@@ -387,7 +387,7 @@ init() {
     MC_REPO=${UBUNTU_CODENAME:-${VERSION_CODENAME:-$MC_REPO}}
   fi
   MC_REPO="${USER_MC_REPO:-$MC_REPO}" # allow user override
-  debug "MC_REPO: $MC_REPO"
+  echo "Repository: $MC_REPO"
 
   # Don't check for latest MC version if set by user or using --install=repo only
   if [[ -z $USER_MC_VERSION ]] &&
