@@ -681,63 +681,8 @@ install_mc_repo() {
   fi
 }
 
-# # @description Acquires the source DEB package from JRiver (deprecated)
-# acquire_deb() {
-#   debug "${FUNCNAME[0]}()"
-#   declare -g MC_SOURCE
-#   local fname
-
-#   [[ -d $OUTPUT_DIR/SOURCES ]] || execute mkdir -p "$OUTPUT_DIR/SOURCES"
-
-#   # Usually JRiver excludes the release number from the filename
-#   # but in some cases (test builds) it may be included
-#   if [[ $MC_RELEASE -gt 1 ]]; then
-#     fname="MediaCenter-$MC_VERSION-$MC_RELEASE-$MC_ARCH.deb"
-#   else
-#     fname="MediaCenter-$MC_VERSION-$MC_ARCH.deb"
-#   fi
-
-#   declare -g MC_DEB="$OUTPUT_DIR/SOURCES/$fname"
-
-#   # If deb file already exists, skip download
-#   if [[ -f $MC_DEB ]]; then
-#     if [[ $(stat -c%s "$MC_DEB") -lt 10000000 ]]; then
-#       echo "Removing existing DEB under 10MB: $MC_DEB"
-#       execute rm "$MC_DEB"
-#     else
-#       echo "Using existing DEB: $MC_DEB"
-#       # Use dummy source since we don't know where it came from
-#       # TODO could attach source tag to filename
-#       MC_SOURCE="https://files.jriver-cdn.com/mediacenter/channels/v$MC_MVERSION/latest/$fname"
-#       return 0
-#     fi
-#   fi
-
-#   # Define the repositories to search
-#   local -a repos
-#   [[ -n $BETAPASS ]] && repos=("https://files.jriver-cdn.com/mediacenter/channels/v$MC_MVERSION/beta/$BETAPASS/$fname")
-#   repos+=(
-#     "https://files.jriver-cdn.com/mediacenter/channels/v$MC_MVERSION/latest/$fname"
-#     "https://files.jriver-cdn.com/mediacenter/test/$fname")
-
-#   # Loop through the repositories and attempt to download
-#   local found=0
-#   for repo in "${repos[@]}"; do
-#     echo "Checking $repo for DEB package"
-#     if download "$repo" "$MC_DEB"; then
-#       echo "Found"
-#       found=1
-#       MC_SOURCE="$repo"
-#       break
-#     fi
-#   done
-
-#   # Return if the download was successful
-#   ((found)) && [[ -f $MC_DEB ]]
-# }
-
 # @description Acquires the source DEB package from JRiver
-acquire_deb_new() {
+acquire_deb() {
   debug "${FUNCNAME[0]}()"
   declare -g MC_DEB MC_SOURCE
   local fname mnt
@@ -1019,6 +964,7 @@ install_mc_deb() {
     local major_version="${VERSION_ID%%.*}"
     local minor_version="${VERSION_ID##*.}"
     if (( major_version > 24 || (major_version == 24 && minor_version >= 4) )); then
+      echo "Temporarily adding jammy repository for libwebkit2gtk-4.0-37, etc."
       local repo_file="/etc/apt/sources.list.d/jammy.sources"
       echo "Creating repository file $repo_file for jammy"
       sudo bash -c "cat <<-EOF > $repo_file
@@ -1042,13 +988,13 @@ install_mc_deb() {
   --reinstall \
   "$MC_DEB"; then
     err "Local MC DEB installation failed"
-    ((remove_jammy)) && execute sudo rm -f "$repo_file"
+    ((remove_jammy)) && { echo "Removing jammy repo"; execute sudo rm -f "$repo_file"; }
     if ask_ok "Remove source DEB and retry"; then
       execute rm -f "$MC_DEB"
       exec "$SCRIPT_PATH" "$@" "--no-update"
     fi
   fi
-  ((remove_jammy)) && execute sudo rm -f "$repo_file"
+  ((remove_jammy)) && { echo "Removing jammy repo"; execute sudo rm -f "$repo_file"; }
 }
 
 # @description Installs MC via RPM package
@@ -1791,7 +1737,7 @@ main() {
   fi
 
   if ((BUILD_SWITCH)) && [[ $ID != "arch" ]]; then
-    acquire_deb_new || { err "Could not download Media Center DEB package"; return 1; }
+    acquire_deb || { err "Could not download Media Center DEB package"; return 1; }
 
     if [[ $BUILD_TARGET =~ centos|fedora|suse || $CREATEREPO_TARGET =~ centos|fedora|suse ]]; then
       install_package dpkg rpm-build
