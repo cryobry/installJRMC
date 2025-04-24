@@ -420,7 +420,7 @@ get_latest_mc_version() {
   # Use generalized containerized package manager to determine latest MC version
   if install_package --silent buildah && 
   cnt=$(sudo buildah from --quiet alpine:edge 2>/dev/null) &&
-  execute sudo buildah run "$cnt" -- sh -c '
+  sudo buildah run "$cnt" -- sh -c '
 		apk add --no-cache apt curl gnupg &>/dev/null
 		curl -fsSL https://dist.jriver.com/mediacenter@jriver.com.gpg.key | gpg --dearmor -o /usr/share/keyrings/jriver-com-archive-keyring.gpg
 		cat <<-EOF > /etc/apt/sources.list.d/jriver.sources
@@ -432,6 +432,7 @@ get_latest_mc_version() {
 			Architectures: '"$MC_ARCH"'
 		EOF
     apt-get update --allow-insecure-repositories' &&
+  echo "MC_MVERSION=$MC_MVERSION" &&
   MC_VERSION=$(sudo buildah run "$cnt" -- apt-cache policy "mediacenter$MC_MVERSION" | grep Candidate | awk '{print $2}' | sort -V | tail -n1) &&
   echo "MC_VERSION: $MC_VERSION" &&
   [[ $MC_VERSION =~ ^[0-9]+\.[0-9]+\.[0-9]+$ ]]; then
