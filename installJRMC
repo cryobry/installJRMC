@@ -426,6 +426,7 @@ get_latest_mc_version() {
 		cat <<-EOF > /etc/apt/sources.list.d/jriver.sources
 			Types: deb
 			URIs: https://dist.jriver.com/latest/mediacenter/
+			Signed-By: $keyfile
 			Suites: '"$MC_REPO"'
 			Components: main
 			Architectures: amd64 armhf arm64
