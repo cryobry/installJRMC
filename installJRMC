@@ -669,10 +669,7 @@ install_mc_repo() {
   debug "repo_text: $repo_text"
   sudo tee "$repo_file" &>/dev/null <<< "$repo_text"
 
-  if ! "${PKG_UPDATE[@]}"; then
-    err "Package update failed!"
-    return 1
-  fi
+  "${PKG_UPDATE[@]}" || { err "Package update failed!"; return 1; }
 
   if ! install_package \
     --no-install-check \
@@ -1019,20 +1016,20 @@ install_mc_deb() {
 
   # On Ubuntu 24.04+, add jammy repos for libwebkit2gtk-4.0-37
   if [[ "$ID" == "ubuntu" ]]; then
-    major_version="${VERSION_ID%%.*}"
-    minor_version="${VERSION_ID##*.}"
+    local major_version="${VERSION_ID%%.*}"
+    local minor_version="${VERSION_ID##*.}"
     if (( major_version > 24 || (major_version == 24 && minor_version >= 4) )); then
-      repo_file="/etc/apt/sources.list.d/jammy.sources"
-      read -r -d '' repo_text <<-EOF
+      local repo_file="/etc/apt/sources.list.d/jammy.sources"
+      echo "Creating repository file $repo_file for jammy"
+      sudo bash -c "cat <<-EOF > $repo_file
 				Types: deb
 				URIs: https://archive.ubuntu.com/ubuntu
 				Suites: jammy
 				Components: main
 				Architectures: $MC_ARCH
 				Signed-By: /usr/share/keyrings/ubuntu-archive-keyring.gpg
-			EOF
-      echo "Creating repository file at $repo_file for jammy"
-      sudo tee "$repo_file" >/dev/null <<< "$repo_text"
+			EOF"
+      "${PKG_UPDATE[@]}" || err "Package update failed!"
     fi
   fi
 
