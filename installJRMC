@@ -429,7 +429,7 @@ get_latest_mc_version() {
 			Components: main
 			Architectures: amd64 armhf arm64
 		EOF
-    apt update --allow-insecure-repositories &>/dev/null' &&
+    apt-get update -o Acquire::AllowInsecureRepositories=true &>/dev/null' &&
   MC_VERSION=$(buildah run "$cnt" -- apt-cache policy "mediacenter$MC_MVERSION" | grep Candidate | awk '{print $2}' | sort -V | tail -n1) &>/dev/null &&
   [[ $MC_VERSION =~ ^[0-9]+\.[0-9]+\.[0-9]+$ ]]; then
     mc_version_source="containerized package manager"
@@ -794,7 +794,7 @@ acquire_deb_new() {
 		EOF
     apt update --allow-insecure-repositories &>/dev/null
     cd /download
-    apt download "mediacenter'"$MC_MVERSION"'"' &&
+    apt-get download -t '"$MC_REPO"' -a '"$ARCH"' mediacenter'"$MC_MVERSION"'' &&
   sudo buildah copy "$cnt" /download/MediaCenter-"$MC_VERSION"*.deb "$OUTPUT_DIR/SOURCES/" &&
   sudo buildah rm "$cnt"
 
