@@ -382,8 +382,8 @@ init() {
   CREATEREPO_TARGET="${CREATEREPO_TARGET:-$ID}"
 
   # Repo selection
-  # Match newer MC repos to the host unless overriden by user
-  if [[ $ID =~ debian|ubuntu && $USER_MC_MVERSION -ge 31 ]]; then
+  # Match repo to the host on MC31+ unless overriden by user
+  if [[ $ID =~ debian|ubuntu && "${USER_MC_MVERSION:-${MC_VERSION%%.*}}" -lt 31 ]]; then
     MC_REPO=${UBUNTU_CODENAME:-${VERSION_CODENAME:-$MC_REPO}}
   fi
   MC_REPO="${USER_MC_REPO:-$MC_REPO}" # allow user override
