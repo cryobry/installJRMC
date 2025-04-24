@@ -441,7 +441,7 @@ get_latest_mc_version() {
 			URIs: https://dist.jriver.com/latest/mediacenter/
 			Suites: $1
 			Components: main
-		EOF" &>/dev/null &&
+		EOF" &&
   buildah run "$cnt" -- sh -c \
     "apt update --allow-insecure-repositories &>/dev/null" &>/dev/null &&
   MC_VERSION=$(buildah run "$cnt" -- apt-cache policy mediacenter?? | grep Candidate | awk '{print $2}' | sort -V | tail -n1) &>/dev/null &&
