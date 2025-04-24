@@ -430,7 +430,7 @@ get_latest_mc_version() {
 			Architectures: amd64,armhf,arm64
 		EOF
     apt update --allow-insecure-repositories &>/dev/null' &&
-  MC_VERSION=$(buildah run "$cnt" -- apt-cache policy mediacenter?? | grep Candidate | awk '{print $2}' | sort -V | tail -n1) &>/dev/null &&
+  MC_VERSION=$(buildah run "$cnt" -- apt-cache policy "mediacenter$MC_MVERSION" | grep Candidate | awk '{print $2}' | sort -V | tail -n1) &>/dev/null &&
   [[ $MC_VERSION =~ ^[0-9]+\.[0-9]+\.[0-9]+$ ]]; then
     mc_version_source="containerized package manager"
     execute buildah rm "$cnt"
