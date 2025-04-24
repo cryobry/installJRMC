@@ -431,7 +431,7 @@ get_latest_mc_version() {
 			Components: main
 			Architectures: '"$MC_ARCH"'
 		EOF
-    apt-get update --allow-insecure-repositories' &&
+    apt-get update --allow-insecure-repositories &>/dev/null' &&
   MC_VERSION=$(sudo buildah run "$cnt" -- apt-cache policy "mediacenter${USER_MC_MVERSION:-${MC_VERSION%%.*}}" | grep Candidate | awk '{print $2}' | sort -V | tail -n1) &&
   [[ $MC_VERSION =~ ^[0-9]+\.[0-9]+\.[0-9]+$ ]]; then
     mc_version_source="containerized package manager"
