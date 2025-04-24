@@ -770,8 +770,8 @@ acquire_deb_new() {
     fi
   fi
 
-  # Define the repositories to search
-  if ! (create_mc_apt_container "apt-get download --allow-unauthenticated mediacenter$MC_MVERSION" &&
+  # Download the deb file using the containerized package manager
+  if ! (create_mc_apt_container "apt-get -t $MC_REPO download --allow-unauthenticated mediacenter$MC_MVERSION" &&
   mnt="$(sudo buildah mount "$CNT")" &&
   execute sudo find "$mnt" -maxdepth 1 -type f -name "*.deb" -exec cp {} "$MC_DEB" \; &&
   execute sudo chown "$USER:$USER" "$MC_DEB" &&
