@@ -427,7 +427,7 @@ get_latest_mc_version() {
 			URIs: https://dist.jriver.com/latest/mediacenter/
 			Suites: '"$MC_REPO"'
 			Components: main
-			Architectures: amd64,armhf,arm64
+			Architectures: amd64 armhf arm64
 		EOF
     apt update --allow-insecure-repositories &>/dev/null' &&
   MC_VERSION=$(buildah run "$cnt" -- apt-cache policy "mediacenter$MC_MVERSION" | grep Candidate | awk '{print $2}' | sort -V | tail -n1) &>/dev/null &&
@@ -652,7 +652,7 @@ install_mc_repo() {
 					Signed-By: $keyfile
 					Suites: $MC_REPO
 					Components: main
-					Architectures: amd64,i386,armhf,arm64
+					Architectures: amd64 i386 armhf arm64
 				EOF
       else
         if [[ $channel == "beta" ]]; then
