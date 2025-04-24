@@ -1013,6 +1013,7 @@ install_mc_deb() {
   fi
 
   # On Ubuntu 24.04+, add jammy repos for libwebkit2gtk-4.0-37
+  local -i remove_jammy=0
   if [[ "$ID" == "ubuntu" ]]; then
     local major_version="${VERSION_ID%%.*}"
     local minor_version="${VERSION_ID##*.}"
@@ -1028,24 +1029,25 @@ install_mc_deb() {
 				Signed-By: /usr/share/keyrings/ubuntu-archive-keyring.gpg
 			EOF"
       "${PKG_UPDATE[@]}" || err "Package update failed!"
+      remove_jammy=1
     fi
   fi
 
   # Use --reinstall to make sure local package is installed over repo package
   if ! install_package \
-    --no-install-check \
-    --no-gpg-check \
-    --allow-downgrades \
-    --reinstall \
-    "$MC_DEB"; then
+  --no-install-check \
+  --no-gpg-check \
+  --allow-downgrades \
+  --reinstall \
+  "$MC_DEB"; then
     err "Local MC DEB installation failed"
+    ((remove_jammy)) && execute rm -f "$repo_file"
     if ask_ok "Remove source DEB and retry"; then
       execute rm -f "$MC_DEB"
       exec "$SCRIPT_PATH" "$@" "--no-update"
-    else
-      return 1
     fi
   fi
+  ((remove_jammy)) && execute rm -f "$repo_file"
 }
 
 # @description Installs MC via RPM package
