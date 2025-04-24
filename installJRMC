@@ -774,7 +774,8 @@ acquire_deb_new() {
   execute sudo chown "$USER:$USER" "$MC_DEB" &&
   execute sudo buildah umount "$CNT" &&
   execute sudo buildah rm "$CNT" &&
-  [[ -f $MC_DEB ]]); then
+  [[ -f $MC_DEB ]] &&
+  MC_SOURCE="https://files.jriver-cdn.com/mediacenter/channels/v$MC_MVERSION/latest/$fname"); then
     err "Failed to download DEB from containerized package manager"
     echo "Using legacy download method"
     # Define the repository search order
