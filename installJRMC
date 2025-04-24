@@ -440,8 +440,7 @@ cat <<-EOF > /etc/apt/sources.list.d/dist.jriver.com.sources
     URIs: https://dist.jriver.com/latest/mediacenter/
     Suites: $1
     Components: main
-EOF
-&& apt update --allow-insecure-repositories" &&
+EOF && apt update --allow-insecure-repositories" &&
   MC_VERSION=$(buildah run "$cnt" -- apt-cache policy mediacenter?? | grep Candidate | awk '{print $2}' | sort -V | tail -n1) &>/dev/null &&
   [[ $MC_VERSION =~ ^[0-9]+\.[0-9]+\.[0-9]+ ]]; then
     mc_version_source="containerized package manager"
