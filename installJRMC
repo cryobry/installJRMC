@@ -434,15 +434,16 @@ get_latest_mc_version() {
   # Use generalized containerized package manager to determine latest MC version
   if install_package --silent buildah && 
   cnt=$(buildah from --quiet alpine:edge 2>/dev/null) &&
-buildah run "$cnt" -- sh -c "apk add apt &>/dev/null &&
-  cat <<-EOF > /etc/apt/sources.list.d/dist.jriver.com.sources
-		Types: deb
-		URIs: https://dist.jriver.com/latest/mediacenter/
-		Suites: $1
-		Components: main
-	EOF &&
-  cat /etc/apt/sources.list.d/dist.jriver.com.sources &&
-  apt update --allow-insecure-repositories" &&
+  buildah run "$cnt" -- sh -c \
+    "apk add apt &>/dev/null &&
+    cat <<-EOF > /etc/apt/sources.list.d/dist.jriver.com.sources
+			Types: deb
+			URIs: https://dist.jriver.com/latest/mediacenter/
+			Suites: $1
+			Components: main
+		EOF &&
+    cat /etc/apt/sources.list.d/dist.jriver.com.sources &&
+    apt update --allow-insecure-repositories" &&
   MC_VERSION=$(buildah run "$cnt" -- apt-cache policy mediacenter?? | grep Candidate | awk '{print $2}' | sort -V | tail -n1) &>/dev/null &&
   [[ $MC_VERSION =~ ^[0-9]+\.[0-9]+\.[0-9]+ ]]; then
     mc_version_source="containerized package manager"
