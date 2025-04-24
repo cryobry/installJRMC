@@ -1853,7 +1853,6 @@ download() {
   "${cmd[@]}" "$url"
 }
 apt_mc_container() {
-  debug "Running: ${FUNCNAME[0]}"
   install_package --silent buildah && 
   cnt=$(sudo buildah from --quiet alpine:edge 2>/dev/null) &&
   sudo buildah run "$cnt" -- sh -c '
