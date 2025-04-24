@@ -738,7 +738,8 @@ acquire_deb() {
 
 acquire_deb_new() {
   debug "${FUNCNAME[0]}()"
-  declare -g MC_SOURCE
+  declare -g MC_DEB
+  declare -g MC_SOURCE="https://files.jriver-cdn.com/mediacenter/channels/v$MC_MVERSION/latest/$fname"
   local fname mnt
 
   [[ -d $OUTPUT_DIR/SOURCES ]] || execute mkdir -p "$OUTPUT_DIR/SOURCES"
@@ -751,7 +752,7 @@ acquire_deb_new() {
     fname="MediaCenter-$MC_VERSION-$MC_ARCH.deb"
   fi
 
-  declare -g MC_DEB="$OUTPUT_DIR/SOURCES/$fname"
+  MC_DEB="$OUTPUT_DIR/SOURCES/$fname"
 
   # If deb file already exists, skip download
   if [[ -f $MC_DEB ]]; then
@@ -760,9 +761,6 @@ acquire_deb_new() {
       execute rm "$MC_DEB"
     else
       echo "Using existing DEB: $MC_DEB"
-      # Use dummy source since we don't know where it came from
-      # TODO could attach source tag to filename
-      MC_SOURCE="https://files.jriver-cdn.com/mediacenter/channels/v$MC_MVERSION/latest/$fname"
       return 0
     fi
   fi
