@@ -421,9 +421,9 @@ get_latest_mc_version() {
   if install_package --silent buildah && 
   cnt=$(sudo buildah from --quiet alpine:edge 2>/dev/null) &&
   sudo buildah run "$cnt" -- sh -c '
-		apk add --no-cache apt curl gnupg &>/dev/null
-		curl -fsSL https://dist.jriver.com/mediacenter@jriver.com.gpg.key | gpg --dearmor -o /usr/share/keyrings/jriver-com-archive-keyring.gpg
-		cat <<-EOF > /etc/apt/sources.list.d/jriver.sources
+    apk add --no-cache apt curl gnupg &>/dev/null
+    curl -fsSL https://dist.jriver.com/mediacenter@jriver.com.gpg.key | gpg --dearmor -o /usr/share/keyrings/jriver-com-archive-keyring.gpg
+    cat <<-EOF > /etc/apt/sources.list.d/jriver.sources
 			Types: deb
 			URIs: https://dist.jriver.com/latest/mediacenter/
 			Signed-By: /usr/share/keyrings/jriver-com-archive-keyring.gpg
@@ -785,14 +785,16 @@ acquire_deb_new() {
   # Define the repositories to search
   cnt=$(sudo buildah from --quiet alpine:edge) &&
   sudo buildah run "$cnt" -- sh -c '
-    apk add apt &>/dev/null
+    apk add --no-cache apt curl gnupg &>/dev/null
+    curl -fsSL https://dist.jriver.com/mediacenter@jriver.com.gpg.key | gpg --dearmor -o /usr/share/keyrings/jriver-com-archive-keyring.gpg
     mkdir -p /download
     cat <<-EOF > /etc/apt/sources.list.d/jriver.sources
 			Types: deb
 			URIs: https://dist.jriver.com/latest/mediacenter/
+			Signed-By: /usr/share/keyrings/jriver-com-archive-keyring.gpg
 			Suites: '"$MC_REPO"'
 			Components: main
-			Architectures: amd64 armhf arm64
+			Architectures: '"$MC_ARCH"'
 		EOF
     apt-get update --allow-insecure-repositories &>/dev/null
     cd /download
