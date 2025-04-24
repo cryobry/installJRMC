@@ -715,7 +715,6 @@ acquire_deb() {
   mnt="$(sudo buildah mount "$CNT")" &&
   execute sudo find "$mnt" -maxdepth 1 -type f -name "*.deb" -exec cp {} "$MC_DEB" \; &&
   [[ -f $MC_DEB ]] &&
-  execute sudo chown "_apt:$USER" "$MC_DEB" &&
   execute sudo buildah umount "$CNT" &&
   execute sudo buildah rm "$CNT" &&
   MC_SOURCE="https://files.jriver-cdn.com/mediacenter/channels/v$MC_MVERSION/latest/$fname"; }; then
@@ -981,12 +980,12 @@ install_mc_deb() {
   fi
 
   # Copy the DEB to a temporary file so _apt can read it
-  debug "Creating temporary deb file owned byq _apt"
+  debug "Creating temporary deb file owned by _apt"
   local temp_deb
   temp_deb=$(mktemp --suffix=.deb)
   execute cp "$MC_DEB" "$temp_deb"
   execute sudo cp "$MC_DEB" "$temp_deb"
-  execute sudo chown _apt "$temp_deb"
+  id _apt &>/dev/null && execute sudo chown _apt "$temp_deb"
 
   # Use --reinstall to make sure local package is installed over repo package
   if ! install_package \
