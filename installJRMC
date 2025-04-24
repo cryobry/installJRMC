@@ -449,8 +449,8 @@ get_latest_mc_version() {
     mc_version_source="containerized package manager"
     execute buildah rm "$cnt"
   # Fallback to webscrape
-  elif MC_VERSION=$(download "$BOARD_URL" "-" | grep -o "[0-9][0-9]\.[0-9]\.[0-9]\+" | head -n 1) &&
-  [[ $MC_VERSION =~ ^[0-9]+\.[0-9]+\.[0-9]+ ]]; then
+  elif MC_VERSION=$(download "$BOARD_URL" "-" | grep -Eo '[0-9]+\.[0-9]+\.[0-9]+' | head -n 1) &&
+  [[ $MC_VERSION =~ ^[0-9]+\.[0-9]+\.[0-9]+$ ]]; then
     mc_version_source="webscrape"
   # Fallback to hardcoded value
   else
