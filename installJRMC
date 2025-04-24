@@ -948,14 +948,14 @@ install_mc_deb() {
     execute ar x "$MC_DEB"
     execute tar xJf "control.tar.xz"
     # Remove minimum version specifiers from control file
-    sed -i 's/ ([^)]*)//g' "control"
+    execute sed -i 's/ ([^)]*)//g' control
     # Remove libwebkit2gtk and their fantastic package versioning strategy
-    sed -i 's/,\s*libwebkit2gtk[^,]*,\?|libwebkit2gtk[^,]*,\?//g' "control"
+    execute sed -E -i 's/,[[:space:]]*libwebkit2gtk[^,]*(,|\?)?//g' control
 
     # TODO workaround for legacy ZorinOS
     [[ $ID == "ubuntu" && ${VERSION_ID%.*} -le 16 ]] &&
     grep -q zorin /etc/os-release &&
-    sed -i 's/libva2/libva1/g' "control"
+    execute sed -i 's/libva2/libva1/g' control
 
     execute tar -cJf "control.tar.xz" "control" "postinst"
     declare -g MC_DEB="${MC_DEB/.deb/.compat.deb}"
