@@ -983,7 +983,6 @@ install_mc_deb() {
   debug "Creating temporary deb file owned by _apt"
   local temp_deb
   temp_deb=$(mktemp --suffix=.deb)
-  execute cp "$MC_DEB" "$temp_deb"
   execute sudo cp "$MC_DEB" "$temp_deb"
   id _apt &>/dev/null && execute sudo chown _apt "$temp_deb"
 
@@ -1002,7 +1001,7 @@ install_mc_deb() {
     fi
   fi
   ((remove_jammy)) && { echo "Removing jammy repo"; execute sudo rm -f "$repo_file"; }
-  execute rm -f "$temp_deb"
+  execute sudo rm -f "$temp_deb"
 }
 
 # @description Installs MC via RPM package
