@@ -774,7 +774,7 @@ acquire_deb_new() {
   apt_mc_container &&
     execute sudo buildah run "$CNT" -- sh -c "
       apt-get download --allow-unauthenticated mediacenter$MC_MVERSION" &&
-    execute mnt="$(sudo buildah mount "$CNT")"
+    mnt="$(sudo buildah mount "$CNT")"
     execute sudo cp "$mnt"/*.deb "$MC_DEB" &&
     execute sudo buildah umount "$CNT" &&
     execute sudo buildah rm "$CNT"
