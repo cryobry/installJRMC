@@ -348,7 +348,7 @@ init() {
       PKG_INSTALL_LOCAL() { install_mc_rpm; }
       ;;
     debian|ubuntu)
-      PKG_INSTALL=(sudo apt-get -f install -y -q0)
+      PKG_INSTALL=(sudo apt-get -f install --install-recommends -y -q0)
       PKG_REMOVE=(sudo apt-get remove --auto-remove -y -q0)
       PKG_UPDATE=(sudo apt-get update -y -q0)
       PKG_QUERY=(dpkg -s)
