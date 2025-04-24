@@ -443,9 +443,7 @@ Suites: '"$1"'
 Components: main
 Architectures: amd64,armhf,arm64
 EOF
-cat /etc/apt/sources.list.d/jriver.sources
-apt update --allow-insecure-repositories
-' &&
+apt update --allow-insecure-repositories &>/dev/null' &&
   MC_VERSION=$(buildah run "$cnt" -- apt-cache policy mediacenter?? | grep Candidate | awk '{print $2}' | sort -V | tail -n1) &>/dev/null &&
   [[ $MC_VERSION =~ ^[0-9]+\.[0-9]+\.[0-9]+ ]]; then
     mc_version_source="containerized package manager"
