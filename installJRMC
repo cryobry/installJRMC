@@ -772,12 +772,12 @@ acquire_deb_new() {
   # Define the repositories to search
   local mnt
   apt_mc_container &&
-    execute sudo buildah run "$CNT" -- sh -c "
-      apt-get download --allow-unauthenticated mediacenter$MC_MVERSION" &&
+    sudo buildah run "$CNT" -- sh -c "
+      apt-get download --quiet --allow-unauthenticated mediacenter$MC_MVERSION" &&
     mnt="$(sudo buildah mount "$CNT")"
-    execute sudo cp "$mnt"/*.deb "$MC_DEB" &&
-    execute sudo buildah umount "$CNT" &&
-    execute sudo buildah rm "$CNT"
+    sudo cp "$mnt"/*.deb "$MC_DEB" &&
+    sudo buildah umount "$CNT" &&
+    sudo buildah rm "$CNT"
 
   # Return if the download was successful
   ((found)) && [[ -f $MC_DEB ]]
