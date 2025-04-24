@@ -441,6 +441,7 @@ Types: deb
 URIs: https://dist.jriver.com/latest/mediacenter/
 Suites: '"$1"'
 Components: main
+Architectures: amd64,armhf,arm64
 EOF
 cat /etc/apt/sources.list.d/jriver.sources
 apt update --allow-insecure-repositories
