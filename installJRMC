@@ -419,8 +419,8 @@ get_latest_mc_version() {
 
   # Use generalized containerized package manager to determine latest MC version
   if install_package --silent buildah && 
-  cnt=$(buildah from --quiet alpine:edge 2>/dev/null) &&
-  buildah run "$cnt" -- sh -c '
+  cnt=$(sudo buildah from --quiet alpine:edge 2>/dev/null) &&
+  sudo buildah run "$cnt" -- sh -c '
     apk add apt &>/dev/null
     cat <<-EOF > /etc/apt/sources.list.d/jriver.sources
 			Types: deb
@@ -430,10 +430,10 @@ get_latest_mc_version() {
 			Architectures: amd64 armhf arm64
 		EOF
     apt-get update --allow-insecure-repositories' &&
-  MC_VERSION=$(buildah run "$cnt" -- apt-cache policy "mediacenter$MC_MVERSION" | grep Candidate | awk '{print $2}' | sort -V | tail -n1) &>/dev/null &&
+  MC_VERSION=$(sudo buildah run "$cnt" -- apt-cache policy "mediacenter$MC_MVERSION" | grep Candidate | awk '{print $2}' | sort -V | tail -n1) &>/dev/null &&
   [[ $MC_VERSION =~ ^[0-9]+\.[0-9]+\.[0-9]+$ ]]; then
     mc_version_source="containerized package manager"
-    execute buildah rm "$cnt"
+    execute sudo buildah rm "$cnt"
   # Fallback to webscrape
   elif MC_VERSION=$(download "https://yabb.jriver.com/interact/index.php/board,$BOARD_ID.html" "-" | grep -Eo '[0-9]+\.[0-9]+\.[0-9]+' | head -n 1) &&
   [[ $MC_VERSION =~ ^[0-9]+\.[0-9]+\.[0-9]+$ ]]; then
