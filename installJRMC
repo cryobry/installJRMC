@@ -983,7 +983,8 @@ install_mc_deb() {
   # Copy the DEB to a temporary file so _apt can read it
   debug "Creating temporary deb file owned byq _apt"
   local temp_deb
-  temp_deb=$(mktemp)
+  temp_deb=$(mktemp --suffix=.deb)
+  execute cp "$MC_DEB" "$temp_deb"
   execute sudo cp "$MC_DEB" "$temp_deb"
   execute sudo chown _apt "$temp_deb"
 
