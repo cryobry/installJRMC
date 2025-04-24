@@ -715,7 +715,7 @@ acquire_deb() {
   mnt="$(sudo buildah mount "$CNT")" &&
   execute sudo find "$mnt/tmp" -maxdepth 1 -type f -name "*.deb" -exec cp {} "$MC_DEB" \; &&
   [[ -f $MC_DEB ]] &&
-  execute sudo chown "$USER:$USER" "$MC_DEB" &&
+  execute sudo chown "_apt:$USER" "$MC_DEB" &&
   execute sudo buildah umount "$CNT" &&
   execute sudo buildah rm "$CNT" &&
   MC_SOURCE="https://files.jriver-cdn.com/mediacenter/channels/v$MC_MVERSION/latest/$fname"; }; then
