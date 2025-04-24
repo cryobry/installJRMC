@@ -972,7 +972,6 @@ install_mc_deb() {
     --reinstall \
     "$MC_DEB"; then
     err "Local MC DEB installation failed"
-    err "Only the default MC repo can be used for --install=local"
     if ask_ok "Remove source DEB and retry"; then
       execute rm -f "$MC_DEB"
       exec "$SCRIPT_PATH" "$@" "--no-update"
