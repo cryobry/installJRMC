@@ -777,7 +777,7 @@ acquire_deb_new() {
   execute sudo find "$mnt" -maxdepth 1 -type f -name "*.deb" -exec cp {} "$MC_DEB" \; &&
   execute sudo chown "$USER:$USER" "$MC_DEB" &&
   execute sudo buildah umount "$CNT" &&
-  execute sudo buildah rm "$CNT" &&
+  #execute sudo buildah rm "$CNT" &&
   [[ -f $MC_DEB ]]); then
     err "Failed to download DEB from containerized package manager"
     echo "Using legacy download method"
