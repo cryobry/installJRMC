@@ -381,8 +381,8 @@ init() {
   BUILD_TARGET="${BUILD_TARGET:-$ID}"
   CREATEREPO_TARGET="${CREATEREPO_TARGET:-$ID}"
 
-  # Match the MC repo to the host unless specified by user
-  if [[ $ID =~ debian|ubuntu && -z $USER_MC_REPO && -z $USER_MC_MVERSION ]]; then
+  # Match newer MC repos to the host unless overriden by user
+  if [[ $ID =~ debian|ubuntu && (-z $USER_MC_REPO || $USER_MC_MVERSION -ge 31) ]]; then
     MC_REPO=${UBUNTU_CODENAME:-${VERSION_CODENAME:-$MC_REPO}}
   fi
 
@@ -725,14 +725,12 @@ acquire_deb() {
     fi
   fi
 
-  # Define the repositories to check
-  local repos=(
+  # Define the repositories to search
+  local -a repos
+  [[ -n $BETAPASS ]] && repos=("https://files.jriver-cdn.com/mediacenter/channels/v$MC_MVERSION/beta/$BETAPASS/$fname")
+  repos+=(
     "https://files.jriver-cdn.com/mediacenter/channels/v$MC_MVERSION/latest/$fname"
     "https://files.jriver-cdn.com/mediacenter/test/$fname")
-
-  if [[ -n $BETAPASS ]]; then
-    repos=("https://files.jriver-cdn.com/mediacenter/channels/v$MC_MVERSION/beta/$BETAPASS/$fname" "${repos[@]}")
-  fi
 
   # Loop through the repositories and attempt to download
   local found=0
@@ -953,9 +951,10 @@ install_mc_deb() {
     execute sed -E -i 's/,[[:space:]]*libwebkit2gtk[^,]*(,|\?)?//g' control
 
     # TODO workaround for legacy ZorinOS
-    [[ $ID == "ubuntu" && ${VERSION_ID%.*} -le 16 ]] &&
-    grep -q zorin /etc/os-release &&
-    execute sed -i 's/libva2/libva1/g' control
+    if [[ $ID == "ubuntu" && ${VERSION_ID%.*} -le 16 ]] &&
+    grep -q zorin /etc/os-release; then
+      execute sed -i 's/libva2/libva1/g' control
+    fi
 
     execute tar -cJf "control.tar.xz" "control" "postinst"
     declare -g MC_DEB="${MC_DEB/.deb/.compat.deb}"
