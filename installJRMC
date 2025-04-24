@@ -741,7 +741,7 @@ acquire_deb() {
 acquire_deb_new() {
   debug "Running: ${FUNCNAME[0]}"
   declare -g MC_SOURCE
-  local fname
+  local fname mnt
 
   [[ -d $OUTPUT_DIR/SOURCES ]] || execute mkdir -p "$OUTPUT_DIR/SOURCES"
 
@@ -770,17 +770,35 @@ acquire_deb_new() {
   fi
 
   # Define the repositories to search
-  local mnt
-  apt_mc_container &&
-    sudo buildah run "$CNT" -- sh -c "
-      apt-get download --quiet --allow-unauthenticated mediacenter$MC_MVERSION" &&
-    mnt="$(sudo buildah mount "$CNT")"
-    sudo find "$mnt" -maxdepth 1 -type f -name "*.deb" -exec cp {} "$MC_DEB" \;
-    sudo buildah umount "$CNT" &&
-    sudo buildah rm "$CNT"
+  if ! (apt_mc_container &&
+  sudo buildah run "$CNT" -- sh -c "
+    apt-get download --allow-unauthenticated mediacenter$MC_MVERSION" &&
+  mnt="$(sudo buildah mount "$CNT")"
+  execute sudo find "$mnt" -maxdepth 1 -type f -name "*.deb" -exec cp {} "$MC_DEB" \;
+  execute sudo buildah umount "$CNT" &&
+  execute sudo buildah rm "$CNT"); then
+    err "Failed to download DEB from containerized package manager"
+    echo "Using legacy download method"
+    # Define the repository search order
+    local -a repos
+    [[ -n $BETAPASS ]] && repos=("https://files.jriver-cdn.com/mediacenter/channels/v$MC_MVERSION/beta/$BETAPASS/$fname")
+    repos+=(
+      "https://files.jriver-cdn.com/mediacenter/channels/v$MC_MVERSION/latest/$fname"
+      "https://files.jriver-cdn.com/mediacenter/test/$fname")
+
+    # Loop through the repositories and attempt to download
+    for repo in "${repos[@]}"; do
+      echo "Checking $repo for DEB package"
+      if download "$repo" "$MC_DEB"; then
+        echo "Found"
+        MC_SOURCE="$repo"
+        break
+      fi
+    done
+  fi
 
   # Return if the download was successful
-  ((found)) && [[ -f $MC_DEB ]]
+  [[ -f $MC_DEB ]]
 }
 
 # @description Creates a SPEC file and builds the RPM from the source DEB using rpmbuild
@@ -1755,7 +1773,7 @@ main() {
   fi
 
   if ((BUILD_SWITCH)) && [[ $ID != "arch" ]]; then
-    acquire_deb_new || exit 1; acquire_deb || { err "Could not download Media Center DEB package"; return 1; }
+    acquire_deb_new || { err "Could not download Media Center DEB package"; return 1; }
 
     if [[ $BUILD_TARGET =~ centos|fedora|suse || $CREATEREPO_TARGET =~ centos|fedora|suse ]]; then
       install_package dpkg rpm-build
