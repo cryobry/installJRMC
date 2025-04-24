@@ -387,8 +387,8 @@ init() {
   fi
 
   # Don't check for latest MC version if set by user or using --install=repo only
-  if [[ -z $USER_MC_VERSION ]] \
-  && ((BUILD_SWITCH || LOCAL_INSTALL_SWITCH || CREATEREPO_SWITCH)); then
+  if [[ -z $USER_MC_VERSION ]] &&
+  ((BUILD_SWITCH || LOCAL_INSTALL_SWITCH || CREATEREPO_SWITCH)); then
     # Retrieves the latest MC version number
     get_latest_mc_version
   fi
@@ -497,18 +497,18 @@ install_package() {
       debug "Aliasing $pkg to ${pkg_aliases[$pkg]}"
       IFS=' ' read -ra pkgs <<< "${pkg_aliases[$pkg]}"
       for _pkg in "${pkgs[@]}"; do
-        if ((no_install_check)) \
-        || ! { command -v "$_pkg" &>/dev/null \
-        || "${PKG_QUERY[@]}" "$_pkg" &>/dev/null; }; then
+        if ((no_install_check)) ||
+        ! { command -v "$_pkg" &>/dev/null ||
+        "${PKG_QUERY[@]}" "$_pkg" &>/dev/null; }; then
           pkg_array+=("$_pkg")
         else
           debug "$_pkg is already installed, skipping installation"
         fi
       done
     else
-      if ((no_install_check)) \
-      || ! { command -v "$pkg" &>/dev/null \
-      || "${PKG_QUERY[@]}" "$pkg" &>/dev/null; }; then
+      if ((no_install_check)) ||
+      ! { command -v "$pkg" &>/dev/null ||
+      "${PKG_QUERY[@]}" "$pkg" &>/dev/null; }; then
         pkg_array+=("$pkg")
       else
         debug "$pkg is already installed, skipping installation"
@@ -628,8 +628,8 @@ install_mc_repo() {
       local major_version="${VERSION_ID%%.*}"
       local minor_version="${VERSION_ID##*.}"
       local keyfile="/usr/share/keyrings/jriver-com-archive-keyring.gpg"
-      if [[ $ID == "ubuntu" ]] \
-      && [[ $major_version -gt 24 || ($major_version -eq 24 && $minor_version -ge 10) ]]; then
+      if [[ $ID == "ubuntu" ]] &&
+      [[ $major_version -gt 24 || ($major_version -eq 24 && $minor_version -ge 10) ]]; then
         if [[ $channel == "beta" ]]; then
           repo_file="/etc/apt/sources.list.d/jriver-beta.sources"
         else
@@ -953,9 +953,9 @@ install_mc_deb() {
     sed -i 's/,\s*libwebkit2gtk[^,]*,\?|libwebkit2gtk[^,]*,\?//g' "control"
 
     # TODO workaround for legacy ZorinOS
-    [[ $ID == "ubuntu" && ${VERSION_ID%.*} -le 16 ]] \
-    && grep -q zorin /etc/os-release \
-    && sed -i 's/libva2/libva1/g' "control"
+    [[ $ID == "ubuntu" && ${VERSION_ID%.*} -le 16 ]] &&
+    grep -q zorin /etc/os-release &&
+    sed -i 's/libva2/libva1/g' "control"
 
     execute tar -cJf "control.tar.xz" "control" "postinst"
     declare -g MC_DEB="${MC_DEB/.deb/.compat.deb}"
@@ -1075,8 +1075,8 @@ run_createrepo() {
   # Ensure the webroot exists
   if [[ ! -d $CREATEREPO_WEBROOT ]]; then
     if ! execute sudo -u "$CREATEREPO_USER" mkdir -p "$CREATEREPO_WEBROOT"; then
-      if ! (execute sudo mkdir -p "$CREATEREPO_WEBROOT" \
-      || execute sudo chown -R "$CREATEREPO_USER:$CREATEREPO_USER" "$CREATEREPO_WEBROOT"); then
+      if ! (execute sudo mkdir -p "$CREATEREPO_WEBROOT" ||
+      execute sudo chown -R "$CREATEREPO_USER:$CREATEREPO_USER" "$CREATEREPO_WEBROOT"); then
         err "Could not create the createrepo-webroot path!"
         err "Make sure that the webroot $CREATEREPO_WEBROOT is writable by user $CREATEREPO_USER"
         err "Or change the repo ownership with --createrepo-user"
@@ -1086,8 +1086,8 @@ run_createrepo() {
   fi
 
   # Copy built RPMs to webroot
-  if ! execute sudo cp -nf "$MC_RPM" "$CREATEREPO_WEBROOT" \
-  || ! execute sudo chown -R "$CREATEREPO_USER:$CREATEREPO_USER" "$CREATEREPO_WEBROOT"; then
+  if ! execute sudo cp -nf "$MC_RPM" "$CREATEREPO_WEBROOT" ||
+  ! execute sudo chown -R "$CREATEREPO_USER:$CREATEREPO_USER" "$CREATEREPO_WEBROOT"; then
     err "Could not copy $MC_RPM to $CREATEREPO_WEBROOT"
     return 1
   fi
@@ -1100,8 +1100,8 @@ run_createrepo() {
     cr_cmd=(sudo createrepo -q "$CREATEREPO_WEBROOT")
     [[ -d $CREATEREPO_WEBROOT/repodata ]] && cr_cmd+=(--update)
     
-    if ! (execute "${cr_cmd[@]}" \
-    || execute sudo chown -R "$CREATEREPO_USER:$CREATEREPO_USER" "$CREATEREPO_WEBROOT"); then
+    if ! (execute "${cr_cmd[@]}" ||
+    execute sudo chown -R "$CREATEREPO_USER:$CREATEREPO_USER" "$CREATEREPO_WEBROOT"); then
       err "createrepo failed"
       return 1
     fi
@@ -1521,9 +1521,9 @@ disable_btrfs_cow() {
 
   for dir in "$MC_ROOT" "$mc_user_path"; do
     [[ -d $dir ]] || execute mkdir -p "$dir"
-    if [[ $(stat -f -c %T "$dir") == "btrfs" ]] \
-    && ! lsattr -d "$dir" | cut -f1 -d" " | grep -q C \
-    && execute sudo chattr +C "$dir"; then
+    if [[ $(stat -f -c %T "$dir") == "btrfs" ]] &&
+    ! lsattr -d "$dir" | cut -f1 -d" " | grep -q C &&
+    execute sudo chattr +C "$dir"; then
       echo "Disabled btrfs CoW for $dir directory"
     fi
   done
@@ -1557,9 +1557,8 @@ uninstall() {
     "/etc/yum.repos.d/jriver.repo" \
     /etc/apt/sources.list.d/{jriver,mediacenter}*.{list,sources} # also remove legacy repo files
 
-  if [[ $ID == "suse" ]]; then
+  [[ $ID == "suse" ]] &&
     execute sudo zypper --non-interactive removerepo jriver
-  fi
 
   echo "Removing firewall rules"
   for service in jriver-mediacenter jriver-xvnc jriver-x11vnc; do
@@ -1621,8 +1620,8 @@ update() {
   }
 
   # Check if we're in a git directory and if it's the installJRMC repository
-  if git -C "$SCRIPT_DIR" rev-parse --is-inside-work-tree &>/dev/null \
-  && [[ "$(git -C "$SCRIPT_DIR" config --get remote.origin.url)" =~ installJRMC|installjrmc ]]; then
+  if git -C "$SCRIPT_DIR" rev-parse --is-inside-work-tree &>/dev/null &&
+  [[ "$(git -C "$SCRIPT_DIR" config --get remote.origin.url)" =~ installJRMC|installjrmc ]]; then
 
     # Get the current commit hash
     local before_pull_hash after_pull_hash
