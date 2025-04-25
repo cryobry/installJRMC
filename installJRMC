@@ -287,14 +287,13 @@ init() {
     esac
   fi
 
-  echo "Target: $ARCH (MC: $MC_ARCH)"
-
   # Normalize ID and set host-specific vars
   case $ID in
     debian|arch|fedora|centos) ;;
     rhel|almalinux) ID="centos" ;;
     linuxmint|neon|zorin|*ubuntu*) ID="ubuntu" ;;
     raspbian) ID="debian" ;;
+    manjaro) ID="arch" ;;
     *suse*)
       ID="suse"
       # Currently there is no remote repository for SUSE
@@ -387,12 +386,11 @@ init() {
     MC_REPO=${UBUNTU_CODENAME:-${VERSION_CODENAME:-$MC_REPO}}
   fi
   MC_REPO="${USER_MC_REPO:-$MC_REPO}" # allow user override
-  echo "Repository: $MC_REPO"
 
-  # Don't check for latest MC version if set by user or using --install=repo only
-  if [[ -z $USER_MC_VERSION ]] &&
-  ((BUILD_SWITCH || LOCAL_INSTALL_SWITCH || CREATEREPO_SWITCH)); then
-    # Retrieves the latest MC version number
+  echo "Target: MC $MC_REPO $MC_ARCH -> $BUILD_TARGET $ARCH"
+
+  # Retrieves the latest MC version number if we need it
+  if ((BUILD_SWITCH || LOCAL_INSTALL_SWITCH || CREATEREPO_SWITCH)); then
     get_latest_mc_version
   fi
   
@@ -419,8 +417,11 @@ get_latest_mc_version() {
   debug "${FUNCNAME[0]}()"
   local mc_version_source
 
+  # User --mcversion
+  if [[ -n $USER_MC_VERSION ]]; then
+    mc_version_source="user input"
   # Containerized package manager
-  if create_mc_apt_container &&
+  elif create_mc_apt_container &&
   MC_VERSION=$(sudo buildah run "$CNT" -- apt-cache policy "mediacenter${USER_MC_MVERSION:-${MC_VERSION%%.*}}" | grep Candidate | awk '{print $2}' | sort -V | tail -n1) &&
   execute sudo buildah rm "$CNT" &&
   [[ $MC_VERSION =~ ^[0-9]+\.[0-9]+\.[0-9]+$ ]]; then
@@ -434,8 +435,8 @@ get_latest_mc_version() {
     mc_version_source="hardcoded"
     err "Warning! Using hardcoded version number"
   fi
-  
-  echo "Using latest MC version $MC_VERSION from the $MC_REPO repo (determined by $mc_version_source)"
+    
+  echo "Using MC version $MC_VERSION from the $MC_REPO repo (determined by $mc_version_source)"
 }
 
 # @description Installs a package using the system package manager
