@@ -1050,7 +1050,7 @@ install_mc_arch() {
 		pkgver=$MC_VERSION
 		pkgrel=$MC_RELEASE
 		pkgdesc="The Most Comprehensive Media Software"
-    arch=($ARCH)
+		arch=("$ARCH")
 		url="https://www.jriver.com/"
 		license=('custom')
 		depends=('alsa-lib' 'ca-certificates' 'gtk3' 'gcc-libs' 'libx11' 'libxext' 'libxcb' 'libxau' 'libxdmcp' 'util-linux' 'mesa-libgl' 'webkit2gtk')
@@ -1744,7 +1744,7 @@ main() {
     fi
   fi
 
-  if ((BUILD_SWITCH)) && [[ $ID != "arch" ]]; then
+  if ((BUILD_SWITCH)); then
     acquire_deb || { err "Could not download Media Center DEB package"; return 1; }
 
     if [[ $BUILD_TARGET =~ centos|fedora|suse || $CREATEREPO_TARGET =~ centos|fedora|suse ]]; then
