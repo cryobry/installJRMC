@@ -50,11 +50,11 @@ print_help() {
 		  --compat
 		    Build/install MC locally without minimum dependency version requirements
 		  --mcversion VERSION
-		    Specify the MC version, ex. "$MC_VERSION" or "${MC_VERSION%%.*}" (default: latest)
+		    Specify the MC version, ex. "$MC_VERSION" or "${MC_VERSION%%.*}"
 		  --arch VERSION
-		    Specify the target MC architecture, ex. "amd64", "arm64", etc (default: host architecture)
+		    Specify the target MC architecture, ex. "amd64", "arm64", etc (default: auto)
 		  --mcrepo REPO
-		    Specify the MC repository, ex. "bullseye", "bookworm", "noble", etc (default: latest official)
+		    Specify the MC repository, ex. "bullseye", "bookworm", "noble", etc (default: auto)
 		  --outputdir PATH
 		    Generate rpmbuild output in this directory (default: ./output)
 		  --restorefile MJR_FILE
@@ -435,7 +435,7 @@ get_latest_mc_version() {
     err "Warning! Using hardcoded version number"
   fi
     
-  echo "Using MC version $MC_VERSION from the $MC_REPO repo (determined by $mc_version_source)"
+  echo "Determined MC version $MC_VERSION from the $MC_REPO repo (via $mc_version_source)"
 }
 
 # @description Installs a package using the system package manager
@@ -1840,7 +1840,7 @@ download() {
 create_mc_apt_container() {
   declare -g CNT
   local -a cmds=("$@")
-  { command -v buildah &>/dev/null || install_package --silent buildah &>/dev/null; } &&
+  { command -v buildah &>/dev/null || install_package buildah &>/dev/null; } &&
   CNT=$(sudo buildah from --quiet alpine:edge 2>/dev/null) &&
   sudo buildah run "$CNT" -- sh -c '
     apk add --no-cache apt curl gnupg &>/dev/null
