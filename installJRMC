@@ -1008,7 +1008,7 @@ install_mc_deb() {
 # @description Installs MC via RPM package
 install_mc_rpm() {
   debug "${FUNCNAME[0]}()"
-  install_package --no-install-check --no-gpg-check --allow-downgrades "$MC_RPM"
+  install_package --no-install-check --no-gpg-check --allow-downgrades --reinstall "$MC_RPM"
 }
 
 # @description Installs Media Center generically for unsupported OSes
