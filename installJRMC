@@ -516,9 +516,9 @@ install_package() {
       ((allow_downgrades)) && install_flags+=(--allowerasing)
       ((no_gpg_check)) && install_flags+=(--nogpgcheck)
       ((refresh)) && install_flags+=(--refresh)
-      if ((reinstall)) && [[ ${#pkg_array[@]} -eq 1 ]] && "${PKG_QUERY[@]}" "${pkg_array[0]}" &>/dev/null; then
-        PKG_INSTALL=("${PKG_INSTALL[@]/install/reinstall}")
-      fi
+      # if ((reinstall)) && [[ ${#pkg_array[@]} -eq 1 ]] && "${PKG_QUERY[@]}" "${pkg_array[0]}" &>/dev/null; then
+      #   PKG_INSTALL=("${PKG_INSTALL[@]/install/reinstall}")
+      # fi
       ;;
     suse)
       ((no_gpg_check)) && install_flags+=(--allow-unsigned-rpm) ;;
