@@ -675,6 +675,7 @@ install_mc_repo() {
     --no-install-check \
     --allow-downgrades \
     --no-gpg-check \
+    --reinstall \
     "$MC_PKG"; then
     err "Package install failed!"
     return 1
@@ -704,7 +705,7 @@ acquire_deb() {
   if [[ -f $MC_DEB ]]; then
     if [[ $(stat -c%s "$MC_DEB") -lt 10000000 ]]; then
       echo "Removing existing DEB under 10MB: $MC_DEB"
-      execute rm "$MC_DEB"
+      execute rm -f "$MC_DEB"
     else
       echo "Using existing DEB: $MC_DEB"
       return 0
