@@ -1801,7 +1801,7 @@ ask_ok() {
   ((YES_SWITCH)) && return 0
   read -n 1 -r -p "$* [y/N]: " response
   echo
-  [[ ${response,,} =~ ^y$ ]]
+  [[ ${response,,} == y ]]
 }
 execute() {
   if debug "$*"; then
