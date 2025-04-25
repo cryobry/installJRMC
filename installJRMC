@@ -1840,6 +1840,7 @@ download() {
   "${cmd[@]}" "$url"
 }
 create_mc_apt_container() {
+  debug "${FUNCNAME[0]}()" "$@"
   declare -g CNT
   local -a cmds=("$@")
   { command -v buildah &>/dev/null || install_package buildah &>/dev/null; } &&
