@@ -387,7 +387,7 @@ init() {
   fi
   MC_REPO="${USER_MC_REPO:-$MC_REPO}" # allow user override
 
-  echo "Target: MC $MC_REPO $MC_ARCH -> $BUILD_TARGET $ARCH"
+  echo "MC target: $MC_REPO $MC_ARCH -> $BUILD_TARGET $ARCH"
 
   # Retrieves the latest MC version number if we need it
   if ((BUILD_SWITCH || LOCAL_INSTALL_SWITCH || CREATEREPO_SWITCH)); then
@@ -699,6 +699,7 @@ acquire_deb() {
   fi
 
   MC_DEB="$OUTPUT_DIR/SOURCES/$fname"
+  MC_SOURCE="https://files.jriver-cdn.com/mediacenter/channels/v$MC_MVERSION/latest/$fname"
 
   # If deb file already exists, skip download
   if [[ -f $MC_DEB ]]; then
@@ -717,8 +718,7 @@ acquire_deb() {
   execute sudo find "$mnt" -maxdepth 1 -type f -name "*.deb" -exec cp {} "$MC_DEB" \; &&
   [[ -f $MC_DEB ]] &&
   execute sudo buildah umount "$CNT" &&
-  execute sudo buildah rm "$CNT" &&
-  MC_SOURCE="https://files.jriver-cdn.com/mediacenter/channels/v$MC_MVERSION/latest/$fname"; }; then
+  execute sudo buildah rm "$CNT"; }; then
     err "Failed to download DEB from containerized package manager"
     echo "Using legacy download method"
     # Define the repository search order
@@ -1048,9 +1048,9 @@ install_mc_arch() {
   cat <<-EOF > "$OUTPUT_DIR/PKGBUILD/mediacenter.pkgbuild"
 		pkgname=mediacenter$MC_MVERSION
 		pkgver=$MC_VERSION
-		pkgrel=1
+		pkgrel=$MC_RELEASE
 		pkgdesc="The Most Comprehensive Media Software"
-    arch=('$(uname -m)')
+    arch=($ARCH)
 		url="https://www.jriver.com/"
 		license=('custom')
 		depends=('alsa-lib' 'ca-certificates' 'gtk3' 'gcc-libs' 'libx11' 'libxext' 'libxcb' 'libxau' 'libxdmcp' 'util-linux' 'mesa-libgl' 'webkit2gtk')
