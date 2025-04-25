@@ -289,25 +289,25 @@ init() {
 
   # Normalize ID and set host-specific vars
   case $ID in
-    debian|arch|fedora|centos) ;;
+    debian|fedora|centos) ;;
     rhel|almalinux) ID="centos" ;;
     linuxmint|neon|zorin|*ubuntu*) ID="ubuntu" ;;
     raspbian) ID="debian" ;;
-    manjaro) ID="arch" ;;
-    *suse*)
-      ID="suse"
-      # Currently there is no remote repository for SUSE
-      # installJRMC can easily create one but I'd rather a SUSEian provide it
-      # So use local rpmbuild method by default for SUSE
+    manjaro|arch) ID="arch"
       if ((REPO_INSTALL_SWITCH)); then
         debug "Automatically using --install=local for SUSE"
         REPO_INSTALL_SWITCH=0
         BUILD_SWITCH=1
         LOCAL_INSTALL_SWITCH=1
-      fi
-      ;;
-    *)
-      err "Auto-detecting distro, this is unreliable and --compat may be required"
+      fi ;;
+    *suse*) ID="suse"
+      if ((REPO_INSTALL_SWITCH)); then
+        debug "Automatically using --install=local for SUSE"
+        REPO_INSTALL_SWITCH=0
+        BUILD_SWITCH=1
+        LOCAL_INSTALL_SWITCH=1
+      fi ;;
+    *) err "Auto-detecting distro, this is unreliable and --compat may be required"
       for cmd in dnf yum apt-get pacman; do
         if command -v "$cmd" &>/dev/null; then
           case "$cmd" in
@@ -331,8 +331,7 @@ init() {
         else
           exit 1
         fi
-      fi
-      ;;
+      fi ;;
   esac
 
   # Set distro-specific package manager commands for normalized IDs
