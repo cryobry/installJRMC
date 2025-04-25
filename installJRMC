@@ -422,6 +422,7 @@ get_latest_mc_version() {
   # Containerized package manager
   elif create_mc_apt_container &&
   MC_VERSION=$(sudo buildah run "$CNT" -- apt-cache policy "mediacenter${USER_MC_MVERSION:-${MC_VERSION%%.*}}" | awk '/Candidate:/ {sub(/-.*/, "", $2); print $2}' | sort -V | tail -n1) &&
+  execute sudo buildah rm "$CNT" &&
   [[ $MC_VERSION =~ ^[0-9]+\.[0-9]+\.[0-9]+$ ]]; then
     mc_version_source="containerized package manager"
   # Fallback to webscrape
@@ -1842,8 +1843,8 @@ create_mc_apt_container() {
   { command -v buildah &>/dev/null || install_package buildah &>/dev/null; } &&
   CNT=$(sudo buildah from --quiet alpine:edge) &&
   sudo buildah run "$CNT" -- sh -c '
-    apk add --no-cache apt curl gnupg
-    curl -fsSL https://dist.jriver.com/mediacenter@jriver.com.gpg.key | gpg --dearmor -o /usr/share/keyrings/jriver-com-archive-keyring.gpg
+    apk add --no-cache apt curl gnupg &>/dev/null &&
+    curl -fsSL https://dist.jriver.com/mediacenter@jriver.com.gpg.key | gpg --dearmor -o /usr/share/keyrings/jriver-com-archive-keyring.gpg &>/dev/null &&
     cat <<-EOF > /etc/apt/sources.list.d/jriver.sources
 			Types: deb
 			URIs: https://dist.jriver.com/latest/mediacenter/
@@ -1851,8 +1852,8 @@ create_mc_apt_container() {
 			Suites: '"$MC_REPO"'
 			Components: main
 			Architectures: '"$MC_ARCH"'
-		EOF
-    apt-get update'
+		EOF &&
+    apt-get update &>/dev/null' &&
   # If user passes command strings run them in the container
   for cmd in "${cmds[@]}"; do
     sudo buildah run "$CNT" -- sh -c "$cmd"
