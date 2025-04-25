@@ -349,6 +349,7 @@ init() {
       PKG_INSTALL=(sudo apt-get -f install --install-recommends -y -q0)
       PKG_REMOVE=(sudo apt-get remove --auto-remove -y -q0)
       PKG_UPDATE=(sudo apt-get update -y -q0)
+      [[ -n $USER_MC_REPO ]] && PKG_INSTALL+=(-t "$USER_MC_REPO")
       PKG_QUERY=(dpkg -s)
       PKG_INSTALL_LOCAL() { install_mc_deb "$@"; }
       ;;
@@ -641,7 +642,7 @@ install_mc_repo() {
 					Types: deb
 					URIs: https://dist.jriver.com/$channel/mediacenter/
 					Signed-By: $keyfile
-					Suites: $MC_REPO
+					Suites: focal jammy noble oracular bullseye bookworm trixie
 					Components: main
 					Architectures: amd64 i386 armhf arm64
 				EOF
