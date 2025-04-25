@@ -716,7 +716,7 @@ acquire_deb() {
   fi
 
   # Download the deb file using the containerized package manager
-  if ! { create_mc_apt_container "apt-get -t $MC_REPO download --allow-unauthenticated mediacenter$MC_MVERSION &>/dev/null" &&
+  if ! { create_mc_apt_container "apt-get download --allow-unauthenticated mediacenter$MC_MVERSION &>/dev/null" &&
   mnt="$(sudo buildah mount "$CNT")" &&
   execute sudo find "$mnt" -maxdepth 1 -type f -name "*.deb" -exec cp {} "$MC_DEB" \; &&
   [[ -f $MC_DEB ]] &&
@@ -1857,7 +1857,7 @@ create_mc_apt_container() {
     apt-get update &>/dev/null' &&
   # If user passes command strings run them in the container
   for cmd in "${cmds[@]}"; do
-    sudo buildah run "$CNT" -- sh -c "$cmd"
+    sudo buildah run "$CNT" -- sh -c "$cmd" || { err "$cmd failed"; return 1; }
   done
 }
 
