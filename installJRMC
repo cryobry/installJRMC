@@ -1800,6 +1800,7 @@ ask_ok() {
   local response
   ((YES_SWITCH)) && return 0
   read -n 1 -r -p "$* [y/N]: " response
+  echo
   [[ ${response,,} =~ ^y$ ]]
 }
 execute() {
