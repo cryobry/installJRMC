@@ -19,7 +19,7 @@
 # * Avoid execute() for stdout
 shopt -s extglob
 
-declare -g SCRIPT_VERSION="1.6.2"
+declare -g SCRIPT_VERSION="1.6.3-dev"
 declare -g MC_VERSION="33.0.72" # do find all replace
 declare -g MC_REPO="bullseye" # should match the MC_VERSION
 # declare -g MC_REPO="bookworm" # should match the MC_VERSION
@@ -1843,8 +1843,8 @@ create_mc_apt_container() {
   { command -v buildah &>/dev/null || install_package buildah &>/dev/null; } &&
   CNT=$(sudo buildah from --quiet alpine:edge) &&
   sudo buildah run "$CNT" -- sh -c '
-    apk add --no-cache apt curl gnupg &>/dev/null &&
-    curl -fsSL https://dist.jriver.com/mediacenter@jriver.com.gpg.key | gpg --dearmor -o /usr/share/keyrings/jriver-com-archive-keyring.gpg &>/dev/null &&
+    apk add --no-cache apt curl gnupg &>/dev/null
+    curl -fsSL https://dist.jriver.com/mediacenter@jriver.com.gpg.key | gpg --dearmor -o /usr/share/keyrings/jriver-com-archive-keyring.gpg &>/dev/null
     cat <<-EOF > /etc/apt/sources.list.d/jriver.sources
 			Types: deb
 			URIs: https://dist.jriver.com/latest/mediacenter/
@@ -1852,7 +1852,7 @@ create_mc_apt_container() {
 			Suites: '"$MC_REPO"'
 			Components: main
 			Architectures: '"$MC_ARCH"'
-		EOF &&
+		EOF
     apt-get update &>/dev/null' &&
   # If user passes command strings run them in the container
   for cmd in "${cmds[@]}"; do
