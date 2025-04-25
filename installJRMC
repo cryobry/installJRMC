@@ -1835,7 +1835,7 @@ download() {
 create_mc_apt_container() {
   declare -g CNT
   local -a cmds=("$@")
-  install_package --silent buildah &>/dev/null && 
+  { command -v buildah &>/dev/null || install_package --silent buildah &>/dev/null; } &&
   CNT=$(sudo buildah from --quiet alpine:edge 2>/dev/null) &&
   sudo buildah run "$CNT" -- sh -c '
     apk add --no-cache apt curl gnupg &>/dev/null
@@ -1848,8 +1848,7 @@ create_mc_apt_container() {
 			Components: main
 			Architectures: '"$MC_ARCH"'
 		EOF
-    apt-get update --allow-insecure-repositories &>/dev/null'
-  
+    apt-get update --allow-insecure-repositories &>/dev/null' &&
   # If user passes command strings run them in the container
   for cmd in "${cmds[@]}"; do
     sudo buildah run "$CNT" -- sh -c "$cmd"
