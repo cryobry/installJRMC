@@ -1563,7 +1563,7 @@ uninstall() {
       set_service_vars "$service" "$type"; 
       for unit in "$SERVICE_NAME" "$TIMER_NAME"; do
         if "${IS_ACTIVE[@]}" "$unit" || 
-        "${IS_ENABLED[@]}" "$unit"; then
+        "${IS_ENABLED[@]}" "$unit" &>/dev/null; then
           "${DISABLE[@]}" "$unit"
         fi
       done
