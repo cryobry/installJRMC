@@ -1798,7 +1798,7 @@ main() {
 
 # @section Helper functions
 debug() { ((DEBUG)) && echo "Debug: $*"; }
-err() { echo -e "\e[31mError: $*\e[0m" >&2; }
+err() { echo "Error: $*" >&2; }
 ask_ok() {
   local response
   ((YES_SWITCH)) && return 0
