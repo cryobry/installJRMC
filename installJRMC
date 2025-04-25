@@ -925,7 +925,7 @@ build_rpm() {
   else
     err "Build failed"
     # After failire, remove the source DEB and reaquire it on next run
-    [[ -f $MC_DEB ]] && echo "Removing source DEB" && execute rm -f "$MC_DEB"
+    [[ -f $MC_DEB ]] && echo "Removing source DEB" && execute sudo rm -f "$MC_DEB"
     exit 1
   fi
 }
