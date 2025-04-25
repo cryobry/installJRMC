@@ -19,7 +19,7 @@
 # * Avoid execute() for stdout
 shopt -s extglob
 
-declare -g SCRIPT_VERSION="1.6.1"
+declare -g SCRIPT_VERSION="1.6.1-dev"
 declare -g MC_VERSION="33.0.72" # do find all replace
 declare -g MC_REPO="bullseye" # should match the MC_VERSION
 # declare -g MC_REPO="bookworm" # should match the MC_VERSION
@@ -52,7 +52,7 @@ print_help() {
 		  --mcversion VERSION
 		    Specify the MC version, ex. "$MC_VERSION" or "${MC_VERSION%%.*}"
 		  --arch VERSION
-		    Specify the target MC architecture, ex. "amd64", "arm64", etc (default: auto)
+		    Specify the target MC architecture, ex. "amd64", "arm64", etc (default: host)
 		  --mcrepo REPO
 		    Specify the MC repository, ex. "bullseye", "bookworm", "noble", etc (default: auto)
 		  --outputdir PATH
@@ -422,7 +422,7 @@ get_latest_mc_version() {
   # Containerized package manager
   elif create_mc_apt_container &&
   MC_VERSION=$(sudo buildah run "$CNT" -- apt-cache policy "mediacenter${USER_MC_MVERSION:-${MC_VERSION%%.*}}" | grep Candidate | awk '{print $2}' | sort -V | tail -n1) &&
-  execute sudo buildah rm "$CNT" &&
+  #execute sudo buildah rm "$CNT" &&
   [[ $MC_VERSION =~ ^[0-9]+\.[0-9]+\.[0-9]+$ ]]; then
     mc_version_source="containerized package manager"
   # Fallback to webscrape
