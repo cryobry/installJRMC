@@ -1617,6 +1617,7 @@ uninstall() {
     mv "$SCRIPT_DIR/.uninstall" "$SCRIPT_DIR/.uninstall.bk"
   fi
 
+  echo "To remove installJRMC output: rm -rf $OUTPUT_DIR"
   echo "To remove your MC library: rm -rf $HOME/.jriver"
   return 0
 }
@@ -1798,8 +1799,8 @@ err() { echo "Error: $*" >&2; }
 ask_ok() {
   local response
   ((YES_SWITCH)) && return 0
-  read -r -p "$* [y/N]: " response
-  [[ ${response,,} =~ ^(yes|y)$ ]]
+  read -n 1 -r -p "$* [y/N]: " response
+  [[ ${response,,} =~ ^y$ ]]
 }
 execute() {
   if debug "$*"; then
