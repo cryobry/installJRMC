@@ -349,7 +349,6 @@ init() {
       PKG_INSTALL=(sudo apt-get -f install --install-recommends -y -q0)
       PKG_REMOVE=(sudo apt-get remove --auto-remove -y -q0)
       PKG_UPDATE=(sudo apt-get update -y -q0)
-      [[ -n $USER_MC_REPO ]] && PKG_INSTALL+=(-t "$USER_MC_REPO")
       PKG_QUERY=(dpkg -s)
       PKG_INSTALL_LOCAL() { install_mc_deb "$@"; }
       ;;
@@ -642,7 +641,7 @@ install_mc_repo() {
 					Types: deb
 					URIs: https://dist.jriver.com/$channel/mediacenter/
 					Signed-By: $keyfile
-					Suites: focal jammy noble oracular bullseye bookworm trixie
+					Suites: $MC_REPO trixie bookworm bullseye oracular noble jammy focal
 					Components: main
 					Architectures: amd64 i386 armhf arm64
 				EOF
@@ -997,7 +996,7 @@ install_mc_deb() {
     err "Local MC DEB installation failed"
     ((remove_jammy)) && { echo "Removing jammy repo"; execute sudo rm -f "$repo_file"; }
     if ask_ok "Remove source DEB and retry"; then
-      execute rm -f "$MC_DEB" "$temp_deb"
+      execute sudo rm -f "$MC_DEB" "$temp_deb"
       exec "$SCRIPT_PATH" "$@" "--no-update"
     fi
   fi
