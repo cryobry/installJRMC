@@ -900,8 +900,8 @@ build_rpm() {
 
 		%install
 		dpkg -x %{S:0} %{buildroot}
-    ln -sf ../../../../etc/ssl/certs/ca-certificates.crt %{buildroot}/usr/lib/jriver/Media\ Center\ $MC_MVERSION/ca-certificates.crt
-    ln -sf ../../../bin/mediacenter$MC_MVERSION %{buildroot}/usr/lib/jriver/Media\ Center\ $MC_MVERSION/mediacenter$MC_MVERSION
+		ln -sf ../../../../etc/ssl/certs/ca-certificates.crt %{buildroot}/usr/lib/jriver/Media\ Center\ $MC_MVERSION/ca-certificates.crt
+		ln -sf ../../../bin/mediacenter$MC_MVERSION %{buildroot}/usr/lib/jriver/Media\ Center\ $MC_MVERSION/mediacenter$MC_MVERSION
 
 		%post -p /sbin/ldconfig
 		%postun -p /sbin/ldconfig
