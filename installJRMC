@@ -19,7 +19,7 @@
 # * Avoid execute() for stdout
 shopt -s extglob
 
-declare -g SCRIPT_VERSION="1.6.0-dev"
+declare -g SCRIPT_VERSION="1.6.0"
 declare -g MC_VERSION="33.0.72" # do find all replace
 declare -g MC_REPO="bullseye" # should match the MC_VERSION
 # declare -g MC_REPO="bookworm" # should match the MC_VERSION
