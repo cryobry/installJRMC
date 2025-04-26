@@ -621,8 +621,8 @@ install_mc_repo() {
       [[ -n $BETAPASS ]] && channel="beta" || channel="latest"
       local major_version="${VERSION_ID%%.*}"
       local keyfile="/usr/share/keyrings/jriver-com-archive-keyring.gpg"
-      if [[ $ID == "ubuntu" && $major_version -ge 24 ]] ||
-      [[ $ID == "debian" && $major_version -ge 12 ]]; then
+      if [[ ($ID == "ubuntu" && $major_version -ge 24) ||
+      ($ID == "debian" && (-z $major_version || $major_version -ge 12)) ]]; then
         if [[ $channel == "beta" ]]; then
           repo_file="/etc/apt/sources.list.d/jriver-beta.sources"
         else
