@@ -961,6 +961,7 @@ install_mc_deb() {
     execute rm -rf "$extract_dir"
   fi
 
+  # Helper function to add repository
   add_temp_repo() {
     local repo_name="$1"
     local repo_uri="$2"
@@ -980,7 +981,7 @@ install_mc_deb() {
     "${PKG_UPDATE[@]}" || { err "Package update failed!"; return 1; }
   }
 
-  # Main logic for adding temporary repositories
+  # Add older repository for libwebkit2gtk-4.0-37, etc, on newer Debian/Ubuntu
   local -i remove_temp_repo=0
   if [[ "$ID" == "ubuntu" ]]; then
     local major_version="${VERSION_ID%%.*}"
