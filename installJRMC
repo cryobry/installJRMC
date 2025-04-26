@@ -971,7 +971,7 @@ install_mc_deb() {
     echo "Creating temporary repository file $TEMP_REPO_FILE for $repo_suite"
     sudo bash -c "cat <<-EOF > $TEMP_REPO_FILE
 			Types: deb
- 			URIs: $repo_uri
+			URIs: $repo_uri
 			Suites: $repo_suite
 			Components: main
 			Architectures: $MC_ARCH
