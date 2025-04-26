@@ -961,25 +961,41 @@ install_mc_deb() {
     execute rm -rf "$extract_dir"
   fi
 
-  # On Ubuntu 24.04+, add jammy repos for libwebkit2gtk-4.0-37
-  local -i remove_jammy=0
+  add_temp_repo() {
+    local repo_name="$1"
+    local repo_uri="$2"
+    local repo_suite="$3"
+    local repo_key="$4"
+    declare -g TEMP_REPO_FILE="/etc/apt/sources.list.d/${repo_name}.sources"
+
+    echo "Creating temporary repository file $TEMP_REPO_FILE for $repo_suite"
+    sudo bash -c "cat <<-EOF > $TEMP_REPO_FILE
+			Types: deb
+ 			URIs: $repo_uri
+			Suites: $repo_suite
+			Components: main
+			Architectures: $MC_ARCH
+			Signed-By: $repo_key
+		EOF"
+    "${PKG_UPDATE[@]}" || { err "Package update failed!"; return 1; }
+  }
+
+  # Main logic for adding temporary repositories
+  local -i remove_temp_repo=0
   if [[ "$ID" == "ubuntu" ]]; then
     local major_version="${VERSION_ID%%.*}"
     local minor_version="${VERSION_ID##*.}"
-    if (( major_version > 24 || (major_version == 24 && minor_version >= 4) )); then
+    if [[ $major_version -gt 24 || ($major_version == 24 && minor_version -ge 4) ]]; then
       echo "Temporarily adding jammy repository for libwebkit2gtk-4.0-37, etc."
-      local repo_file="/etc/apt/sources.list.d/jammy.sources"
-      echo "Creating repository file $repo_file for jammy"
-      sudo bash -c "cat <<-EOF > $repo_file
-				Types: deb
-				URIs: https://archive.ubuntu.com/ubuntu
-				Suites: jammy
-				Components: main
-				Architectures: $MC_ARCH
-				Signed-By: /usr/share/keyrings/ubuntu-archive-keyring.gpg
-			EOF"
-      "${PKG_UPDATE[@]}" || err "Package update failed!"
-      remove_jammy=1
+      remove_temp_repo=1
+      add_temp_repo "jammy" "https://archive.ubuntu.com/ubuntu" "jammy" "/usr/share/keyrings/ubuntu-archive-keyring.gpg"
+    fi
+  elif [[ "$ID" == "debian" ]]; then
+    local major_version="${VERSION_ID%%.*}"
+    if [[ $major_version -ge 13 || -z $major_version ]]; then
+      echo "Temporarily adding bookworm repository for libwebkit2gtk-4.0-37, etc."
+      remove_temp_repo=1
+      add_temp_repo "bookworm" "https://deb.debian.org/debian" "bookworm" "/usr/share/keyrings/debian-archive-keyring.gpg"
     fi
   fi
 
@@ -992,19 +1008,21 @@ install_mc_deb() {
 
   # Use --reinstall to make sure local package is installed over repo package
   if ! install_package \
-  --no-install-check \
-  --no-gpg-check \
-  --allow-downgrades \
-  --reinstall \
-  "$temp_deb"; then
+    --no-install-check \
+    --no-gpg-check \
+    --allow-downgrades \
+    --reinstall \
+    "$temp_deb"; then
     err "Local MC DEB installation failed"
-    ((remove_jammy)) && { echo "Removing jammy repo"; execute sudo rm -f "$repo_file"; }
+    ((remove_temp_repo)) && { echo "Removing temporary repo"; execute sudo rm -f "$TEMP_REPO_FILE"; }
     if ask_ok "Remove source DEB and retry"; then
       execute sudo rm -f "$MC_DEB" "$temp_deb"
       exec "$SCRIPT_PATH" "$@" "--no-update"
     fi
   fi
-  ((remove_jammy)) && { echo "Removing jammy repo"; execute sudo rm -f "$repo_file"; }
+
+  # Cleanup temporary repository and temporary DEB file
+  ((remove_temp_repo)) && { echo "Removing temporary repo"; execute sudo rm -f "$TEMP_REPO_FILE"; }
   execute sudo rm -f "$temp_deb"
 }
 
