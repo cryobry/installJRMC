@@ -1546,7 +1546,7 @@ disable_btrfs_cow() {
   local mc_user_path="$HOME/.jriver"
 
   for dir in "$MC_ROOT" "$mc_user_path"; do
-    [[ -d $dir ]] || execute mkdir -p "$dir"
+    [[ -d $mc_user_path ]] || execute mkdir -p "$mc_user_path"
     if [[ $(stat -f -c %T "$dir") == "btrfs" ]] &&
     ! lsattr -d "$dir" | cut -f1 -d" " | grep -q C &&
     execute sudo chattr +C "$dir"; then
