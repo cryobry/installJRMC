@@ -19,12 +19,10 @@
 # * Avoid execute() for stdout
 shopt -s extglob
 
-declare -g SCRIPT_VERSION="1.6.4"
-declare -g MC_VERSION="33.0.72" # do find all replace
-declare -g MC_REPO="bullseye" # should match the MC_VERSION
-# declare -g MC_REPO="bookworm" # should match the MC_VERSION
-declare -g BOARD_ID="86.0" # MC33
-# declare -g BOARD_ID="89.0" # MC34
+declare -g SCRIPT_VERSION="1.6.5-dev"
+declare -g MC_VERSION="34.0.20" # do find all replace
+declare -g MC_REPO="bookworm" # should match the MC_VERSION
+declare -g BOARD_ID="89.0" # MC34
 declare -gi UPDATE_SWITCH=1 # set to 0 to disable automatic self-update
 declare -g SCRIPT_URL="https://git.bryanroessler.com/bryan/installJRMC/raw/master/installJRMC"
 # declare -g SCRIPT_URL="https://raw.githubusercontent.com/cryobry/installJRMC/refs/heads/master/installJRMC"
