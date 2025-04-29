@@ -19,7 +19,7 @@
 # * Avoid execute() for stdout
 shopt -s extglob
 
-declare -g SCRIPT_VERSION="1.6.6-dev"
+declare -g SCRIPT_VERSION="1.6.6"
 declare -g MC_VERSION="34.0.20" # do find all replace
 declare -g MC_REPO="bookworm" # should match the MC_VERSION
 declare -g BOARD_ID="89.0" # MC34
@@ -1532,7 +1532,7 @@ service_jriver-createrepo() {
 		[Service]
 		$USER_STRING
 		ExecStart=$SCRIPT_DIR/installJRMC --outputdir=$OUTPUT_DIR --createrepo=$CREATEREPO_TARGET \
-      --createrepo-webroot=$CREATEREPO_WEBROOT --createrepo-user=$CREATEREPO_USER --yes --no-update
+      --createrepo-webroot=$CREATEREPO_WEBROOT --createrepo-user=$CREATEREPO_USER --mcrepo=$MC_REPO --yes --no-update
 
 		[Install]
 		WantedBy=multi-user.target
