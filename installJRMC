@@ -19,7 +19,7 @@
 # * Avoid execute() for stdout
 shopt -s extglob
 
-declare -g SCRIPT_VERSION="1.6.6"
+declare -g SCRIPT_VERSION="1.6.6-dev"
 declare -g MC_VERSION="34.0.20" # do find all replace
 declare -g MC_REPO="bookworm" # should match the MC_VERSION
 declare -g BOARD_ID="89.0" # MC34
@@ -212,7 +212,7 @@ parse_input() {
     LOCAL_INSTALL_SWITCH + CONTAINER_INSTALL_SWITCH + SNAP_INSTALL_SWITCH +
     APPIMAGE_INSTALL_SWITCH)) &&
     [[ ${#SERVICES[@]} -eq 0 && ${#CONTAINERS[@]} -eq 0 ]]; then
-    debug "Automatically using --install=repo"
+    debug "Defaulting to --install=repo"
     REPO_INSTALL_SWITCH=1
   fi
 
@@ -246,7 +246,7 @@ init() {
   # Try to save users from themselves
   if [[ $EUID -eq 0 ]]; then
     err "Running as root but attempting to continue"
-    ask_ok "Continue as root user?" || exit 1
+    ask_ok "Continue as root user (not recommended)?" || exit 1
   elif [[ -n $SUDO_USER ]]; then
     err "Sudo detected, installJRMC should not be run with sudo but attempting to continue"
     ask_ok "Continue as user $SUDO_USER (unsupported and may result in permission issues)?" || exit 1
