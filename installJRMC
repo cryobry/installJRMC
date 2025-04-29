@@ -8,7 +8,7 @@
 # https://www.apache.org/licenses/LICENSE-2.0
 #
 # TODO (v2)
-# * Interactive mode
+# * Interactive (ncurses) mode
 # * Additional containerization (createrepo and rpmbuild)
 #
 # BUGS
@@ -19,7 +19,7 @@
 # * Avoid execute() for stdout
 shopt -s extglob
 
-declare -g SCRIPT_VERSION="1.6.5-dev"
+declare -g SCRIPT_VERSION="1.6.5"
 declare -g MC_VERSION="34.0.20" # do find all replace
 declare -g MC_REPO="bookworm" # should match the MC_VERSION
 declare -g BOARD_ID="89.0" # MC34
