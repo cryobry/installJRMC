@@ -19,7 +19,7 @@
 # * Avoid execute() for stdout
 shopt -s extglob
 
-declare -g SCRIPT_VERSION="1.6.5"
+declare -g SCRIPT_VERSION="1.6.6-dev"
 declare -g MC_VERSION="34.0.20" # do find all replace
 declare -g MC_REPO="bookworm" # should match the MC_VERSION
 declare -g BOARD_ID="89.0" # MC34
@@ -241,19 +241,17 @@ init() {
   declare -ga PKG_INSTALL PKG_REMOVE PKG_UPDATE PKG_QUERY
   declare -ga SERVICES CONTAINERS
 
+  parse_input "$@"
+
   # Try to save users from themselves
-  if ((EUID == 0)); then
+  if [[ $EUID -eq 0 ]]; then
     err "Running as root but attempting to continue"
     ask_ok "Continue as root user?" || exit 1
-  fi
-
-  if [[ -n $SUDO_USER ]]; then
+  elif [[ -n $SUDO_USER ]]; then
     err "Sudo detected, installJRMC should not be run with sudo but attempting to continue"
     ask_ok "Continue as user $SUDO_USER (unsupported and may result in permission issues)?" || exit 1
     USER="${SUDO_USER:-$USER}"
   fi
-
-  parse_input "$@"
 
   # Run the self-updater if enabled
   ((UPDATE_SWITCH)) && update "$@"
@@ -644,7 +642,7 @@ install_mc_repo() {
 					Signed-By: $keyfile
 					Suites: $MC_REPO trixie bookworm bullseye oracular noble jammy focal
 					Components: main
-					Architectures: amd64 i386 armhf arm64
+					Architectures: amd64 armhf arm64
 				EOF
       else
         if [[ $channel == "beta" ]]; then
@@ -653,7 +651,7 @@ install_mc_repo() {
         else
           repo_file="/etc/apt/sources.list.d/jriver.list"
         fi
-        repo_text="deb [signed-by=$keyfile arch=amd64,i386,armhf,arm64] https://dist.jriver.com/$channel/mediacenter/ $MC_REPO main"
+        repo_text="deb [signed-by=$keyfile arch=amd64,armhf,arm64] https://dist.jriver.com/$channel/mediacenter/ $MC_REPO main"
       fi
       echo "Installing JRiver Media Center GPG key"
       download "https://dist.jriver.com/mediacenter@jriver.com.gpg.key" "-" | 
