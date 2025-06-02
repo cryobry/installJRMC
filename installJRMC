@@ -686,6 +686,7 @@ install_mc_repo() {
   # Unset the trap and remove temporary legacy repository
   trap - EXIT
   [[ -f $TEMP_REPO_FILE ]] && execute sudo rm -f "$TEMP_REPO_FILE"
+  return 0
 }
 
 # @description Acquires the source DEB package from JRiver
@@ -1003,6 +1004,7 @@ install_mc_deb() {
   trap - EXIT
   [[ -f $TEMP_REPO_FILE ]] && execute sudo rm -f "$TEMP_REPO_FILE"
   execute sudo rm -f "$temp_deb"
+  return 0
 }
 
 # @description Installs MC via RPM package
