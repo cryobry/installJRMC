@@ -33,28 +33,32 @@ print_help() {
   debug "${FUNCNAME[0]}()"
 
   cat <<-EOF
+		SEE:
+		  README.md for more information
+
 		USAGE:
 		  installJRMC [[OPTION] [VALUE]]...
 
-		  If no options (excluding -d or --debug) are provided installJRMC defaults to '--install repo'.
+		  installJRMC defaults to --install=repo on platforms with a JRiver repository and --install=local on all others.
+		  Specifying --build, --createrepo, --service, or --uninstall disables the default install method.
 
 		OPTIONS
 		  --install, -i repo|local
 		    repo: Install MC from repository, updates are handled by the system package manager
-		    local: Build and install MC package locally from official source release
+		    local: Build and install MC locally from official source package
 		  --build[=suse|fedora|centos]
 		    Build RPM from source DEB but do not install
 		    Optionally, specify a target distro for cross-building (ex. --build=suse, note the '=')
 		  --compat
 		    Build/install MC locally without minimum dependency version requirements
 		  --mcversion VERSION
-		    Specify the MC version, ex. "$MC_VERSION" or "${MC_VERSION%%.*}"
+		    Specify the MC version, ex. "$MC_VERSION" or "${MC_VERSION%%.*}" (default: latest release)
 		  --arch VERSION
 		    Specify the target MC architecture, ex. "amd64", "arm64", etc (default: host)
 		  --mcrepo REPO
 		    Specify the MC repository, ex. "bullseye", "bookworm", "noble", etc (default: auto)
 		  --outputdir PATH
-		    Generate rpmbuild output in this directory (default: ./output)
+		    Generate reusable installJRMC output in this PATH (default: ./output)
 		  --restorefile MJR_FILE
 		    Restore file location for automatic license registration
 		  --betapass PASSWORD
@@ -80,7 +84,7 @@ print_help() {
 		  --yes, -y, --auto
 		    Assume yes response to questions
 		  --version, -v
-		    Print this script version and exit
+		    Print installJRMC version and exit
 		  --debug, -d
 		    Print debug output
 		  --help, -h
@@ -99,16 +103,12 @@ print_help() {
 		    Enable and start a new Xvnc session running JRiver Media Center
 		    --vncpass PASSWORD
 		      Set the vnc password for x11vnc/Xvnc access. If no password is set, installJRMC
-		      will either use existing password stored in \$HOME/.vnc/jrmc_passwd or use no password
+		      will either use existing password stored in \$HOME/.vnc/jrmc_passwd or else no password
 		    --display DISPLAY
 		      Display to use for x11vnc/Xvnc (default: The current display (x11vnc) or the
 		      current display incremented by 1 (Xvnc))
 		  jriver-createrepo (system)
 		    Install hourly service to build latest MC RPM and run createrepo
-
-		CONTAINERS (TODO: Under construction)
-		  mediacenter-xvnc
-		  createrepo
 	EOF
 }
 
@@ -134,8 +134,7 @@ parse_input() {
     eval set -- "$input"
     while true; do
       case $1 in
-        --install|-i)
-          shift
+        --install|-i) shift;
           case $1 in
             local|rpm|deb) BUILD_SWITCH=1 LOCAL_INSTALL_SWITCH=1 ;;
             repo|remote) REPO_INSTALL_SWITCH=1 ;;
@@ -181,7 +180,7 @@ parse_input() {
           ;;
         --arch) shift; USER_ARCH="$1" ;;
         --mcrepo) shift; USER_MC_REPO="$1" ;;
-        --restorefile) shift; MJR_FILE="$1" ;;
+        --restorefile) shift; MJR_FILE="$1"; [[ -f $MJR_FILE ]] || err "Specified license $MJR_FILE missing." ;;
         --betapass) shift; BETAPASS="$1" ;;
         --service-type) shift; SERVICE_TYPE="$1" ;;
         --service|-s|--services) shift; SERVICES+=("$1") ;;
@@ -208,10 +207,9 @@ parse_input() {
   fi
 
   # Fallback to default install method in some scenarios
-  if ! ((UNINSTALL_SWITCH + BUILD_SWITCH + CREATEREPO_SWITCH + 
-    LOCAL_INSTALL_SWITCH + CONTAINER_INSTALL_SWITCH + SNAP_INSTALL_SWITCH +
-    APPIMAGE_INSTALL_SWITCH)) &&
-    [[ ${#SERVICES[@]} -eq 0 && ${#CONTAINERS[@]} -eq 0 ]]; then
+  if ! ((UNINSTALL_SWITCH || BUILD_SWITCH || CREATEREPO_SWITCH || LOCAL_INSTALL_SWITCH
+  || CONTAINER_INSTALL_SWITCH || SNAP_INSTALL_SWITCH || APPIMAGE_INSTALL_SWITCH)) &&
+  [[ ${#SERVICES[@]} -eq 0 && ${#CONTAINERS[@]} -eq 0 ]]; then
     debug "Defaulting to --install=repo"
     REPO_INSTALL_SWITCH=1
   fi
@@ -1198,7 +1196,9 @@ restore_license() {
 
     for f in "$MJR_FILE" "$newest"; do
       if [[ -f $f ]]; then
-        execute "mediacenter$MC_MVERSION" "/RestoreFromFile" "$f"
+        if execute "mediacenter$MC_MVERSION" "/RestoreFromFile" "$f"; then
+          return 0
+        fi
       fi
     done
   fi

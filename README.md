@@ -8,11 +8,10 @@ You can find the latest version of installJRMC, changelog, and documentation in 
 
 `installJRMC [--option [ARGUMENT]]`
 
-Running `installJRMC` without any options implies `--install repo` (on SUSE/Arch: `--install local`) and will install the latest version of Media Center from the official JRiver repository (Ubuntu/Debian) or my [unofficial repository](https://repos.bryanroessler.com/jriver/) (Fedora/CentOS) using the system package manager. If `--service` or `--container` is passed then the default installation method (`--install repo` or `--install local`) must be specified (allows services and containers to be installed independent of MC).
+`installJRMC` defaults to `--install=repo` on distros with MC repositories and `--install=local` on all others.
+Specifying `--build`, `--createrepo`, `--service`, or `--uninstall` disables the default install method.
 
-Recent versions of installJRMC will automatically self-update to the latest installJRMC release.
-
-## tl;dr
+### tl;dr
 
 `curl https://git.bryanroessler.com/bryan/installJRMC/raw/master/installJRMC|bash`
 
@@ -58,7 +57,7 @@ $ installJRMC --help
 --yes, -y, --auto
     Always assume yes for questions
 --version, -v
-    Print this script version and exit
+    Print installJRMC version and exit
 --debug, -d
     Print debug output
 --help, -h
@@ -85,14 +84,13 @@ jriver-xvnc [--service-type=system]
     Manually specify display to use for x11vnc/Xvnc (ex. ':1')
 jriver-createrepo [--service-type=system]
     Install hourly service to build latest MC RPM and run createrepo
-    By default installs as root service to handle www permissions more gracefully
 ```
 
 #### `--service-type=`
 
-By default, MC services use a sane `--service-type` listed next to the service name in the [`--service=`](#--service) section. User services begin at user login and are managed by the unprivileged user, for example: `systemctl --user stop jriver-mediacenter`. System services begin at boot and are managed by root, for example: `sudo systemctl stop jriver-servicename@username.service`. It is possible to run all services of a particular user at boot using [`sudo loginctl enable-linger username`](https://www.freedesktop.org/software/systemd/man/loginctl.html).
+Services use a sane default `--service-type` listed next to the service name in the [`--service=`](#--service) section. User services begin at user login and are managed by the unprivileged user, for example: `systemctl --user stop jriver-mediacenter`. System services begin at boot and are managed by root, for example: `sudo systemctl stop jriver-servicename@username.service`. It is possible to run all services of a particular user at boot using [`sudo loginctl enable-linger username`](https://www.freedesktop.org/software/systemd/man/loginctl.html).
 
-Multiple services (but not `--service-types`) can be installed at one time using multiple `--service` blocks: `installJRMC --install repo --service jriver-x11vnc --service jriver-mediacenter`
+Multiple services (but not `--service-types`) can be installed at one time using multiple `--service` blocks: `installJRMC --install=repo --service=jriver-x11vnc --service=jriver-mediacenter`
 
 #### `jriver-x11vnc` versus `jriver-xvnc`
 
@@ -107,6 +105,17 @@ Multiple services (but not `--service-types`) can be installed at one time using
 `installJRMC` automatically creates port forwarding firewall rules for remote access to Media Network (52100-52200/tcp, 1900/udp DLNA) and Xvnc/x11vnc (if selected), using `firewall-cmd` or `ufw`.
 
 **Note:** `ufw` is not installed by default on Debian but will be installed by `installJRMC`. To prevent SSH lock-out, Debian users that have not already enabled `ufw` will need to `sudo ufw enable` after running `installJRMC` and inspecting their configuration.
+
+## Nicities
+
+Depending on the distribution, `installJRMC` also performs the following tasks during MC installation:
+
+* Automatically updates `installJRMC` to the latest release
+* Activates external third-party repositories for improved media playback (hardware decoding, etc.)
+* Adds temporary legacy repositories to provide deprecated libraries
+* Links non-standard SSL certs
+* Disables BTRFS CoW for MC database directories
+* Activates MC if a valid license file is found in common locations
 
 ## Examples
 
@@ -154,4 +163,4 @@ Multiple services (but not `--service-types`) can be installed at one time using
 
 Did you find `installJRMC` useful? [Buy me a coffee!](https://paypal.me/bryanroessler)
 
-Did you find a bug? Let me know on [Interact!](https://yabb.jriver.com/interact/index.php/topic,134152.0.html)
+Did you find a bug? [Let me know on Interact!](https://yabb.jriver.com/interact/index.php/topic,141168.0.html)
