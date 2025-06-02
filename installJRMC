@@ -629,7 +629,7 @@ install_mc_repo() {
 					Types: deb
 					URIs: https://dist.jriver.com/$channel/mediacenter/
 					Signed-By: $keyfile
-					Suites: $MC_REPO trixie bookworm bullseye oracular noble jammy focal
+					Suites: $MC_REPO
 					Components: main
 					Architectures: amd64 armhf arm64
 				EOF
