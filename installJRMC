@@ -1541,7 +1541,7 @@ disable_btrfs_cow() {
 
   # Disable btrfs CoW
   if [[ $(stat -f -c %T "$mc_user_path") == "btrfs" ]]; then
-    if execute chattr +C "$mc_user_path"; then
+    if execute chattr -R +C "$mc_user_path"; then
       echo "Disabled btrfs CoW for $mc_user_path directory"
     fi
   fi
