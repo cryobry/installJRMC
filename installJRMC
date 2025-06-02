@@ -443,6 +443,7 @@ install_package() {
   local input pkg _pkg
   local -i no_install_check=0 allow_downgrades=0 silent=0 refresh=0 no_gpg_check=0 reinstall=0
   local long_opts="no-install-check,allow-downgrades,no-gpg-check,refresh,reinstall,silent"
+  local -a pkg_install=("${PKG_INSTALL[@]}")
 
   input=$(getopt -o +s -l "$long_opts" -- "$@") || { err "Incorrect options provided"; exit 1; }
   eval set -- "$input"
@@ -501,9 +502,10 @@ install_package() {
       ((allow_downgrades)) && install_flags+=(--allowerasing)
       ((no_gpg_check)) && install_flags+=(--nogpgcheck)
       ((refresh)) && install_flags+=(--refresh)
-      # if ((reinstall)) && [[ ${#pkg_array[@]} -eq 1 ]] && "${PKG_QUERY[@]}" "${pkg_array[0]}" &>/dev/null; then
-      #   PKG_INSTALL=("${PKG_INSTALL[@]/install/reinstall}")
-      # fi
+      # Only add reinstall flag for mediacenter package
+      if ((reinstall)) && [[ ${#pkg_array[@]} -eq 1 ]] && "${PKG_QUERY[@]}" "${pkg_array[0]}" &>/dev/null; then
+        pkg_install=("${pkg_install[@]/install/reinstall}")
+      fi
       ;;
     suse)
       ((no_gpg_check)) && install_flags+=(--allow-unsigned-rpm) ;;
@@ -511,7 +513,7 @@ install_package() {
 
   # Install packages
   if [[ ${#pkg_array[@]} -gt 0 ]]; then
-    if ! execute "${PKG_INSTALL[@]}" "${install_flags[@]}" "${pkg_array[@]}"; then     
+    if ! execute "${pkg_install[@]}" "${install_flags[@]}" "${pkg_array[@]}"; then     
       ((silent)) || err "Failed to install ${pkg_array[*]}"
       return 1
     fi
@@ -670,7 +672,7 @@ install_mc_repo() {
   fi
   "${PKG_UPDATE[@]}" || { err "Package update failed!"; return 1; }
 
-  echo "Installing $MC_PKG"
+  echo "Installing $MC_PKG package"
   if ! install_package \
     --no-install-check \
     --allow-downgrades \
@@ -1542,7 +1544,7 @@ disable_btrfs_cow() {
   # Disable btrfs CoW
   if [[ $(stat -f -c %T "$mc_user_path") == "btrfs" ]]; then
     if execute chattr -R +C "$mc_user_path"; then
-      echo "Disabled btrfs CoW for $mc_user_path directory"
+      echo "Disabled btrfs CoW for $mc_user_path"
     fi
   fi
 }
