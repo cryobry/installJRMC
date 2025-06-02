@@ -658,9 +658,16 @@ install_mc_repo() {
   fi
 
   echo "Adding MC repository file: $repo_file"
-  debug "repo_text: $repo_text"
+  debug "$repo_text"
   sudo tee "$repo_file" &>/dev/null <<< "$repo_text"
 
+  # Add older repository for libwebkit2gtk-4.0-37, etc, on newer Debian/Ubuntu
+  if add_temp_repo; then
+    trap 'execute sudo rm -f "$TEMP_REPO_FILE"' EXIT
+  else
+    err "Failed to add temporary repository"
+    return 1
+  fi
   "${PKG_UPDATE[@]}" || { err "Package update failed!"; return 1; }
 
   echo "Installing $MC_PKG"
@@ -673,6 +680,10 @@ install_mc_repo() {
     err "Package install failed!"
     return 1
   fi
+
+  # Unset the trap and remove temporary legacy repository
+  trap - EXIT
+  [[ -f $TEMP_REPO_FILE ]] && execute sudo rm -f "$TEMP_REPO_FILE"
 }
 
 # @description Acquires the source DEB package from JRiver
@@ -956,44 +967,14 @@ install_mc_deb() {
     execute rm -rf "$extract_dir"
   fi
 
-  # Helper function to add repository
-  add_temp_repo() {
-    local repo_name="$1"
-    local repo_uri="$2"
-    local repo_suite="$3"
-    local repo_key="$4"
-    declare -g TEMP_REPO_FILE="/etc/apt/sources.list.d/${repo_name}.sources"
-    declare -gi REMOVE_TEMP_REPO_SWITCH=1
-
-    echo "Creating temporary repository file $TEMP_REPO_FILE for $repo_suite"
-    sudo bash -c "cat <<-EOF > $TEMP_REPO_FILE
-			Types: deb
-			URIs: $repo_uri
-			Suites: $repo_suite
-			Components: main
-			Architectures: $MC_ARCH
-			Signed-By: $repo_key
-		EOF"
-
-    "${PKG_UPDATE[@]}" || { err "Package update failed!"; return 1; }
-  }
-
   # Add older repository for libwebkit2gtk-4.0-37, etc, on newer Debian/Ubuntu
-  if [[ "$ID" == "ubuntu" ]]; then
-    local major_version="${VERSION_ID%%.*}"
-    local minor_version="${VERSION_ID##*.}"
-    minor_version="${minor_version#0}" # strip leading zero for comparison
-    if [[ $major_version -gt 24 || ( $major_version -eq 24 && minor_version -ge 4 ) ]]; then
-      echo "Temporarily adding jammy repository for libwebkit2gtk-4.0-37, etc."
-      add_temp_repo "ubuntu-jammy-temp" "https://archive.ubuntu.com/ubuntu" "jammy" "/usr/share/keyrings/ubuntu-archive-keyring.gpg"
-    fi
-  elif [[ "$ID" == "debian" ]]; then
-    local major_version="${VERSION_ID%%.*}"
-    if [[ $major_version -ge 13 ]]; then
-      echo "Temporarily adding bookworm repository for libwebkit2gtk-4.0-37, etc."
-      add_temp_repo "debian-bookworm-temp" "https://deb.debian.org/debian" "bookworm" "/usr/share/keyrings/debian-archive-keyring.gpg"
-    fi
+  if add_temp_repo; then
+    trap 'execute sudo rm -f "$TEMP_REPO_FILE"' EXIT
+  else
+    err "Failed to add temporary repository"
+    return 1
   fi
+  "${PKG_UPDATE[@]}" || { err "Package update failed!"; return 1; }
 
   # Copy the DEB to a temporary file so _apt can read it
   debug "Creating temporary deb file owned by _apt"
@@ -1010,15 +991,15 @@ install_mc_deb() {
     --reinstall \
     "$temp_deb"; then
     err "Local MC DEB installation failed"
-    ((REMOVE_TEMP_REPO_SWITCH)) && { echo "Removing temporary repo"; execute sudo rm -f "$TEMP_REPO_FILE"; }
     if ask_ok "Remove source DEB and retry"; then
       execute sudo rm -f "$MC_DEB" "$temp_deb"
       exec "$SCRIPT_PATH" "$@" "--no-update"
     fi
   fi
 
-  # Cleanup temporary repository and temporary DEB file
-  ((REMOVE_TEMP_REPO_SWITCH)) && { echo "Removing temporary repo"; execute sudo rm -f "$TEMP_REPO_FILE"; }
+  # Unset the trap and remove temporary legacy repository
+  trap - EXIT
+  [[ -f $TEMP_REPO_FILE ]] && execute sudo rm -f "$TEMP_REPO_FILE"
   execute sudo rm -f "$temp_deb"
 }
 
@@ -1895,6 +1876,51 @@ create_mc_apt_container() {
   for cmd in "${cmds[@]}"; do
     sudo buildah run "$CNT" -- sh -c "$cmd" || { err "$cmd failed"; return 1; }
   done
+}
+add_temp_repo() {
+  debug "${FUNCNAME[0]}()"
+  local repo_name repo_uri repo_suite repo_key
+
+  if [[ "$ID" == "ubuntu" ]]; then
+    local major_version="${VERSION_ID%%.*}"
+    local minor_version="${VERSION_ID##*.}"
+    minor_version="${minor_version#0}"  # strip leading zero
+    if [[ $major_version -gt 24 || ( $major_version -eq 24 && minor_version -ge 4 ) ]]; then
+      echo "Temporarily adding jammy repository for libwebkit2gtk-4.0-37, etc."
+      repo_name="ubuntu-jammy-temp"
+      repo_uri="https://archive.ubuntu.com/ubuntu"
+      repo_suite="jammy"
+      repo_key="/usr/share/keyrings/ubuntu-archive-keyring.gpg"
+    else
+      return 0
+    fi
+  elif [[ "$ID" == "debian" ]]; then
+    local major_version="${VERSION_ID%%.*}"
+    if [[ $major_version -ge 13 ]]; then
+      echo "Temporarily adding bookworm repository for libwebkit2gtk-4.0-37, etc."
+      repo_name="debian-bookworm-temp"
+      repo_uri="https://deb.debian.org/debian"
+      repo_suite="bookworm"
+      repo_key="/usr/share/keyrings/debian-archive-keyring.gpg"
+    else
+      return 0
+    fi
+  else
+    # For other distributions, do nothing.
+    return 0
+  fi
+
+  declare -g TEMP_REPO_FILE="/etc/apt/sources.list.d/${repo_name}.sources"
+
+  echo "Creating temporary repository file $TEMP_REPO_FILE for $repo_suite"
+  sudo bash -c "cat <<-EOF > $TEMP_REPO_FILE
+		Types: deb
+		URIs: $repo_uri
+		Suites: $repo_suite
+		Components: main
+		Architectures: $MC_ARCH
+		Signed-By: $repo_key
+	EOF"
 }
 
 # Roughly turn debugging on for pre-init
