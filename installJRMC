@@ -963,6 +963,7 @@ install_mc_deb() {
     local repo_suite="$3"
     local repo_key="$4"
     declare -g TEMP_REPO_FILE="/etc/apt/sources.list.d/${repo_name}.sources"
+    declare -gi REMOVE_TEMP_REPO_SWITCH=1
 
     echo "Creating temporary repository file $TEMP_REPO_FILE for $repo_suite"
     sudo bash -c "cat <<-EOF > $TEMP_REPO_FILE
@@ -973,26 +974,24 @@ install_mc_deb() {
 			Architectures: $MC_ARCH
 			Signed-By: $repo_key
 		EOF"
+
     "${PKG_UPDATE[@]}" || { err "Package update failed!"; return 1; }
   }
 
   # Add older repository for libwebkit2gtk-4.0-37, etc, on newer Debian/Ubuntu
-  local -i remove_temp_repo=0
   if [[ "$ID" == "ubuntu" ]]; then
     local major_version="${VERSION_ID%%.*}"
     local minor_version="${VERSION_ID##*.}"
     minor_version="${minor_version#0}" # strip leading zero for comparison
     if [[ $major_version -gt 24 || ( $major_version -eq 24 && minor_version -ge 4 ) ]]; then
       echo "Temporarily adding jammy repository for libwebkit2gtk-4.0-37, etc."
-      remove_temp_repo=1
-      add_temp_repo "jammy" "https://archive.ubuntu.com/ubuntu" "jammy" "/usr/share/keyrings/ubuntu-archive-keyring.gpg"
+      add_temp_repo "ubuntu-jammy-temp" "https://archive.ubuntu.com/ubuntu" "jammy" "/usr/share/keyrings/ubuntu-archive-keyring.gpg"
     fi
   elif [[ "$ID" == "debian" ]]; then
     local major_version="${VERSION_ID%%.*}"
-    if [[ $major_version -ge 13 || -z $major_version ]]; then
+    if [[ $major_version -ge 13 ]]; then
       echo "Temporarily adding bookworm repository for libwebkit2gtk-4.0-37, etc."
-      remove_temp_repo=1
-      add_temp_repo "bookworm" "https://deb.debian.org/debian" "bookworm" "/usr/share/keyrings/debian-archive-keyring.gpg"
+      add_temp_repo "debian-bookworm-temp" "https://deb.debian.org/debian" "bookworm" "/usr/share/keyrings/debian-archive-keyring.gpg"
     fi
   fi
 
@@ -1011,7 +1010,7 @@ install_mc_deb() {
     --reinstall \
     "$temp_deb"; then
     err "Local MC DEB installation failed"
-    ((remove_temp_repo)) && { echo "Removing temporary repo"; execute sudo rm -f "$TEMP_REPO_FILE"; }
+    ((REMOVE_TEMP_REPO_SWITCH)) && { echo "Removing temporary repo"; execute sudo rm -f "$TEMP_REPO_FILE"; }
     if ask_ok "Remove source DEB and retry"; then
       execute sudo rm -f "$MC_DEB" "$temp_deb"
       exec "$SCRIPT_PATH" "$@" "--no-update"
@@ -1019,7 +1018,7 @@ install_mc_deb() {
   fi
 
   # Cleanup temporary repository and temporary DEB file
-  ((remove_temp_repo)) && { echo "Removing temporary repo"; execute sudo rm -f "$TEMP_REPO_FILE"; }
+  ((REMOVE_TEMP_REPO_SWITCH)) && { echo "Removing temporary repo"; execute sudo rm -f "$TEMP_REPO_FILE"; }
   execute sudo rm -f "$temp_deb"
 }
 
