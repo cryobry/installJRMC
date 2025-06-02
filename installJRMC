@@ -382,7 +382,7 @@ init() {
   fi
   MC_REPO="${USER_MC_REPO:-$MC_REPO}" # allow user override
 
-  echo "MC target: $MC_REPO $MC_ARCH -> $BUILD_TARGET $ARCH"
+  echo "MC source -> target: $MC_REPO $MC_ARCH -> $BUILD_TARGET $ARCH"
 
   # Retrieves the latest MC version number if we need it
   if ((BUILD_SWITCH || LOCAL_INSTALL_SWITCH || CREATEREPO_SWITCH)); then
@@ -1573,6 +1573,11 @@ uninstall() {
   debug "${FUNCNAME[0]}()"
   local service type unit f
 
+  if ! ask_ok "Do you really want to uninstall JRiver Media Center?"; then
+    echo "Uninstall cancelled"
+    return 1
+  fi
+
   echo "Stopping and removing all Media Center services"
   for service in $(compgen -A "function" "service"); do
     service="${service##service_}"
@@ -1591,13 +1596,12 @@ uninstall() {
     done
   done
 
-  echo "Removing MC repositories"
-  execute sudo rm -rf \
+  echo "Removing MC repository files"
+  execute sudo rm -f \
     "/etc/yum.repos.d/jriver.repo" \
     /etc/apt/sources.list.d/{jriver,mediacenter}*.{list,sources} # also remove legacy repo files
 
-  [[ $ID == "suse" ]] &&
-    execute sudo zypper --non-interactive removerepo jriver
+  [[ $ID == "suse" ]] && execute sudo zypper --non-interactive removerepo jriver
 
   echo "Removing firewall rules"
   for service in jriver-mediacenter jriver-xvnc jriver-x11vnc; do
@@ -1612,18 +1616,20 @@ uninstall() {
     fi
   done
 
-  echo "Uninstalling JRiver Media Center package"
+  echo "Uninstalling the JRiver Media Center package"
   if "${PKG_REMOVE[@]}" "${MC_PKG%%=*}"; then # remove version specifier
-    echo "JRiver Media Center has been completely uninstalled"
+    echo "Successfully uninstalled JRiver Media Center ${MC_PKG%%=*}"
   elif [[ $? -eq 100 ]]; then
     err "JRiver Media Center package '${MC_PKG%%=*}' is not present and was not uninstalled"
   else
     err "Could not remove Media Center package"
   fi
 
-  echo "Uninstalling JRiver Media Center GPG key"
   local keyfile="/usr/share/keyrings/jriver-com-archive-keyring.gpg"
-  [[ -f $keyfile ]] && execute sudo rm -f "$keyfile"
+  if [[ -f $keyfile ]]; then
+    echo "Removing the JRiver Media Center GPG key"
+    execute sudo rm -f "$keyfile"
+  fi
 
   if [[ -f $SCRIPT_DIR/.uninstall ]]; then
     echo "Removing files from .uninstall log"
@@ -1633,7 +1639,13 @@ uninstall() {
     mv "$SCRIPT_DIR/.uninstall" "$SCRIPT_DIR/.uninstall.bk"
   fi
 
-  echo "To remove installJRMC output: rm -rf $OUTPUT_DIR"
+  if [[ -d $OUTPUT_DIR ]]; then
+    if ask_ok "Remove installJRMC output directory $OUTPUT_DIR?"; then
+      execute sudo rm -rf "$OUTPUT_DIR"
+    fi
+  fi
+
+  echo "To reset your MC library: mv $HOME/.jriver $HOME/.jriver.bk"
   echo "To remove your MC library: rm -rf $HOME/.jriver"
   return 0
 }
@@ -1737,14 +1749,7 @@ main() {
   # Parse input, set default/host variables, and MC version
   init "$@"
 
-  if ((UNINSTALL_SWITCH)); then
-    if ask_ok "Do you really want to uninstall JRiver Media Center?"; then
-      uninstall
-    else
-      echo "Uninstall canceled"
-    fi
-    exit
-  fi
+  ((UNINSTALL_SWITCH)) && uninstall
 
   install_external_repos
 
