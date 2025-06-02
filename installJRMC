@@ -1614,7 +1614,7 @@ uninstall() {
 
   echo "Uninstalling the JRiver Media Center package"
   if "${PKG_REMOVE[@]}" "${MC_PKG%%=*}"; then # remove version specifier
-    echo "Successfully uninstalled JRiver Media Center ${MC_PKG%%=*}"
+    echo "Successfully uninstalled ${MC_PKG%%=*} package"
   elif [[ $? -eq 100 ]]; then
     err "JRiver Media Center package '${MC_PKG%%=*}' is not present and was not uninstalled"
   else
@@ -1641,8 +1641,10 @@ uninstall() {
     fi
   fi
 
-  echo "To reset your MC library: mv $HOME/.jriver $HOME/.jriver.bk"
-  echo "To remove your MC library: rm -rf $HOME/.jriver"
+  if [[ -d $HOME/.jriver ]]; then
+    echo "To reset your MC library: mv $HOME/.jriver $HOME/.jriver.bk"
+    echo "To remove your MC library: rm -rf $HOME/.jriver"
+  fi
   return 0
 }
 
