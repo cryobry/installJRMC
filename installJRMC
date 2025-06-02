@@ -1,5 +1,4 @@
 #!/usr/bin/env bash
-# shellcheck disable=SC2317
 # @file installJRMC
 # @brief Installs JRiver Media Center and associated services
 # @description See installJRMC --help or print_help() below for usage
@@ -17,6 +16,9 @@
 # NOTES
 # * Be careful with tabs in heredocs
 # * Avoid execute() for stdout
+#
+# We use indirection to match service names to their functions
+# shellcheck disable=SC2317
 shopt -s extglob
 
 declare -g SCRIPT_VERSION="1.34.0-dev"
@@ -1197,7 +1199,10 @@ restore_license() {
     for f in "$MJR_FILE" "$newest"; do
       if [[ -f $f ]]; then
         if execute "mediacenter$MC_MVERSION" "/RestoreFromFile" "$f"; then
+          echo "Restored license from $f"
           return 0
+        else
+          err "Failed to restore license from $f"
         fi
       fi
     done
