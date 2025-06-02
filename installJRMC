@@ -225,7 +225,7 @@ parse_input() {
 # @description Perform OS detection and generate OS-specific functions
 # @see parse_input
 init() {
-  debug "${FUNCNAME[0]}()"
+  debug "${FUNCNAME[0]}()" "$@"
   declare -g USER
   declare -g SCRIPT_PATH; SCRIPT_PATH=$(readlink -f "${BASH_SOURCE[0]}")
   declare -g SCRIPT_DIR; SCRIPT_DIR=$(readlink -f "$(dirname "${BASH_SOURCE[0]}")")
@@ -557,8 +557,6 @@ install_external_repos() {
         install_package --no-install-check \
           "https://download1.rpmfusion.org/free/fedora/rpmfusion-free-release-$VERSION_ID.noarch.rpm"
       fi
-      # Install mesa-va-drivers-freeworld separately from the RPM using dnf swap
-      install_mesa_freeworld
       ;;
     suse) : # TODO may be needed if X11_XOrg is made unavailable in default repos
       # if ! zypper repos | grep -q "X11_XOrg"; then
@@ -821,7 +819,9 @@ build_rpm() {
       requires=("${requires[@]/python/python3}")
       requires=("${requires[@]/libwebkit2gtk-4.0*/webkit2gtk4.0}")
       requires=("${requires[@]/libwebkit2gtk-4.1*/webkit2gtk4.1}")
-      recommends+=(mesa-va-drivers-freeworld)
+      recommends+=("mesa-va-drivers-freeworld | mesa-va-drivers")
+      recommends+=("mesa-vulkan-drivers-freeworld | mesa-vulkan-drivers")
+      recommends+=("mesa-vdpau-driver-freeworld | mesa-vdpau-driver")
       ;;
     suse)
       requires=("${requires[@]/python*/python313}")
@@ -944,7 +944,7 @@ build_rpm() {
 
 # @description Installs Media Center via DEB package w/ optional compatability fixes
 install_mc_deb() {
-  debug "${FUNCNAME[0]}()"  
+  debug "${FUNCNAME[0]}()" "$@"
 
   if ((COMPAT_SWITCH)); then
     local extract_dir; extract_dir="$(mktemp -d)"
@@ -1611,6 +1611,7 @@ uninstall() {
     err "Could not remove Media Center package"
   fi
 
+  # Remove the JRiver GPG keyfile
   local keyfile="/usr/share/keyrings/jriver-com-archive-keyring.gpg"
   if [[ -f $keyfile ]]; then
     echo "Removing the JRiver Media Center GPG key"
@@ -1763,6 +1764,7 @@ main() {
     echo "Installing JRiver Media Center from remote repository"
     if install_mc_repo; then
       echo "JRiver Media Center installed successfully from remote repository"
+      install_mesa_freeworld
       link_ssl_certs
       restore_license
       open_firewall "jriver-mediacenter" "52100-52200/tcp" "1900/udp"
@@ -1784,12 +1786,14 @@ main() {
   fi
 
   if ((LOCAL_INSTALL_SWITCH)); then
+    echo "Installing JRiver Media Center from local package"
     if PKG_INSTALL_LOCAL "$@"; then
       echo "JRiver Media Center installed successfully from local package"
     else
       err "JRiver Media Center local package installation failed"
       return 1
     fi
+    install_mesa_freeworld
     link_ssl_certs
     restore_license
     open_firewall "jriver-mediacenter" "52100-52200/tcp" "1900/udp"
