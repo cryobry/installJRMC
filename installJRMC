@@ -427,7 +427,7 @@ get_latest_mc_version() {
     err "Warning! Using hardcoded version number"
   fi
     
-  echo "Determined MC version $MC_VERSION from the $MC_REPO repo (via $mc_version_source)"
+  echo "Selected MC version $MC_VERSION from the $MC_REPO repo (via $mc_version_source)"
 }
 
 # @description Installs a package using the system package manager
@@ -900,7 +900,7 @@ build_rpm() {
 	EOF
 
   # Run rpmbuild
-  echo "Building MC $MC_VERSION RPM, this may take some time"
+  echo "Building $MC_RPM, this may take some time"
   rpmbuild_cmd=(
     rpmbuild 
       --define="_topdir $OUTPUT_DIR" 
@@ -1642,10 +1642,14 @@ uninstall() {
   fi
 
   if [[ -d $HOME/.jriver ]]; then
-    echo "To reset your MC library: mv $HOME/.jriver $HOME/.jriver.bk"
+    if ask_ok "Backup and reset your MC library?"; then
+      execute mv "$HOME/.jriver" "$HOME/.jriver.bk"
+      echo "Your MC library has been backed up to $HOME/.jriver.bk and reset"
+      return
+    fi
+    echo "To backup and reset your MC library: mv $HOME/.jriver $HOME/.jriver.bk"
     echo "To remove your MC library: rm -rf $HOME/.jriver"
   fi
-  return 0
 }
 
 # @description Checks for installJRMC update and re-executes, if necessary
