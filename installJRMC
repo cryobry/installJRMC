@@ -1631,6 +1631,12 @@ uninstall() {
     fi
   fi
 
+  if [[ -d $MC_ROOT ]]; then
+    if ask_ok "Remove MC installation directory $MC_ROOT?"; then
+      execute sudo rm -rf "$MC_ROOT"
+    fi
+  fi
+
   if [[ -d $HOME/.jriver ]]; then
     if ask_ok "Backup and reset your MC library?"; then
       execute mv "$HOME/.jriver" "$HOME/.jriver.bk"
