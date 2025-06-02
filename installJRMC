@@ -569,22 +569,26 @@ install_external_repos() {
   esac
 }
 
-# @description Installs mesa-va-drivers-freeworld
+# @description Installs mesa-va-drivers-freeworld on Fedora
 install_mesa_freeworld() {
   debug "${FUNCNAME[0]}()"
   local pkg freeworld_pkg
-  for pkg in mesa-va-drivers mesa-vdpau-drivers mesa-vulkan-drivers; do
-    freeworld_pkg="${pkg}-freeworld"
-    if ! "${PKG_QUERY[@]}" "$freeworld_pkg" &>/dev/null; then
-      if "${PKG_QUERY[@]}" "$pkg" &>/dev/null; then
-        if ! execute sudo dnf swap -y "$pkg" "$freeworld_pkg"; then
-          err "Package swap failed for $pkg!"
+  case $ID in
+    fedora)
+      for pkg in mesa-va-drivers mesa-vdpau-drivers mesa-vulkan-drivers; do
+        freeworld_pkg="${pkg}-freeworld"
+        if ! "${PKG_QUERY[@]}" "$freeworld_pkg" &>/dev/null; then
+          if "${PKG_QUERY[@]}" "$pkg" &>/dev/null; then
+            if ! execute sudo dnf swap -y "$pkg" "$freeworld_pkg"; then
+              err "Package swap failed for $pkg!"
+            fi
+          else
+            "${PKG_INSTALL[@]}" "$freeworld_pkg"
+          fi
         fi
-      else
-        "${PKG_INSTALL[@]}" "$freeworld_pkg"
-      fi
-    fi
-  done
+      done
+      ;;
+  esac
 }
 
 # @description Installs JRiver Media Center from a remote repository
