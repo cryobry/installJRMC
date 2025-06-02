@@ -979,11 +979,10 @@ install_mc_deb() {
   # Add older repository for libwebkit2gtk-4.0-37, etc, on newer Debian/Ubuntu
   local -i remove_temp_repo=0
   if [[ "$ID" == "ubuntu" ]]; then
-    debug "ID: $ID, VERSION_ID: $VERSION_ID"
     local major_version="${VERSION_ID%%.*}"
     local minor_version="${VERSION_ID##*.}"
-    debug "Major version: $major_version, Minor version: $minor_version"
-    if [[ $major_version -gt 24 || ($major_version == 24 && minor_version -ge 4) ]]; then
+    minor_version="${minor_version#0}" # strip leading zero for comparison
+    if [[ $major_version -gt 24 || ( $major_version -eq 24 && minor_version -ge 4 ) ]]; then
       echo "Temporarily adding jammy repository for libwebkit2gtk-4.0-37, etc."
       remove_temp_repo=1
       add_temp_repo "jammy" "https://archive.ubuntu.com/ubuntu" "jammy" "/usr/share/keyrings/ubuntu-archive-keyring.gpg"
