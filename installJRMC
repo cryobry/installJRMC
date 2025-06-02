@@ -19,8 +19,8 @@
 # * Avoid execute() for stdout
 shopt -s extglob
 
-declare -g SCRIPT_VERSION="1.6.6-dev"
-declare -g MC_VERSION="34.0.20" # do find all replace
+declare -g SCRIPT_VERSION="1.34.0-dev"
+declare -g MC_VERSION="34.0.31" # do find all replace
 declare -g MC_REPO="bookworm" # should match the MC_VERSION
 declare -g BOARD_ID="89.0" # MC34
 declare -gi UPDATE_SWITCH=1 # set to 0 to disable automatic self-update
@@ -151,11 +151,11 @@ parse_input() {
           if [[ $1 =~ ^([0-9]+)(\.[0-9]+\.[0-9]+)?(-([0-9]+))?$ ]]; then
             # Major version is required
             USER_MC_MVERSION="${BASH_REMATCH[1]}"
-            # If we get the full version, use it
-            [[ -n ${BASH_REMATCH[2]} ]] && USER_MC_VERSION="${BASH_REMATCH[1]}${BASH_REMATCH[2]}"
             # Set default release to 1 if not provided
             USER_MC_RELEASE="${BASH_REMATCH[4]:-1}"
-            
+            # If we get the full version, use it
+            [[ -n ${BASH_REMATCH[2]} ]] && USER_MC_VERSION="${BASH_REMATCH[1]}${BASH_REMATCH[2]}"
+
             # Set major version defaults
             case "$USER_MC_MVERSION" in
               34) MC_VERSION="${USER_MC_VERSION:-$MC_VERSION}" MC_REPO="bookworm" BOARD_ID="89.0" ;;
@@ -291,7 +291,7 @@ init() {
     raspbian) ID="debian" ;;
     manjaro|arch) ID="arch"
       if ((REPO_INSTALL_SWITCH)); then
-        debug "Automatically using --install=local for SUSE"
+        debug "Automatically using --install=local for Arch"
         REPO_INSTALL_SWITCH=0
         BUILD_SWITCH=1
         LOCAL_INSTALL_SWITCH=1
@@ -480,27 +480,20 @@ install_package() {
 
   # Filter out already installed packages to create pkg_array
   for pkg in "$@"; do
+    # Use alias if present, otherwise just pkg itself
+    pkg_names=("$pkg")
     if [[ -v pkg_aliases[$pkg] ]]; then
       debug "Aliasing $pkg to ${pkg_aliases[$pkg]}"
-      IFS=' ' read -ra pkgs <<< "${pkg_aliases[$pkg]}"
-      for _pkg in "${pkgs[@]}"; do
-        if ((no_install_check)) ||
-        ! { command -v "$_pkg" &>/dev/null ||
-        "${PKG_QUERY[@]}" "$_pkg" &>/dev/null; }; then
-          pkg_array+=("$_pkg")
-        else
-          debug "$_pkg is already installed, skipping installation"
-        fi
-      done
-    else
-      if ((no_install_check)) ||
-      ! { command -v "$pkg" &>/dev/null ||
-      "${PKG_QUERY[@]}" "$pkg" &>/dev/null; }; then
-        pkg_array+=("$pkg")
-      else
-        debug "$pkg is already installed, skipping installation"
-      fi
+      IFS=' ' read -ra pkg_names <<< "${pkg_aliases[$pkg]}"
     fi
+    for p in "${pkg_names[@]}"; do
+      if (( no_install_check )) ||
+      ! { command -v "$p" &>/dev/null || "${PKG_QUERY[@]}" "$p" &>/dev/null; }; then
+        pkg_array+=("$p")
+      else
+        debug "$p is already installed, skipping installation"
+      fi
+    done
   done
 
   # Generate installation flags based on the distribution
@@ -520,7 +513,7 @@ install_package() {
       ((no_gpg_check)) && install_flags+=(--allow-unsigned-rpm) ;;
   esac
 
-  # Install packages if any need installation
+  # Install packages
   if [[ ${#pkg_array[@]} -gt 0 ]]; then
     if ! execute "${PKG_INSTALL[@]}" "${install_flags[@]}" "${pkg_array[@]}"; then     
       ((silent)) || err "Failed to install ${pkg_array[*]}"
@@ -569,7 +562,7 @@ install_external_repos() {
       # Install mesa-va-drivers-freeworld separately from the RPM using dnf swap
       install_mesa_freeworld
       ;;
-    suse) : # TODO may be needed if X11_XOrg is unavailable in default repos
+    suse) : # TODO may be needed if X11_XOrg is made unavailable in default repos
       # if ! zypper repos | grep -q "X11_XOrg"; then
       #   echo "Installing the X11 repository"
       #   execute sudo zypper  --non-interactive --quiet addrepo \
@@ -625,7 +618,7 @@ install_mc_repo() {
           repo_file="/etc/apt/sources.list.d/jriver.sources"
         fi
 
-        # Remove old repo
+        # Remove deprecated repo files
         old_repo_files=(
           "/etc/apt/sources.list.d/jriver.list"
           "/etc/apt/sources.list.d/jriver-beta.list"
@@ -924,9 +917,14 @@ build_rpm() {
     echo "Build successful. The RPM file is located at: $MC_RPM"
   else
     err "Build failed"
-    # After failire, remove the source DEB and reaquire it on next run
-    [[ -f $MC_DEB ]] && echo "Removing source DEB" && execute sudo rm -f "$MC_DEB"
-    exit 1
+    # After failure, remove the source DEB and reaquire it on next run
+    if [[ -f $MC_DEB ]]; then
+      echo "Removing source DEB"
+      if ! execute rm -f "$MC_DEB"; then
+        execute sudo rm -f "$MC_DEB"
+      fi
+    fi
+    return 1
   fi
 }
 
@@ -1110,7 +1108,6 @@ install_mc_arch() {
 # @description Copy the RPM to createrepo-webroot and run createrepo as the createrepo-user
 run_createrepo() {
   debug "${FUNCNAME[0]}()"
-  local -a cr_cmd
 
   install_package createrepo_c
 
@@ -1135,15 +1132,10 @@ run_createrepo() {
   fi
 
   # Run createrepo
-  cr_cmd=(sudo -u "$CREATEREPO_USER" createrepo -q "$CREATEREPO_WEBROOT")
-  [[ -d $CREATEREPO_WEBROOT/repodata ]] && cr_cmd+=(--update)
-  
-  if ! execute "${cr_cmd[@]}"; then
-    cr_cmd=(sudo createrepo "$CREATEREPO_WEBROOT")
-    [[ -d $CREATEREPO_WEBROOT/repodata ]] && cr_cmd+=(--update)
-    
-    if ! (execute "${cr_cmd[@]}" ||
-    execute sudo chown -R "$CREATEREPO_USER:$CREATEREPO_USER" "$CREATEREPO_WEBROOT"); then
+  local -a cr_opts=(-q "$CREATEREPO_WEBROOT")
+  # [[ -d "$CREATEREPO_WEBROOT/repodata" ]] && cr_opts+=(--update) # TODO temporarily disabled for legacy createrepo
+  if ! execute sudo -u "$CREATEREPO_USER" createrepo "${cr_opts[@]}"; then
+    if ! (execute sudo createrepo "${cr_opts[@]}" && execute sudo chown -R "$CREATEREPO_USER:$CREATEREPO_USER" "$CREATEREPO_WEBROOT"); then
       err "createrepo failed"
       return 1
     fi
@@ -1727,9 +1719,10 @@ update() {
 
 # @description installJRMC main function
 main() {
-  debug "${FUNCNAME[0]}()" "$@"
+  debug "${FUNCNAME[0]}()" "$@" # prints function name and arguments
 
   echo "Starting installJRMC $SCRIPT_VERSION"
+
   if ((DEBUG)); then
     echo "Debugging on"
   else
