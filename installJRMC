@@ -819,9 +819,9 @@ build_rpm() {
       requires=("${requires[@]/python/python3}")
       requires=("${requires[@]/libwebkit2gtk-4.0*/webkit2gtk4.0}")
       requires=("${requires[@]/libwebkit2gtk-4.1*/webkit2gtk4.1}")
-      recommends+=("mesa-va-drivers-freeworld | mesa-va-drivers")
-      recommends+=("mesa-vulkan-drivers-freeworld | mesa-vulkan-drivers")
-      recommends+=("mesa-vdpau-driver-freeworld | mesa-vdpau-driver")
+      recommends+=("mesa-va-drivers-freeworld|mesa-va-drivers")
+      recommends+=("mesa-vulkan-drivers-freeworld|mesa-vulkan-drivers")
+      recommends+=("mesa-vdpau-driver-freeworld|mesa-vdpau-driver")
       ;;
     suse)
       requires=("${requires[@]/python*/python313}")
