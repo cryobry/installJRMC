@@ -1536,17 +1536,15 @@ service_jriver-createrepo() {
 # @description Detects if MC is installed on btrfs and disables CoW
 disable_btrfs_cow() {
   debug "${FUNCNAME[0]}()"
-  local dir 
   local mc_user_path="$HOME/.jriver"
+  [[ -d "$mc_user_path" ]] || execute mkdir -p "$mc_user_path"
 
-  for dir in "$MC_ROOT" "$mc_user_path"; do
-    [[ -d $mc_user_path ]] || execute mkdir -p "$mc_user_path"
-    if [[ $(stat -f -c %T "$dir") == "btrfs" ]] &&
-    ! lsattr -d "$dir" | cut -f1 -d" " | grep -q C &&
-    execute sudo chattr +C "$dir"; then
-      echo "Disabled btrfs CoW for $dir directory"
+  # Disable btrfs CoW
+  if [[ $(stat -f -c %T "$mc_user_path") == "btrfs" ]]; then
+    if execute chattr +C "$mc_user_path"; then
+      echo "Disabled btrfs CoW for $mc_user_path directory"
     fi
-  done
+  fi
 }
 
 # @description Completely uninstalls MC, services, and firewall rules
