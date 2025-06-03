@@ -503,7 +503,7 @@ install_package() {
       ((no_gpg_check)) && install_flags+=(--nogpgcheck)
       ((refresh)) && install_flags+=(--refresh)
       # Only add reinstall flag for mediacenter package
-      if ((reinstall)) && [[ ${#pkg_array[@]} -eq 1 ]] && "${PKG_QUERY[@]}" "${pkg_array[0]}" &>/dev/null; then
+      if ((reinstall)) && [[ ${#pkg_array[@]} -eq 1 ]] && "${PKG_QUERY[@]}" "${pkg_array[0]%%-*}" &>/dev/null; then
         pkg_install=("${pkg_install[@]/install/reinstall}")
       fi
       ;;
