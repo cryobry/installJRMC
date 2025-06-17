@@ -823,7 +823,7 @@ build_rpm() {
       requires=("${requires[@]/python/python3}")
       requires=("${requires[@]/libwebkit2gtk-4.0*/webkit2gtk4.0}")
       requires=("${requires[@]/libwebkit2gtk-4.1*/webkit2gtk4.1}")
-      requires=("${requires[@]/libsdbus-c++1/sdbus-c++}")
+      requires=("${requires[@]/libsdbus-c++1/sdbus-cpp}")
       recommends+=("mesa-va-drivers-freeworld|mesa-va-drivers")
       recommends+=("mesa-vulkan-drivers-freeworld|mesa-vulkan-drivers")
       recommends+=("mesa-vdpau-driver-freeworld|mesa-vdpau-driver")
