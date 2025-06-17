@@ -1551,6 +1551,7 @@ disable_btrfs_cow() {
   debug "${FUNCNAME[0]}()"
   local mc_user_path="$HOME/.jriver"
   [[ -d "$mc_user_path" ]] || execute mkdir -p "$mc_user_path"
+  [[ -d "$mc_user_path" ]] && execute sudo chown -R "$USER:$USER" "$mc_user_path"
 
   # Disable btrfs CoW
   if [[ $(stat -f -c %T "$mc_user_path") == "btrfs" ]]; then
