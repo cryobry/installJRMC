@@ -106,9 +106,7 @@ Multiple services (but not `--service-types`) can be installed at one time using
 
 **Note:** `ufw` is not installed by default on Debian but will be installed by `installJRMC`. To prevent SSH lock-out, Debian users that have not already enabled `ufw` will need to `sudo ufw enable` after running `installJRMC` and inspecting their configuration.
 
-## Nicities
-
-Depending on the distribution, `installJRMC` also performs the following tasks during MC installation:
+## Other Nicities
 
 * Automatically updates `installJRMC` to the latest release
 * Activates external third-party repositories for improved media playback (hardware decoding, etc.)
@@ -161,6 +159,10 @@ Depending on the distribution, `installJRMC` also performs the following tasks d
 
 ## Additional Info
 
-Did you find `installJRMC` useful? [Buy me a coffee!](https://paypal.me/bryanroessler)
+Find a bug? [Let me know on Interact!](https://yabb.jriver.com/interact/index.php/topic,141168.0.html)
 
-Did you find a bug? [Let me know on Interact!](https://yabb.jriver.com/interact/index.php/topic,141168.0.html)
+Find `installJRMC` useful? [Buy me a coffee with Paypal!](https://paypal.me/bryanroessler)
+
+[↓ ↓ ↓ Bitcoin ↓ ↓ ↓](bitcoin:bc1q7wy0kszjavgcrvkxdg7mf3s6rh506rasnhfa4a)
+
+[![Bitcoin](https://repos.bryanroessler.com/files/bc1q7wy0kszjavgcrvkxdg7mf3s6rh506rasnhfa4a.png)](bitcoin:bc1q7wy0kszjavgcrvkxdg7mf3s6rh506rasnhfa4a)

@@ -66,7 +66,7 @@ $ installJRMC --help
 --help, -h
     Print help dialog and exit
 --uninstall, -u
-    Uninstall JRiver MC, service files, and firewall rules (does not remove library or media files)
+    Uninstall JRiver MC, service files, firewall rules, etc.
 [/code]
 
 [size=18pt]Services[/size]
@@ -107,6 +107,16 @@ Multiple services (but not [tt]--service-types[/tt]) can be installed at one tim
 [size=18pt]Firewall[/size]
 
 installJRMC automatically creates port forwarding firewall rules for remote access to Media Network (52100-52200/tcp, 1900/udp DLNA) and Xvnc/x11vnc (if selected), using firewall-cmd or ufw.
+
+[size=18pt]Other Nicities[/size]
+[list]
+[*]Automatically updates [tt]installJRMC[/tt] to the latest release
+[*]Activates external third-party repositories for improved media playback (hardware decoding, etc.)
+[*]Adds temporary legacy repositories to provide deprecated libraries
+[*]Links non-standard SSL certs
+[*]Disables BTRFS CoW for MC database directories
+[*]Activates MC if a valid license file is found in common locations
+[/list]
 
 [size=18pt]Examples[/size]
 
