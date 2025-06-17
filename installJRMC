@@ -17,17 +17,17 @@
 # * Be careful with tabs in heredocs
 # * Avoid execute() for stdout
 #
-# We use indirection to match service names to their functions
+# Allow indirection to match service names to their functions
 # shellcheck disable=SC2317
 shopt -s extglob
 
-declare -g SCRIPT_VERSION="1.34.2"
-declare -g MC_VERSION="34.0.36" # do find all replace
+declare -g SCRIPT_VERSION="1.34.3-dev"
+declare -g MC_VERSION="34.0.36" # do find all replace (hardcoded fallback)
 declare -g MC_REPO="bookworm" # should match the MC_VERSION
-declare -g BOARD_ID="89.0" # MC34 board ID
-declare -gi UPDATE_SWITCH=1 # set to 0 to disable automatic self-update
-declare -g SCRIPT_URL="https://git.bryanroessler.com/bryan/installJRMC/raw/master/installJRMC"
-# declare -g SCRIPT_URL="https://raw.githubusercontent.com/cryobry/installJRMC/refs/heads/master/installJRMC"
+declare -g BOARD_ID="89.0" # MC34 board ID for automatic version detection
+declare -gi SELF_UPDATE_SWITCH=1 # 0 to disable installJRMC self-update
+declare -g SCRIPT_URL="https://git.bryanroessler.com/bryan/installJRMC/raw/master/installJRMC" # self-update URL
+# declare -g SCRIPT_URL="https://raw.githubusercontent.com/cryobry/installJRMC/refs/heads/master/installJRMC" # backup URL
 declare -gi DEBUG=${DEBUG:-0} # set default debug and allow DEBUG env override (default: disabled)
 
 # @description Print help text
@@ -80,7 +80,7 @@ print_help() {
 		    --createrepo-user USER
 		      Specify the web server user if it differs from \$USER
 		  --no-update
-		    Disable automatic installJRMCself-update
+		    Disable automatic installJRMC self-update
 		  --uninstall, -u
 		    Uninstall JRiver MC, remove services, containers, and firewall rules (does not remove library files)
 		  --yes, -y, --auto
@@ -193,7 +193,7 @@ parse_input() {
         --vncpass) shift; VNCPASS="$1" ;;
         --display) shift; USER_DISPLAY="$1" ;;
         --compat) COMPAT_SWITCH=1; BUILD_SWITCH=1 ;;
-        --no-update) UPDATE_SWITCH=0 ;;
+        --no-update) SELF_UPDATE_SWITCH=0 ;;
         --container|-c) shift; CONTAINERS+=("$1") ;;
         --yes|-y|--auto) YES_SWITCH=1 ;;
         --version|-v) echo "Version: $SCRIPT_VERSION"; exit 0 ;;
@@ -250,7 +250,7 @@ init() {
   fi
 
   # Run the self-updater if enabled
-  ((UPDATE_SWITCH)) && update "$@"
+  ((SELF_UPDATE_SWITCH)) && update "$@"
 
   # Get host information
   [[ -f /etc/os-release ]] && source /etc/os-release
@@ -852,8 +852,11 @@ build_rpm() {
         [[ ${requires[$i]} == "mesa-vulkan-drivers" ]] && unset -v 'requires[i]'
         [[ ${requires[$i]} == "libsdbus-c++1" ]] && unset -v 'requires[i]'
       done
+      recommends+=(libsdbus-c++1)
+      recommends+=(libvulkan1)
       recommends+=(libvulkan_intel)
       recommends+=(libvulkan_radeon)
+      recommends+=(libvulkan_nouveau)
       ;;
   esac
 
@@ -1609,7 +1612,7 @@ uninstall() {
   done
 
   echo "Uninstalling the JRiver Media Center package"
-  if "${PKG_REMOVE[@]}" "${MC_PKG%%=*}"; then # remove version specifier
+  if "${PKG_REMOVE[@]}" "${MC_PKG%%=*}"; then # strip version specifier
     echo "Successfully uninstalled the ${MC_PKG%%=*} package"
   elif [[ $? -eq 100 ]]; then
     err "JRiver Media Center package '${MC_PKG%%=*}' is not present and was not uninstalled"
@@ -1617,7 +1620,6 @@ uninstall() {
     err "Could not remove Media Center package"
   fi
 
-  # Remove the JRiver GPG keyfile
   local keyfile="/usr/share/keyrings/jriver-com-archive-keyring.gpg"
   if [[ -f $keyfile ]]; then
     echo "Removing the JRiver Media Center GPG key"
