@@ -852,7 +852,6 @@ build_rpm() {
         [[ ${requires[$i]} == "mesa-vulkan-drivers" ]] && unset -v 'requires[i]'
         [[ ${requires[$i]} == "libsdbus-c++1" ]] && unset -v 'requires[i]'
       done
-      recommends+=(libsdbus-c++1)
       recommends+=(libvulkan1)
       recommends+=(libvulkan_intel)
       recommends+=(libvulkan_radeon)
@@ -1064,7 +1063,7 @@ install_mc_arch() {
 		arch=("$ARCH")
 		url="https://www.jriver.com/"
 		license=('custom')
-		depends=('alsa-lib' 'ca-certificates' 'gtk3' 'gcc-libs' 'libx11' 'libxext' 'libxcb' 'libxau' 'libxdmcp' 'util-linux' 'mesa-libgl' 'webkit2gtk' 'sdbus-cpp1')
+		depends=('alsa-lib' 'ca-certificates' 'gtk3' 'gcc-libs' 'libx11' 'libxext' 'libxcb' 'libxau' 'libxdmcp' 'util-linux' 'mesa-libgl' 'webkit2gtk')
 		optdepends=(
 			'mesa-libgl: nouveau video support' 
 			'nvidia-libgl: nvidia video support' 
