@@ -21,8 +21,8 @@
 # shellcheck disable=SC2317
 shopt -s extglob
 
-declare -g SCRIPT_VERSION="1.34.3"
-declare -g MC_VERSION="34.0.36" # do find all replace (hardcoded fallback)
+declare -g SCRIPT_VERSION="1.34.4-dev"
+declare -g MC_VERSION="34.0.42" # do find all replace (hardcoded fallback)
 declare -g MC_REPO="bookworm" # should match the MC_VERSION
 declare -g BOARD_ID="89.0" # MC34 board ID for automatic version detection
 declare -gi SELF_UPDATE_SWITCH=1 # 0 to disable installJRMC self-update
@@ -285,6 +285,7 @@ init() {
     rhel|almalinux) ID="centos" ;;
     linuxmint|neon|zorin|*ubuntu*) ID="ubuntu" ;;
     raspbian) ID="debian" ;;
+    *mandriva*) ID="mandriva" ;;
     manjaro|arch) ID="arch"
       if ((REPO_INSTALL_SWITCH)); then
         debug "Automatically using --install=local for Arch"
@@ -328,7 +329,7 @@ init() {
 
   # Set distro-specific package manager commands for normalized IDs
   case $ID in
-    fedora|centos)
+    fedora|centos|mandriva)
       local rpm_mgr
       rpm_mgr=$(command -v dnf &>/dev/null && echo "dnf" || echo "yum")
       PKG_INSTALL=(sudo "$rpm_mgr" install -y)
@@ -397,7 +398,7 @@ init() {
   if [[ -n $USER_MC_VERSION ]]; then
     # Append explicit package version when user provides --mcversion
     case $ID in
-      fedora|centos|suse) MC_PKG+="-$MC_VERSION" ;;
+      fedora|centos|suse|mandriva) MC_PKG+="-$MC_VERSION" ;;
       debian|ubuntu) MC_PKG+="=$MC_VERSION" ;;
     esac
   fi
@@ -498,7 +499,7 @@ install_package() {
     debian|ubuntu)
       ((allow_downgrades)) && install_flags+=(--allow-downgrades)
       ((reinstall)) && install_flags+=(--reinstall) ;;
-    fedora|centos)
+    fedora|centos|mandriva)
       ((allow_downgrades)) && install_flags+=(--allowerasing)
       ((no_gpg_check)) && install_flags+=(--nogpgcheck)
       ((refresh)) && install_flags+=(--refresh)
@@ -652,7 +653,7 @@ install_mc_repo() {
       ;;
     *)
       err "An MC repository for $ID is not yet available"
-      err "Use --install local to install MC on $ID"
+      err "Use --install=local to install MC on $ID"
       return 1
       ;;
   esac
@@ -820,16 +821,15 @@ build_rpm() {
       requires=("${requires[@]/libva-drm2/libva}")
       requires=("${requires[@]/libepoxy0/libepoxy}")
       requires=("${requires[@]/liblcms2-2/lcms2}")
-      requires=("${requires[@]/python/python3}")
       requires=("${requires[@]/libwebkit2gtk-4.0*/webkit2gtk4.0}")
       requires=("${requires[@]/libwebkit2gtk-4.1*/webkit2gtk4.1}")
       requires=("${requires[@]/libsdbus-c++1/sdbus-cpp}")
+      recommends=("${recommends[@]/fdkaac/fdk-aac-free}")
       recommends+=("mesa-va-drivers-freeworld|mesa-va-drivers")
       recommends+=("mesa-vulkan-drivers-freeworld|mesa-vulkan-drivers")
       recommends+=("mesa-vdpau-driver-freeworld|mesa-vdpau-driver")
       ;;
     suse)
-      requires=("${requires[@]/python*/python313}")
       requires=("${requires[@]/libc6/glibc}")
       requires=("${requires[@]/libasound2/alsa-lib}")
       requires=("${requires[@]/libx11-6/libX11-6}")
@@ -856,6 +856,43 @@ build_rpm() {
       recommends+=(libvulkan_intel)
       recommends+=(libvulkan_radeon)
       recommends+=(libvulkan_nouveau)
+      ;;
+    mandriva)
+      requires=("${requires[@]/libc6/glibc}")
+      requires=("${requires[@]/libasound2/lib64asound2}")
+      requires=("${requires[@]/libuuid1/lib64uuid1}")
+      requires=("${requires[@]/libx11-6/lib64x11_6}")
+      requires=("${requires[@]/libxext6/lib64xext6}")
+      requires=("${requires[@]/libxcb1/lib64xcb1}")
+      requires=("${requires[@]/libxdmcp6/lib64xdmcp6}")
+      requires=("${requires[@]/libstdc++6/lib64stdc++6}")
+      requires=("${requires[@]/libgtk-3-0/lib64gtk3_0}")
+      requires=("${requires[@]/libgl1/lib64GL1}")
+      requires=("${requires[@]/libgles2/lib64GLESv2_2}")
+      requires=("${requires[@]/libegl-mesa0/lib64EGL_mesa0}")
+      requires=("${requires[@]/libpango1.0-0/lib64pango1.0_0}")
+      requires=("${requires[@]/libpango-1.0-0/lib64pango1.0_0}")
+      requires=("${requires[@]/libpangoft2-1.0-0/lib64pangoft2_1.0_0}")
+      requires=("${requires[@]/libpango-cairo-1.0-0/lib64pangocairo1.0_0}")
+      requires=("${requires[@]/libpangoxft-1.0-0/lib64pangoxft1.0_0}")
+      requires=("${requires[@]/libnss3/lib64nss3}")
+      requires=("${requires[@]/libnspr4/lib64nspr4}")
+      requires=("${requires[@]/libgomp1/lib64gomp1}")
+      requires=("${requires[@]/libfribidi0/lib64fribidi0}")
+      requires=("${requires[@]/libfontconfig1/lib64fontconfig}")
+      requires=("${requires[@]/libfreetype6/lib64freetype6}")
+      requires=("${requires[@]/libharfbuzz0b/lib64harfbuzz}")
+      requires=("${requires[@]/libgbm1/lib64gbm1}")
+      requires=("${requires[@]/libva2/lib64va2}")
+      requires=("${requires[@]/libva-drm2/lib64va-drm2}")
+      requires=("${requires[@]/libvulkan1/lib64vulkan1}")
+      requires=("${requires[@]/mesa-vulkan-drivers/lib64dri-drivers}")
+      requires=("${requires[@]/vulkan-icd/vulkan-loader}")
+      requires=("${requires[@]/libwebkit2gtk-4.1-0/lib64webkit2gtk4.1}")
+      recommends=("${recommends[@]/musepack-tools/mppenc}")
+      for i in "${!recommends[@]}"; do
+        [[ ${recommends[$i]} == "fdkaac" ]] && unset -v 'recommends[i]'
+      done
       ;;
   esac
 
@@ -1786,7 +1823,7 @@ main() {
   if ((BUILD_SWITCH)); then
     acquire_deb || { err "Could not download Media Center DEB package"; return 1; }
 
-    if [[ $BUILD_TARGET =~ centos|fedora|suse || $CREATEREPO_TARGET =~ centos|fedora|suse ]]; then
+    if [[ $BUILD_TARGET =~ centos|fedora|suse|mandriva || $CREATEREPO_TARGET =~ centos|fedora|suse|mandriva ]]; then
       install_package dpkg rpm-build
       [[ -d $OUTPUT_DIR/SPECS ]] || execute mkdir -p "$OUTPUT_DIR/SPECS"
       build_rpm
