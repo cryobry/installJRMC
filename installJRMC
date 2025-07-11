@@ -1715,28 +1715,25 @@ update() {
   [[ "$(git -C "$SCRIPT_DIR" config --get remote.origin.url)" =~ installJRMC|installjrmc ]]; then
 
     # Get the current commit hash
-    local before_pull_hash after_pull_hash
+    local before_pull_hash
     before_pull_hash=$(git -C "$SCRIPT_DIR" rev-parse HEAD)
 
     # Stash local changes before pull
     execute git -C "$SCRIPT_DIR" stash push --quiet
     
     # Pull latest changes
-    debug "Running git pull in $SCRIPT_DIR"
-    if ! git -C "$SCRIPT_DIR" pull | grep -q "Already up to date"; then
-      # Get the new commit hash after pull
-      after_pull_hash=$(git -C "$SCRIPT_DIR" rev-parse HEAD)
+    execute git -C "$SCRIPT_DIR" pull --quiet
 
-      # If the commit hash has changed, an update occurred
-      if [[ "$before_pull_hash" != "$after_pull_hash" ]]; then
-        echo "Detected installJRMC update, restarting"
-        execute git -C "$SCRIPT_DIR" stash pop --quiet
-        exec "$SCRIPT_PATH" "$@" "--no-update"
-      fi
-    fi
+    # Restore local changes
     execute git -C "$SCRIPT_DIR" stash pop --quiet
+
+    # If the commit hash has changed, an update occurred
+    if [[ "$before_pull_hash" != $(git -C "$SCRIPT_DIR" rev-parse HEAD) ]]; then
+      echo "Detected installJRMC update, restarting"
+      exec "$SCRIPT_PATH" "$@" "--no-update"
+    fi
   else
-    debug "Not in a git repository or not the installJRMC repository. Checking for updates via download."
+    debug "Not in the installJRMC repository, checking for installJRMC update via webscrape."
 
     local tmp
     tmp=$(mktemp) || { err "Failed to create temporary file."; return 1; }
