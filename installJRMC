@@ -285,7 +285,13 @@ init() {
     rhel|almalinux) ID="centos" ;;
     linuxmint|neon|zorin|*ubuntu*) ID="ubuntu" ;;
     raspbian) ID="debian" ;;
-    *mandriva*) ID="mandriva" ;;
+    *mandriva*) ID="mandriva"
+      if ((REPO_INSTALL_SWITCH)); then
+        debug "Automatically using --install=local for Mandriva"
+        REPO_INSTALL_SWITCH=0
+        BUILD_SWITCH=1
+        LOCAL_INSTALL_SWITCH=1
+      fi ;;
     manjaro|arch) ID="arch"
       if ((REPO_INSTALL_SWITCH)); then
         debug "Automatically using --install=local for Arch"
@@ -569,6 +575,7 @@ install_external_repos() {
       # fi
       ;;
     mandriva)
+      local branch
       branch=$(grep ^PRETTY_NAME= /etc/os-release | tr -d '"' | rev | cut -d' ' -f1 | rev | tr '[:upper:]' '[:lower:]')
       execute sudo dnf config-manager --set-enabled "${branch}-${ARCH}-extra"
       ;;
