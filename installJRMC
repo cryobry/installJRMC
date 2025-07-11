@@ -1730,6 +1730,9 @@ update() {
     # Restore local changes
     execute git -C "$SCRIPT_DIR" stash pop --quiet
 
+    debug "Current commit hash: $before_pull_hash"
+    debug "New commit hash: $(git -C "$SCRIPT_DIR" rev-parse HEAD)"
+
     # If the commit hash has changed, an update occurred
     if [[ "$before_pull_hash" != $(git -C "$SCRIPT_DIR" rev-parse HEAD) ]]; then
       echo "Detected installJRMC update, restarting"
