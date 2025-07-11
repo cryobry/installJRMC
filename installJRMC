@@ -753,13 +753,15 @@ acquire_deb() {
       "https://files.jriver-cdn.com/mediacenter/test/$fname")
 
     # Loop through the repositories and attempt to download
+    echo "Checking MC repos for DEB package"
     for repo in "${repos[@]}"; do
-      echo "Checking $repo for DEB package"
+      echo -n "$repo --> "
       if download "$repo" "$MC_DEB"; then
-        echo "Found"
+        echo "Found!"
         MC_SOURCE="$repo"
         break
       fi
+      echo "Not found"
     done
   fi
 
