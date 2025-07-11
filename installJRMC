@@ -252,6 +252,8 @@ init() {
   # Run the self-updater if enabled
   ((SELF_UPDATE_SWITCH)) && update "$@"
 
+  fix_permissions "${HOME:-"/home/$USER"}/.jriver" "$USER"
+
   # Get host information
   [[ -f /etc/os-release ]] && source /etc/os-release
 
@@ -1804,7 +1806,6 @@ main() {
       link_ssl_certs
       restore_license
       open_firewall "jriver-mediacenter" "52100-52200/tcp" "1900/udp"
-      disable_btrfs_cow
     else
       err "JRiver Media Center installation from remote repository failed"
       return 1
@@ -1845,7 +1846,6 @@ main() {
     link_ssl_certs
     restore_license
     open_firewall "jriver-mediacenter" "52100-52200/tcp" "1900/udp"
-    disable_btrfs_cow
   fi
 
   if ((CREATEREPO_SWITCH)); then
@@ -1888,6 +1888,19 @@ execute() {
     "$@"
   else
     "$@" &>/dev/null
+  fi
+}
+fix_permissions() {
+  local dir="$1"
+  local user="$2"
+  local owner
+  [[ -d "$dir" ]] || return 1
+  owner=$(stat -c '%U' "$dir")
+  if [[ "$owner" != "$user" ]]; then
+    echo "Directory $dir is owned by $owner, not $user"
+    if ask_ok "Change ownership of $dir to $user?"; then
+      execute sudo chown -R "$user:$user" "$dir"
+    fi
   fi
 }
 download() {
