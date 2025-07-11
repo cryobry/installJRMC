@@ -984,19 +984,7 @@ build_rpm() {
       -bb
       "$spec_file"
   )
-  if execute "${rpmbuild_cmd[@]}" && [[ -f $MC_RPM ]] ; then
-    echo "Build successful. The RPM file is located at: $MC_RPM"
-  else
-    err "Build failed"
-    # After failure, remove the source DEB and reaquire it on next run
-    if [[ -f $MC_DEB ]]; then
-      echo "Removing source DEB"
-      if ! execute rm -f "$MC_DEB"; then
-        execute sudo rm -f "$MC_DEB"
-      fi
-    fi
-    return 1
-  fi
+  execute "${rpmbuild_cmd[@]}" && [[ -f $MC_RPM ]]
 }
 
 # @description Installs Media Center via DEB package w/ optional compatability fixes
@@ -1595,18 +1583,12 @@ service_jriver-createrepo() {
 }
 
 # @description Detects if MC is installed on btrfs and disables CoW
-disable_btrfs_cow() {
+fix_dotjriver_permissions() {
   debug "${FUNCNAME[0]}()"
-  local mc_user_path="$HOME/.jriver"
-  [[ -d "$mc_user_path" ]] || execute mkdir -p "$mc_user_path"
-  [[ -d "$mc_user_path" ]] && execute sudo chown -R "$USER:$USER" "$mc_user_path"
 
-  # Disable btrfs CoW
-  if [[ $(stat -f -c %T "$mc_user_path") == "btrfs" ]]; then
-    if execute chattr -R +C "$mc_user_path"; then
-      echo "Disabled btrfs CoW for $mc_user_path"
-    fi
-  fi
+  # Ensure the user owns the .jriver directory
+  [[ -d "$HOME/.jriver" ]] && execute sudo chown -R "$USER:$USER" "$HOME/.jriver"
+
 }
 
 # @description Completely uninstalls MC, services, and firewall rules
@@ -1838,7 +1820,19 @@ main() {
     if [[ $BUILD_TARGET =~ centos|fedora|suse|mandriva || $CREATEREPO_TARGET =~ centos|fedora|suse|mandriva ]]; then
       install_package dpkg rpm-build
       [[ -d $OUTPUT_DIR/SPECS ]] || execute mkdir -p "$OUTPUT_DIR/SPECS"
-      build_rpm
+      if build_rpm; then
+        echo "RPM package built successfully"
+      else
+        err "Failed to build RPM package"
+        # On build failure, remove the source DEB in case it is corrupted
+        if [[ -f $MC_DEB ]]; then
+          echo "Removing source DEB"
+          if ! execute rm -f "$MC_DEB"; then
+            execute sudo rm -f "$MC_DEB"
+          fi
+        fi
+        return 1
+      fi
     fi
   fi
 
