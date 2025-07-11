@@ -48,7 +48,7 @@ print_help() {
 		  --install, -i repo|local
 		    repo: Install MC from repository, updates are handled by the system package manager
 		    local: Build and install MC locally from official source package
-		  --build[=suse|fedora|centos]
+		  --build[=suse|fedora|centos|mandriva]
 		    Build RPM from source DEB but do not install
 		    Optionally, specify a target distro for cross-building (ex. --build=suse, note the '=')
 		  --compat
@@ -71,7 +71,7 @@ print_help() {
 		      Starts services at boot (system) or at user login (user) (default: per service, see SERVICES)
 		  --container, -c CONTAINER (TODO: Under construction)
 		    See CONTAINERS section below for a list of possible services to install
-		  --createrepo[=suse|fedora|centos]
+		  --createrepo[=suse|fedora|centos|mandriva]
 		    Build rpm, copy to webroot, and run createrepo. 
 		    Use in conjunction with --build=TARGET for crossbuilding repos
 		    Optionally, specify a target distro for non-native repo (ex. --createrepo=fedora, note the '=')
@@ -462,18 +462,19 @@ install_package() {
     shift
   done
 
-  # Define package aliases based on the distribution
+  # Define distribution-specific package aliases
   case $ID in
-    debian|ubuntu)
-      pkg_aliases=(
-        [rpm-build]="rpm"
-        [createrepo_c]="createrepo"
-        [tigervnc-server]="tigervnc-standalone-server"
-      ) ;;
-    suse)
-      pkg_aliases=(
-        [buildah]="buildah fuse-overlayfs"
-      ) ;;
+    debian|ubuntu) pkg_aliases=(
+      [rpm-build]="rpm"
+      [createrepo_c]="createrepo"
+      [tigervnc-server]="tigervnc-standalone-server"
+    ) ;;
+    suse) pkg_aliases=(
+      [buildah]="buildah fuse-overlayfs"
+    ) ;;
+    mandriva) pkg_aliases=(
+      [dpkg]="dpkg gnutar"
+    ) ;;
   esac
 
   # Filter out already installed packages to create pkg_array
@@ -566,6 +567,10 @@ install_external_repos() {
       #     "https://download.opensuse.org/repositories/X11:/XOrg/${NAME// /_}/X11:XOrg.repo"
       #   execute sudo zypper  --non-interactive --quiet refresh
       # fi
+      ;;
+    mandriva)
+      branch=$(grep ^PRETTY_NAME= /etc/os-release | tr -d '"' | rev | cut -d' ' -f1 | rev | tr '[:upper:]' '[:lower:]')
+      execute sudo dnf config-manager --set-enabled "${branch}-${ARCH}-extra"
       ;;
   esac
 }
