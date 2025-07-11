@@ -1680,11 +1680,11 @@ uninstall() {
   if [[ -d $HOME/.jriver ]]; then
     if ask_ok "Backup and reset your MC library?"; then
       execute mv "$HOME/.jriver" "$HOME/.jriver.bk"
-      echo "Your MC library has been backed up to $HOME/.jriver.bk and reset"
-      echo "To restore your MC library backup: mv $HOME/.jriver.bk $HOME/.jriver"
+      echo "Your MC library has been reset and backed up to $HOME/.jriver.bk"
+      echo "To restore your MC library: mv $HOME/.jriver.bk $HOME/.jriver"
       return
     fi
-    echo "To backup and reset your MC library: mv $HOME/.jriver $HOME/.jriver.bk"
+    echo "To reset and backup your MC library: mv $HOME/.jriver $HOME/.jriver.bk"
     echo "To remove your MC library: rm -rf $HOME/.jriver"
   fi
 }
