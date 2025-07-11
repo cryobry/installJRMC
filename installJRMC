@@ -741,7 +741,7 @@ acquire_deb() {
   [[ -f $MC_DEB ]] &&
   execute sudo buildah umount "$CNT" &&
   execute sudo buildah rm "$CNT"; }; then
-    err "Failed to download DEB using containerized package manager"
+    debug "Failed to download DEB using containerized package manager"
     echo "Using legacy download method"
     # Define the repository search order
     local -a repos
