@@ -778,7 +778,10 @@ build_rpm() {
   # skip rebuilding the rpm if it already exists
   debug "Checking for existing MC RPM: $MC_RPM"
   if [[ -f $MC_RPM && -f $spec_file ]]; then
-    echo "Spec file and $MC_RPM already exists. Skipping build step"
+    echo "Skipping build step: .spec and ouput RPM already exist"
+    debug "RPM .spec file: $spec_file"
+    debug "RPM: $MC_RPM"
+    echo "Remove either to force rebuild"
     return 0
   fi
 
