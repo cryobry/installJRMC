@@ -252,7 +252,7 @@ init() {
   # Run the self-updater if enabled
   ((SELF_UPDATE_SWITCH)) && update "$@"
 
-  fix_permissions "${HOME:-"/home/$USER"}/.jriver" "$USER"
+  fix_permissions "$HOME/.jriver" "$USER"
 
   # Get host information
   [[ -f /etc/os-release ]] && source /etc/os-release
