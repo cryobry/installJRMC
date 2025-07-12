@@ -672,9 +672,8 @@ install_mc_repo() {
       ;;
   esac
 
-  if [[ -f $repo_file ]]; then
-    ask_ok "Replace existing $repo_file repository file" && execute sudo rm -f "$repo_file" 
-  fi
+  # Remove existing repository file if it exists
+  [[ -f $repo_file ]] && execute sudo rm -f "$repo_file" 
 
   echo "Adding MC repository file: $repo_file"
   debug "$repo_text"
