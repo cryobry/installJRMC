@@ -433,7 +433,7 @@ get_latest_mc_version() {
   # Fallback to hardcoded value
   else
     mc_version_source="hardcoded"
-    err "Warning! Using hardcoded version number"
+    echo "Warning! Using hardcoded version number"
   fi
     
   echo "Selected MC version $MC_VERSION from the $MC_REPO repo (via $mc_version_source)"
@@ -1276,7 +1276,6 @@ open_firewall() {
     execute sudo ufw app update "$service"
     execute sudo ufw allow "$service"
   else
-    echo "Warning: Install firewall-cmd or ufw to open firewall ports"
     return 1
   fi
 }
