@@ -687,7 +687,7 @@ install_mc_repo() {
     err "Failed to add temporary repository"
     return 1
   fi
-  "${PKG_UPDATE[@]}" || { err "Package update failed!"; return 1; }
+  execute "${PKG_UPDATE[@]}" || { err "Package update failed!"; return 1; }
 
   echo "Installing $MC_PKG package"
   if ! install_package \
@@ -1025,7 +1025,7 @@ install_mc_deb() {
     err "Failed to add temporary repository"
     return 1
   fi
-  "${PKG_UPDATE[@]}" || { err "Package update failed!"; return 1; }
+  execute "${PKG_UPDATE[@]}" || { err "Package update failed!"; return 1; }
 
   # Copy the DEB to a temporary file so _apt can read it
   debug "Creating temporary deb file owned by _apt"
