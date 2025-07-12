@@ -1911,7 +1911,6 @@ download() {
   local url="$1"
   local output="${2:-}"
   local -a cmd
-
   if command -v curl &>/dev/null || install_package --silent curl; then
     cmd=(curl --silent --fail --location)
     if [[ -n "$output" ]]; then
@@ -1926,7 +1925,6 @@ download() {
     err "Unable to install wget or curl"
     return 1
   fi
-
   debug "${cmd[@]}" "$url"
   "${cmd[@]}" "$url"
 }
