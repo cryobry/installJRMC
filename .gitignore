@@ -2,5 +2,6 @@
 .vscode/
 installJRMC.zip
 README.shdoc.md
+README.bbcode
 output/
 *.code-workspace
