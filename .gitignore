@@ -3,3 +3,4 @@
 installJRMC.zip
 README.shdoc.md
 output/
+*.code-workspace
