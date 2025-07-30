@@ -161,7 +161,7 @@ Multiple services (but not `--service-types`) can be installed at one time using
 
 Find a bug? [Let me know on Interact!](https://yabb.jriver.com/interact/index.php/topic,141168.0.html)
 
-Find `installJRMC` useful? [Buy me a coffee with Paypal!](https://paypal.me/bryanroessler)
+Find `installJRMC` useful? [Paypal me a coffee!](https://paypal.me/bryanroessler)
 
 [↓ ↓ ↓ Bitcoin ↓ ↓ ↓](bitcoin:bc1q7wy0kszjavgcrvkxdg7mf3s6rh506rasnhfa4a)
 
