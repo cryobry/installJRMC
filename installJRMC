@@ -1846,10 +1846,11 @@ main() {
     acquire_deb || { err "Could not download Media Center DEB package"; return 1; }
 
     # Convert the source DEB dependencies to various distro-specific package naming
+    install_package dpkg
     translate_packages "$MC_DEB" requires recommends
 
     if [[ $BUILD_TARGET =~ centos|fedora|suse|mandriva || $CREATEREPO_TARGET =~ centos|fedora|suse|mandriva ]]; then
-      install_package dpkg rpm-build
+      install_package rpm-build
       [[ -d $OUTPUT_DIR/SPECS ]] || execute mkdir -p "$OUTPUT_DIR/SPECS"
       if build_rpm requires recommends; then
         echo "RPM package built successfully"
