@@ -1028,8 +1028,8 @@ build_pkgbuild() {
 		arch=("$ARCH")
 		url="https://www.jriver.com/"
 		license=("custom")
-		depends=(${requires_arr[@]})
-		optdepends=(${recommends_arr[@]})
+		depends=(${requires_arr[@]#* })
+		optdepends=(${recommends_arr[@]#* })
 		source=("$MC_SOURCE")
 
 		package() {
