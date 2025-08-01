@@ -1023,18 +1023,22 @@ build_pkgbuild() {
   # Make them simple arrays for the PKGBUILD
   # Clean up requires_arr
   local cleaned_requires_arr=()
-  for elem in ${requires_arr[@]}; do
+  for elem in "${requires_arr[@]}"; do
+    debug "Cleaning elem: $elem"
     elem="${elem#Requires: }"
     elem="${elem//$'\n'/ }"
+    debug "Cleaned elem: $elem"
     cleaned_requires_arr+=("$elem")
   done
   requires_arr=("${cleaned_requires_arr[@]}")
 
   # Clean up recommends_arr
   local cleaned_recommends_arr=()
-  for elem in ${recommends_arr[@]}; do
+  for elem in "${recommends_arr[@]}"; do
+    debug "Cleaning elem: $elem"
     elem="${elem#Recommends: }"
     elem="${elem//$'\n'/ }"
+    debug "Cleaned elem: $elem"
     cleaned_recommends_arr+=("$elem")
   done
   recommends_arr=("${cleaned_recommends_arr[@]}")
