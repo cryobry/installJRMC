@@ -1162,7 +1162,7 @@ install_mc_arch() {
     -p mediacenter.pkgbuild; then
     err "makepkg failed"; exit 1
   fi
- generated"
+ 
   popd &>/dev/null || return
 }
 
