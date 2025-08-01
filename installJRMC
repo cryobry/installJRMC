@@ -767,27 +767,17 @@ acquire_deb() {
   [[ -f $MC_DEB ]]
 }
 
-# @description Creates a SPEC file and builds the RPM from the source DEB using rpmbuild
-build_rpm() {
-  debug "${FUNCNAME[0]}()"
-
-  local i rpmbuild_cmd stub
-  local -a requires recommends
-  local spec_file="$OUTPUT_DIR/SPECS/mediacenter$MC_MVERSION-$MC_VERSION-$MC_RELEASE-$BUILD_TARGET-$ARCH.spec"
-
-  # skip rebuilding the rpm if it already exists
-  debug "Checking for existing MC RPM: $MC_RPM"
-  if [[ -f $MC_RPM && -f $spec_file ]]; then
-    echo "Skipping build step: .spec and ouput RPM already exist"
-    debug "RPM .spec file: $spec_file"
-    debug "RPM: $MC_RPM"
-    echo "Remove either to force rebuild"
-    return 0
-  fi
+# @description Translates upstream DEB dependencies for several distros
+translate_packages() {
+  debug "${FUNCNAME[0]}()" "$*"
+  local deb_file="$1"
+  declare -n requires="$2"
+  declare -n recommends="$3"
+  local -i i
 
   # Load deb dependencies into array
-  IFS=',' read -ra requires <<< "$(dpkg-deb -f "$MC_DEB" Depends)"
-  IFS=',' read -ra recommends <<< "$(dpkg-deb -f "$MC_DEB" Recommends)"
+  IFS=',' read -ra requires <<< "$(dpkg-deb -f "$deb_file" Depends)"
+  IFS=',' read -ra recommends <<< "$(dpkg-deb -f "$deb_file" Recommends)"
 
   # Clean up formatting
   requires=("${requires[@]%%|*}")
@@ -911,6 +901,22 @@ build_rpm() {
         [[ ${recommends[$i]} == "fdkaac" ]] && unset -v 'recommends[i]'
       done
       ;;
+    arch)
+      # Set these manually for Arch since they are quite different
+      requires=(
+        'alsa-lib' 'ca-certificates' 'gtk3' 'gcc-libs' 'libx11' 'libxext'
+        'libxcb' 'libxau' 'libxdmcp' 'util-linux' 'mesa-libgl' 'webkit2gtk')
+      recommends=(
+        'mesa-libgl: nouveau video support'
+        'nvidia-libgl: nvidia video support'
+        'nvidia-utils: nvidia vulkan support'
+        'vulkan-intel: intel vulkan support'
+        'vulkan-radeon: amd vulkan support'
+        'vorbis-tools: ogg vorbis support'
+        'musepack-tools: musepack support')
+      ;;
+    *)
+      echo "Skipping package translations for $ID"
   esac
 
   # Convert array to newline delim'd string (for heredoc)
@@ -923,6 +929,25 @@ build_rpm() {
   if ((COMPAT_SWITCH)); then
     # Strip minimum versions
     requires=$(echo "$requires" | awk -F" " 'NF == 4 {print $1 " " $2} NF != 4 {print $0}')
+  fi
+}
+
+# @description Creates a SPEC file and builds the RPM from the source DEB using rpmbuild
+build_rpm() {
+  debug "${FUNCNAME[0]}()"
+  declare -n requires="$1"
+  declare -n recommends="$2"
+  local i rpmbuild_cmd stub
+  local spec_file="$OUTPUT_DIR/SPECS/mediacenter$MC_MVERSION-$MC_VERSION-$MC_RELEASE-$BUILD_TARGET-$ARCH.spec"
+
+  # skip rebuilding the rpm if it already exists
+  debug "Checking for existing MC RPM: $MC_RPM"
+  if [[ -f $MC_RPM && -f $spec_file ]]; then
+    echo "Skipping build step: .spec and ouput RPM already exist"
+    debug "RPM .spec file: $spec_file"
+    debug "RPM: $MC_RPM"
+    echo "Remove either to force rebuild"
+    return 0
   fi
 
   # Exclude MC stub executable <= MC31
@@ -990,6 +1015,35 @@ build_rpm() {
       "$spec_file"
   )
   execute "${rpmbuild_cmd[@]}" && [[ -f $MC_RPM ]]
+}
+
+# @description Creates the Arch PKGBUILD file for Media Center
+build_pkgbuild() {
+  debug "${FUNCNAME[0]}()"
+  declare -n requires="$1"
+  declare -n recommends="$2"
+  local pkgbuild_file="$OUTPUT_DIR/PKGBUILD/mediacenter.pkgbuild"
+
+  [[ -d $OUTPUT_DIR/PKGBUILD ]] || execute mkdir -p "$OUTPUT_DIR/PKGBUILD"
+
+  # Create PKGBUILD file
+  cat <<-EOF > "$pkgbuild_file"
+		pkgname=mediacenter$MC_MVERSION
+		pkgver=$MC_VERSION
+		pkgrel=$MC_RELEASE
+		pkgdesc="JRiver Media Center"
+		arch=("$ARCH")
+		url="https://www.jriver.com/"
+		license=("custom")
+		depends=(${requires[@]})
+		optdepends=(${recommends[@]})
+		source=("$MC_SOURCE")
+
+		package() {
+			cd "\$srcdir"
+			bsdtar xf data.tar.xz -C "\$pkgdir"
+		}
+	EOF
 }
 
 # @description Installs Media Center via DEB package w/ optional compatability fixes
@@ -1094,34 +1148,6 @@ install_mc_generic() {
 # @description Installs MC via PKGBUILD
 install_mc_arch() {
   debug "${FUNCNAME[0]}()"
-
-  [[ -d $OUTPUT_DIR/PKGBUILD ]] || execute mkdir -p "$OUTPUT_DIR/PKGBUILD"
-
-  cat <<-EOF > "$OUTPUT_DIR/PKGBUILD/mediacenter.pkgbuild"
-		pkgname=mediacenter$MC_MVERSION
-		pkgver=$MC_VERSION
-		pkgrel=$MC_RELEASE
-		pkgdesc="The Most Comprehensive Media Software"
-		arch=("$ARCH")
-		url="https://www.jriver.com/"
-		license=('custom')
-		depends=('alsa-lib' 'ca-certificates' 'gtk3' 'gcc-libs' 'libx11' 'libxext' 'libxcb' 'libxau' 'libxdmcp' 'util-linux' 'mesa-libgl' 'webkit2gtk')
-		optdepends=(
-			'mesa-libgl: nouveau video support' 
-			'nvidia-libgl: nvidia video support' 
-			'nvidia-utils: nvidia vulkan support' 
-			'vulkan-intel: intel vulkan support' 
-			'vulkan-radeon: amd vulkan support' 
-			'vorbis-tools: ogg vorbis support' 
-			'musepack-tools: musepack support'
-		)
-		source=("$MC_SOURCE")
-
-		package() {
-			cd "\$srcdir"
-			bsdtar xf data.tar.xz -C "\$pkgdir"
-		}
-	EOF
   
   pushd "$OUTPUT_DIR/PKGBUILD" &>/dev/null || return
 
@@ -1136,7 +1162,7 @@ install_mc_arch() {
     -p mediacenter.pkgbuild; then
     err "makepkg failed"; exit 1
   fi
-
+ generated"
   popd &>/dev/null || return
 }
 
@@ -1826,10 +1852,13 @@ main() {
   if ((BUILD_SWITCH)); then
     acquire_deb || { err "Could not download Media Center DEB package"; return 1; }
 
+    # Convert the source DEB dependencies to various distro-specific package naming
+    translate_packages "$MC_DEB" requires recommends
+
     if [[ $BUILD_TARGET =~ centos|fedora|suse|mandriva || $CREATEREPO_TARGET =~ centos|fedora|suse|mandriva ]]; then
       install_package dpkg rpm-build
       [[ -d $OUTPUT_DIR/SPECS ]] || execute mkdir -p "$OUTPUT_DIR/SPECS"
-      if build_rpm; then
+      if build_rpm requires recommends; then
         echo "RPM package built successfully"
       else
         err "Failed to build RPM package"
@@ -1841,6 +1870,10 @@ main() {
           fi
         fi
         return 1
+      fi
+    elif [[ $BUILD_TARGET =~ arch ]]; then
+      if build_pkgbuild requires recommends; then
+        echo "Successfully generated Arch PKGBUILD"
       fi
     fi
   fi
