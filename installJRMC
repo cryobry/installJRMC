@@ -1019,6 +1019,26 @@ build_pkgbuild() {
 
   [[ -d $OUTPUT_DIR/PKGBUILD ]] || execute mkdir -p "$OUTPUT_DIR/PKGBUILD"
 
+  # The requires and recommends arrays are in RPM .spec format
+  # Make them simple arrays for the PKGBUILD
+  # Clean up requires_arr
+  local cleaned_requires_arr=()
+  for elem in "${requires_arr[@]}"; do
+    elem="${elem#Requires: }"
+    elem="${elem//$'\n'/ }"
+    cleaned_requires_arr+=("$elem")
+  done
+  requires_arr=("${cleaned_requires_arr[@]}")
+
+  # Clean up recommends_arr
+  local cleaned_recommends_arr=()
+  for elem in "${recommends_arr[@]}"; do
+    elem="${elem#Recommends: }"
+    elem="${elem//$'\n'/ }"
+    cleaned_recommends_arr+=("$elem")
+  done
+  recommends_arr=("${cleaned_recommends_arr[@]}")
+
   # Create PKGBUILD file
   cat <<-EOF > "$pkgbuild_file"
 		pkgname=mediacenter$MC_MVERSION
@@ -1028,8 +1048,8 @@ build_pkgbuild() {
 		arch=("$ARCH")
 		url="https://www.jriver.com/"
 		license=("custom")
-		depends=(${requires_arr[@]#* })
-		optdepends=(${recommends_arr[@]#* })
+		depends=(${requires_arr[@]})
+		optdepends=(${recommends_arr[@]})
 		source=("$MC_SOURCE")
 
 		package() {
