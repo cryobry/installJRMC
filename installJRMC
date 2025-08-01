@@ -771,141 +771,141 @@ acquire_deb() {
 translate_packages() {
   debug "${FUNCNAME[0]}()" "$*"
   local deb_file="$1"
-  declare -n requires="$2"
-  declare -n recommends="$3"
+  declare -n requires_arr="$2"
+  declare -n recommends_arr="$3"
   local -i i
 
   # Load deb dependencies into array
-  IFS=',' read -ra requires <<< "$(dpkg-deb -f "$deb_file" Depends)"
-  IFS=',' read -ra recommends <<< "$(dpkg-deb -f "$deb_file" Recommends)"
+  IFS=',' read -ra requires_arr <<< "$(dpkg-deb -f "$deb_file" Depends)"
+  IFS=',' read -ra recommends_arr <<< "$(dpkg-deb -f "$deb_file" Recommends)"
 
   # Clean up formatting
-  requires=("${requires[@]%%|*}")
-  requires=("${requires[@]/?:/}")
-  requires=("${requires[@]# }")
-  requires=("${requires[@]% }")
-  requires=("${requires[@]//\(/}")
-  requires=("${requires[@]//)/}")
-  recommends=("${recommends[@]%%|*}")
-  recommends=("${recommends[@]/?:/}")
-  recommends=("${recommends[@]# }")
-  recommends=("${recommends[@]% }")
-  recommends=("${recommends[@]//\(/}")
-  recommends=("${recommends[@]//)/}")
+  requires_arr=("${requires_arr[@]%%|*}")
+  requires_arr=("${requires_arr[@]/?:/}")
+  requires_arr=("${requires_arr[@]# }")
+  requires_arr=("${requires_arr[@]% }")
+  requires_arr=("${requires_arr[@]//\(/}")
+  requires_arr=("${requires_arr[@]//)/}")
+  recommends_arr=("${recommends_arr[@]%%|*}")
+  recommends_arr=("${recommends_arr[@]/?:/}")
+  recommends_arr=("${recommends_arr[@]# }")
+  recommends_arr=("${recommends_arr[@]% }")
+  recommends_arr=("${recommends_arr[@]//\(/}")
+  recommends_arr=("${recommends_arr[@]//)/}")
 
   # Translate package names
   case $BUILD_TARGET in
     fedora|centos)
-      requires=("${requires[@]/libc6/glibc}")
-      requires=("${requires[@]/libasound2/alsa-lib}")
-      requires=("${requires[@]/libuuid1/libuuid}")
-      requires=("${requires[@]/libx11-6/libX11}")
-      requires=("${requires[@]/libxext6/libXext}")
-      requires=("${requires[@]/libxcb1*/libxcb}") # TODO Remove minimum version for MC31 (*)
-      requires=("${requires[@]/libxau6/libXau}")
-      requires=("${requires[@]/libxdmcp6/libXdmcp}")
-      requires=("${requires[@]/libstdc++6/libstdc++}")
-      requires=("${requires[@]/libgtk-3-0/gtk3}")
-      requires=("${requires[@]/libegl1/mesa-libEGL}")
-      requires=("${requires[@]/libgl1/mesa-libGL}")
-      requires=("${requires[@]/libgles2/libglvnd-gles}")
-      requires=("${requires[@]/libgbm1/mesa-libgbm}")
-      requires=("${requires[@]/libegl-mesa0/mesa-libEGL}")
-      requires=("${requires[@]/libvulkan1/vulkan-loader}")
-      requires=("${requires[@]/libpango1.0-0/pango}")
-      requires=("${requires[@]/libpango-1.0-0/pango}")
-      requires=("${requires[@]/libpangoft2-1.0-0/pango}")
-      requires=("${requires[@]/libpangox-1.0-0/pango}")
-      requires=("${requires[@]/libpangoxft-1.0-0/pango}")
-      requires=("${requires[@]/libnss3/nss}")
-      requires=("${requires[@]/libnspr4/nspr}")
-      requires=("${requires[@]/libgomp1/libgomp}")
-      requires=("${requires[@]/libfribidi0/fribidi}")
-      requires=("${requires[@]/libfontconfig1/fontconfig}")
-      requires=("${requires[@]/libfreetype6/freetype}")
-      requires=("${requires[@]/libharfbuzz0b/harfbuzz}")
-      requires=("${requires[@]/libva2/libva}")
-      requires=("${requires[@]/libva-drm2/libva}")
-      requires=("${requires[@]/libepoxy0/libepoxy}")
-      requires=("${requires[@]/liblcms2-2/lcms2}")
-      requires=("${requires[@]/libwebkit2gtk-4.0*/webkit2gtk4.0}")
-      requires=("${requires[@]/libwebkit2gtk-4.1*/webkit2gtk4.1}")
-      requires=("${requires[@]/libsdbus-c++1/sdbus-cpp}")
-      recommends=("${recommends[@]/fdkaac/fdk-aac-free}")
-      recommends+=("mesa-va-drivers-freeworld|mesa-va-drivers")
-      recommends+=("mesa-vulkan-drivers-freeworld|mesa-vulkan-drivers")
-      recommends+=("mesa-vdpau-driver-freeworld|mesa-vdpau-driver")
+      requires_arr=("${requires_arr[@]/libc6/glibc}")
+      requires_arr=("${requires_arr[@]/libasound2/alsa-lib}")
+      requires_arr=("${requires_arr[@]/libuuid1/libuuid}")
+      requires_arr=("${requires_arr[@]/libx11-6/libX11}")
+      requires_arr=("${requires_arr[@]/libxext6/libXext}")
+      requires_arr=("${requires_arr[@]/libxcb1*/libxcb}") # TODO Remove minimum version for MC31 (*)
+      requires_arr=("${requires_arr[@]/libxau6/libXau}")
+      requires_arr=("${requires_arr[@]/libxdmcp6/libXdmcp}")
+      requires_arr=("${requires_arr[@]/libstdc++6/libstdc++}")
+      requires_arr=("${requires_arr[@]/libgtk-3-0/gtk3}")
+      requires_arr=("${requires_arr[@]/libegl1/mesa-libEGL}")
+      requires_arr=("${requires_arr[@]/libgl1/mesa-libGL}")
+      requires_arr=("${requires_arr[@]/libgles2/libglvnd-gles}")
+      requires_arr=("${requires_arr[@]/libgbm1/mesa-libgbm}")
+      requires_arr=("${requires_arr[@]/libegl-mesa0/mesa-libEGL}")
+      requires_arr=("${requires_arr[@]/libvulkan1/vulkan-loader}")
+      requires_arr=("${requires_arr[@]/libpango1.0-0/pango}")
+      requires_arr=("${requires_arr[@]/libpango-1.0-0/pango}")
+      requires_arr=("${requires_arr[@]/libpangoft2-1.0-0/pango}")
+      requires_arr=("${requires_arr[@]/libpangox-1.0-0/pango}")
+      requires_arr=("${requires_arr[@]/libpangoxft-1.0-0/pango}")
+      requires_arr=("${requires_arr[@]/libnss3/nss}")
+      requires_arr=("${requires_arr[@]/libnspr4/nspr}")
+      requires_arr=("${requires_arr[@]/libgomp1/libgomp}")
+      requires_arr=("${requires_arr[@]/libfribidi0/fribidi}")
+      requires_arr=("${requires_arr[@]/libfontconfig1/fontconfig}")
+      requires_arr=("${requires_arr[@]/libfreetype6/freetype}")
+      requires_arr=("${requires_arr[@]/libharfbuzz0b/harfbuzz}")
+      requires_arr=("${requires_arr[@]/libva2/libva}")
+      requires_arr=("${requires_arr[@]/libva-drm2/libva}")
+      requires_arr=("${requires_arr[@]/libepoxy0/libepoxy}")
+      requires_arr=("${requires_arr[@]/liblcms2-2/lcms2}")
+      requires_arr=("${requires_arr[@]/libwebkit2gtk-4.0*/webkit2gtk4.0}")
+      requires_arr=("${requires_arr[@]/libwebkit2gtk-4.1*/webkit2gtk4.1}")
+      requires_arr=("${requires_arr[@]/libsdbus-c++1/sdbus-cpp}")
+      recommends_arr=("${recommends_arr[@]/fdkaac/fdk-aac-free}")
+      recommends_arr+=("mesa-va-drivers-freeworld|mesa-va-drivers")
+      recommends_arr+=("mesa-vulkan-drivers-freeworld|mesa-vulkan-drivers")
+      recommends_arr+=("mesa-vdpau-driver-freeworld|mesa-vdpau-driver")
       ;;
     suse)
-      requires=("${requires[@]/libc6/glibc}")
-      requires=("${requires[@]/libasound2/alsa-lib}")
-      requires=("${requires[@]/libx11-6/libX11-6}")
-      requires=("${requires[@]/libxext6/libXext6}")
-      requires=("${requires[@]/libxdmcp6/libXdmcp6}")
-      requires=("${requires[@]/libgtk-3-0/gtk3}")
-      requires=("${requires[@]/libgl1/Mesa-libGL1}")
-      requires=("${requires[@]/libpango-1.0-0/pango}")
-      requires=("${requires[@]/libpangoft2-1.0-0/pango}")
-      requires=("${requires[@]/libpangox-1.0-0/pango}")
-      requires=("${requires[@]/libpangoxft-1.0-0/pango}")
-      requires=("${requires[@]/libnss3/mozilla-nss}")
-      requires=("${requires[@]/libnspr4/mozilla-nspr}")
-      requires=("${requires[@]/libfribidi0/fribidi}")
-      requires=("${requires[@]/libfontconfig1/fontconfig}")
-      requires=("${requires[@]/libharfbuzz0b/libharfbuzz0}")
-      requires=("${requires[@]/libwebkit2gtk-4.0*/libwebkit2gtk-4_0-37}")
-      requires=("${requires[@]/libwebkit2gtk-4.1*/libwebkit2gtk-4_1-0}")
-      for i in "${!requires[@]}"; do
-        [[ ${requires[$i]} == "mesa-vulkan-drivers" ]] && unset -v 'requires[i]'
-        [[ ${requires[$i]} == "libsdbus-c++1" ]] && unset -v 'requires[i]'
+      requires_arr=("${requires_arr[@]/libc6/glibc}")
+      requires_arr=("${requires_arr[@]/libasound2/alsa-lib}")
+      requires_arr=("${requires_arr[@]/libx11-6/libX11-6}")
+      requires_arr=("${requires_arr[@]/libxext6/libXext6}")
+      requires_arr=("${requires_arr[@]/libxdmcp6/libXdmcp6}")
+      requires_arr=("${requires_arr[@]/libgtk-3-0/gtk3}")
+      requires_arr=("${requires_arr[@]/libgl1/Mesa-libGL1}")
+      requires_arr=("${requires_arr[@]/libpango-1.0-0/pango}")
+      requires_arr=("${requires_arr[@]/libpangoft2-1.0-0/pango}")
+      requires_arr=("${requires_arr[@]/libpangox-1.0-0/pango}")
+      requires_arr=("${requires_arr[@]/libpangoxft-1.0-0/pango}")
+      requires_arr=("${requires_arr[@]/libnss3/mozilla-nss}")
+      requires_arr=("${requires_arr[@]/libnspr4/mozilla-nspr}")
+      requires_arr=("${requires_arr[@]/libfribidi0/fribidi}")
+      requires_arr=("${requires_arr[@]/libfontconfig1/fontconfig}")
+      requires_arr=("${requires_arr[@]/libharfbuzz0b/libharfbuzz0}")
+      requires_arr=("${requires_arr[@]/libwebkit2gtk-4.0*/libwebkit2gtk-4_0-37}")
+      requires_arr=("${requires_arr[@]/libwebkit2gtk-4.1*/libwebkit2gtk-4_1-0}")
+      for i in "${!requires_arr[@]}"; do
+        [[ ${requires_arr[$i]} == "mesa-vulkan-drivers" ]] && unset -v 'requires_arr[i]'
+        [[ ${requires_arr[$i]} == "libsdbus-c++1" ]] && unset -v 'requires_arr[i]'
       done
-      recommends+=(libvulkan1)
-      recommends+=(libvulkan_intel)
-      recommends+=(libvulkan_radeon)
-      recommends+=(libvulkan_nouveau)
+      recommends_arr+=(libvulkan1)
+      recommends_arr+=(libvulkan_intel)
+      recommends_arr+=(libvulkan_radeon)
+      recommends_arr+=(libvulkan_nouveau)
       ;;
     mandriva)
-      requires=("${requires[@]/libc6/glibc}")
-      requires=("${requires[@]/libasound2/lib64asound2}")
-      requires=("${requires[@]/libuuid1/lib64uuid1}")
-      requires=("${requires[@]/libx11-6/lib64x11_6}")
-      requires=("${requires[@]/libxext6/lib64xext6}")
-      requires=("${requires[@]/libxcb1/lib64xcb1}")
-      requires=("${requires[@]/libxdmcp6/lib64xdmcp6}")
-      requires=("${requires[@]/libstdc++6/lib64stdc++6}")
-      requires=("${requires[@]/libgtk-3-0/lib64gtk3_0}")
-      requires=("${requires[@]/libgl1/lib64GL1}")
-      requires=("${requires[@]/libgles2/lib64GLESv2_2}")
-      requires=("${requires[@]/libegl-mesa0/lib64EGL_mesa0}")
-      requires=("${requires[@]/libpango1.0-0/lib64pango1.0_0}")
-      requires=("${requires[@]/libpango-1.0-0/lib64pango1.0_0}")
-      requires=("${requires[@]/libpangoft2-1.0-0/lib64pangoft2_1.0_0}")
-      requires=("${requires[@]/libpango-cairo-1.0-0/lib64pangocairo1.0_0}")
-      requires=("${requires[@]/libpangoxft-1.0-0/lib64pangoxft1.0_0}")
-      requires=("${requires[@]/libnss3/lib64nss3}")
-      requires=("${requires[@]/libnspr4/lib64nspr4}")
-      requires=("${requires[@]/libgomp1/lib64gomp1}")
-      requires=("${requires[@]/libfribidi0/lib64fribidi0}")
-      requires=("${requires[@]/libfontconfig1/lib64fontconfig}")
-      requires=("${requires[@]/libfreetype6/lib64freetype6}")
-      requires=("${requires[@]/libharfbuzz0b/lib64harfbuzz}")
-      requires=("${requires[@]/libgbm1/lib64gbm1}")
-      requires=("${requires[@]/libva2/lib64va2}")
-      requires=("${requires[@]/libva-drm2/lib64va-drm2}")
-      requires=("${requires[@]/libvulkan1/lib64vulkan1}")
-      requires=("${requires[@]/mesa-vulkan-drivers/lib64dri-drivers}")
-      requires=("${requires[@]/vulkan-icd/vulkan-loader}")
-      requires=("${requires[@]/libwebkit2gtk-4.1-0/lib64webkit2gtk4.1}")
-      recommends=("${recommends[@]/musepack-tools/mppenc}")
-      for i in "${!recommends[@]}"; do
-        [[ ${recommends[$i]} == "fdkaac" ]] && unset -v 'recommends[i]'
+      requires_arr=("${requires_arr[@]/libc6/glibc}")
+      requires_arr=("${requires_arr[@]/libasound2/lib64asound2}")
+      requires_arr=("${requires_arr[@]/libuuid1/lib64uuid1}")
+      requires_arr=("${requires_arr[@]/libx11-6/lib64x11_6}")
+      requires_arr=("${requires_arr[@]/libxext6/lib64xext6}")
+      requires_arr=("${requires_arr[@]/libxcb1/lib64xcb1}")
+      requires_arr=("${requires_arr[@]/libxdmcp6/lib64xdmcp6}")
+      requires_arr=("${requires_arr[@]/libstdc++6/lib64stdc++6}")
+      requires_arr=("${requires_arr[@]/libgtk-3-0/lib64gtk3_0}")
+      requires_arr=("${requires_arr[@]/libgl1/lib64GL1}")
+      requires_arr=("${requires_arr[@]/libgles2/lib64GLESv2_2}")
+      requires_arr=("${requires_arr[@]/libegl-mesa0/lib64EGL_mesa0}")
+      requires_arr=("${requires_arr[@]/libpango1.0-0/lib64pango1.0_0}")
+      requires_arr=("${requires_arr[@]/libpango-1.0-0/lib64pango1.0_0}")
+      requires_arr=("${requires_arr[@]/libpangoft2-1.0-0/lib64pangoft2_1.0_0}")
+      requires_arr=("${requires_arr[@]/libpango-cairo-1.0-0/lib64pangocairo1.0_0}")
+      requires_arr=("${requires_arr[@]/libpangoxft-1.0-0/lib64pangoxft1.0_0}")
+      requires_arr=("${requires_arr[@]/libnss3/lib64nss3}")
+      requires_arr=("${requires_arr[@]/libnspr4/lib64nspr4}")
+      requires_arr=("${requires_arr[@]/libgomp1/lib64gomp1}")
+      requires_arr=("${requires_arr[@]/libfribidi0/lib64fribidi0}")
+      requires_arr=("${requires_arr[@]/libfontconfig1/lib64fontconfig}")
+      requires_arr=("${requires_arr[@]/libfreetype6/lib64freetype6}")
+      requires_arr=("${requires_arr[@]/libharfbuzz0b/lib64harfbuzz}")
+      requires_arr=("${requires_arr[@]/libgbm1/lib64gbm1}")
+      requires_arr=("${requires_arr[@]/libva2/lib64va2}")
+      requires_arr=("${requires_arr[@]/libva-drm2/lib64va-drm2}")
+      requires_arr=("${requires_arr[@]/libvulkan1/lib64vulkan1}")
+      requires_arr=("${requires_arr[@]/mesa-vulkan-drivers/lib64dri-drivers}")
+      requires_arr=("${requires_arr[@]/vulkan-icd/vulkan-loader}")
+      requires_arr=("${requires_arr[@]/libwebkit2gtk-4.1-0/lib64webkit2gtk4.1}")
+      recommends_arr=("${recommends_arr[@]/musepack-tools/mppenc}")
+      for i in "${!recommends_arr[@]}"; do
+        [[ ${recommends_arr[$i]} == "fdkaac" ]] && unset -v 'recommends_arr[i]'
       done
       ;;
     arch)
       # Set these manually for Arch since they are quite different
-      requires=('alsa-lib' 'ca-certificates' 'gtk3' 'gcc-libs' 'libx11' 'libxext'
+      requires_arr=('alsa-lib' 'ca-certificates' 'gtk3' 'gcc-libs' 'libx11' 'libxext'
         'libxcb' 'libxau' 'libxdmcp' 'util-linux' 'mesa-libgl' 'webkit2gtk')
-      recommends=('mesa-libgl' 'nvidia-libgl' 'nvidia-utils' 'vulkan-intel'
+      recommends_arr=('mesa-libgl' 'nvidia-libgl' 'nvidia-utils' 'vulkan-intel'
         'vulkan-radeon' 'vorbis-tools' 'musepack-tools')
       ;;
     *)
@@ -913,23 +913,23 @@ translate_packages() {
   esac
 
   # Convert array to newline delim'd string (for heredoc)
-  printf -v requires "Requires: %s\n" "${requires[@]}"
-  printf -v recommends "Recommends: %s\n" "${recommends[@]}"
+  printf -v requires_arr "Requires: %s\n" "${requires_arr[@]}"
+  printf -v recommends_arr "Recommends: %s\n" "${recommends_arr[@]}"
   # Strip last newline
-  requires="${requires%?}" 
-  recommends="${recommends%?}"
+  requires_arr="${requires_arr%?}" 
+  recommends_arr="${recommends_arr%?}"
 
   if ((COMPAT_SWITCH)); then
     # Strip minimum versions
-    requires=$(echo "$requires" | awk -F" " 'NF == 4 {print $1 " " $2} NF != 4 {print $0}')
+    requires_arr=$(echo "$requires_arr" | awk -F" " 'NF == 4 {print $1 " " $2} NF != 4 {print $0}')
   fi
 }
 
 # @description Creates a SPEC file and builds the RPM from the source DEB using rpmbuild
 build_rpm() {
   debug "${FUNCNAME[0]}()"
-  declare -n requires="$1"
-  declare -n recommends="$2"
+  declare -n requires_arr="$1"
+  declare -n recommends_arr="$2"
   local i rpmbuild_cmd stub
   local spec_file="$OUTPUT_DIR/SPECS/mediacenter$MC_MVERSION-$MC_VERSION-$MC_RELEASE-$BUILD_TARGET-$ARCH.spec"
 
@@ -962,8 +962,8 @@ build_rpm() {
 
 		AutoReq:  0
 
-		$requires
-		$recommends
+		$requires_arr
+		$recommends_arr
 
 		Conflicts: MediaCenter
 
@@ -1013,8 +1013,8 @@ build_rpm() {
 # @description Creates the Arch PKGBUILD file for Media Center
 build_pkgbuild() {
   debug "${FUNCNAME[0]}()"
-  declare -n requires="$1"
-  declare -n recommends="$2"
+  declare -n requires_arr="$1"
+  declare -n recommends_arr="$2"
   local pkgbuild_file="$OUTPUT_DIR/PKGBUILD/mediacenter.pkgbuild"
 
   [[ -d $OUTPUT_DIR/PKGBUILD ]] || execute mkdir -p "$OUTPUT_DIR/PKGBUILD"
@@ -1028,8 +1028,8 @@ build_pkgbuild() {
 		arch=("$ARCH")
 		url="https://www.jriver.com/"
 		license=("custom")
-		depends=(${requires[@]})
-		optdepends=(${recommends[@]})
+		depends=(${requires_arr[@]})
+		optdepends=(${recommends_arr[@]})
 		source=("$MC_SOURCE")
 
 		package() {
