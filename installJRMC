@@ -1030,7 +1030,6 @@ build_pkgbuild() {
     debug "Cleaned elem: $elem"
     cleaned_requires_arr+=("$elem")
   done
-  requires_arr=("${cleaned_requires_arr[@]}")
 
   # Clean up recommends_arr
   local cleaned_recommends_arr=()
@@ -1041,7 +1040,9 @@ build_pkgbuild() {
     debug "Cleaned elem: $elem"
     cleaned_recommends_arr+=("$elem")
   done
-  recommends_arr=("${cleaned_recommends_arr[@]}")
+
+  debug "Cleaned requires: ${cleaned_requires_arr[*]}"
+  debug "Cleaned recommends: ${cleaned_recommends_arr[*]}"
 
   # Create PKGBUILD file
   cat <<-EOF > "$pkgbuild_file"
@@ -1052,8 +1053,8 @@ build_pkgbuild() {
 		arch=("$ARCH")
 		url="https://www.jriver.com/"
 		license=("custom")
-		depends=(${requires_arr[@]})
-		optdepends=(${recommends_arr[@]})
+		depends=(${cleaned_requires_arr[@]})
+		optdepends=(${cleaned_recommends_arr[@]})
 		source=("$MC_SOURCE")
 
 		package() {
