@@ -903,17 +903,10 @@ translate_packages() {
       ;;
     arch)
       # Set these manually for Arch since they are quite different
-      requires=(
-        'alsa-lib' 'ca-certificates' 'gtk3' 'gcc-libs' 'libx11' 'libxext'
+      requires=('alsa-lib' 'ca-certificates' 'gtk3' 'gcc-libs' 'libx11' 'libxext'
         'libxcb' 'libxau' 'libxdmcp' 'util-linux' 'mesa-libgl' 'webkit2gtk')
-      recommends=(
-        'mesa-libgl: nouveau video support'
-        'nvidia-libgl: nvidia video support'
-        'nvidia-utils: nvidia vulkan support'
-        'vulkan-intel: intel vulkan support'
-        'vulkan-radeon: amd vulkan support'
-        'vorbis-tools: ogg vorbis support'
-        'musepack-tools: musepack support')
+      recommends=('mesa-libgl' 'nvidia-libgl' 'nvidia-utils' 'vulkan-intel'
+        'vulkan-radeon' 'vorbis-tools' 'musepack-tools')
       ;;
     *)
       echo "Skipping package translations for $ID"
