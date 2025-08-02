@@ -102,9 +102,8 @@ Multiple services (but not `--service-types`) can be installed at one time using
 
 ## Firewall
 
-`installJRMC` automatically creates port forwarding firewall rules for remote access to Media Network (52100-52200/tcp, 1900/udp DLNA) and Xvnc/x11vnc (if selected), using `firewall-cmd` or `ufw`.
+`installJRMC` automatically creates port forwarding firewall rules for remote access to Media Network (52100-52200/tcp, 1900/udp DLNA) and Xvnc/x11vnc (if selected), using `firewall-cmd` or `ufw` (if available).
 
-**Note:** `ufw` is not installed by default on Debian but will be installed by `installJRMC`. To prevent SSH lock-out, Debian users that have not already enabled `ufw` will need to `sudo ufw enable` after running `installJRMC` and inspecting their configuration.
 
 ## Other Nicities
 
@@ -112,7 +111,6 @@ Multiple services (but not `--service-types`) can be installed at one time using
 * Activates external third-party repositories for improved media playback (hardware decoding, etc.)
 * Adds temporary legacy repositories to provide deprecated libraries
 * Links non-standard SSL certs
-* Disables BTRFS CoW for MC database directories
 * Activates MC if a valid license file is found in common locations
 
 ## Examples

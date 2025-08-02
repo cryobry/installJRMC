@@ -911,18 +911,6 @@ translate_packages() {
     *)
       echo "Skipping package translations for $ID"
   esac
-
-  # Convert array to newline delim'd string (for heredoc)
-  printf -v requires_arr "Requires: %s\n" "${requires_arr[@]}"
-  printf -v recommends_arr "Recommends: %s\n" "${recommends_arr[@]}"
-  # Strip last newline
-  requires_arr="${requires_arr%?}" 
-  recommends_arr="${recommends_arr%?}"
-
-  if ((COMPAT_SWITCH)); then
-    # Strip minimum versions
-    requires_arr=$(echo "$requires_arr" | awk -F" " 'NF == 4 {print $1 " " $2} NF != 4 {print $0}')
-  fi
 }
 
 # @description Creates a SPEC file and builds the RPM from the source DEB using rpmbuild
@@ -930,6 +918,7 @@ build_rpm() {
   debug "${FUNCNAME[0]}()"
   declare -n requires_arr="$1"
   declare -n recommends_arr="$2"
+  local requires_str recommends_str 
   local i rpmbuild_cmd stub
   local spec_file="$OUTPUT_DIR/SPECS/mediacenter$MC_MVERSION-$MC_VERSION-$MC_RELEASE-$BUILD_TARGET-$ARCH.spec"
 
@@ -950,6 +939,18 @@ build_rpm() {
     stub="%{_bindir}/mc$MC_MVERSION"
   fi
 
+  # Convert array to newline delim'd string (for heredoc)
+  printf -v requires_str "Requires: %s\n" "${requires_arr[@]}"
+  printf -v recommends_str "Recommends: %s\n" "${recommends_arr[@]}"
+  # Strip last newline
+  requires_str="${requires_str%?}" 
+  recommends_str="${recommends_str%?}"
+
+  if ((COMPAT_SWITCH)); then
+    # Strip minimum versions
+    requires_str=$(echo "$requires_str" | awk -F" " 'NF == 4 {print $1 " " $2} NF != 4 {print $0}')
+  fi
+
   # Create spec file
   cat <<-EOF > "$spec_file"
 		Name:  mediacenter$MC_MVERSION
@@ -962,8 +963,8 @@ build_rpm() {
 
 		AutoReq:  0
 
-		$requires_arr
-		$recommends_arr
+		$requires_str
+		$recommends_str
 
 		Conflicts: MediaCenter
 
@@ -1019,31 +1020,6 @@ build_pkgbuild() {
 
   [[ -d $OUTPUT_DIR/PKGBUILD ]] || execute mkdir -p "$OUTPUT_DIR/PKGBUILD"
 
-  # The requires and recommends arrays are in RPM .spec format
-  # Make them simple arrays for the PKGBUILD
-  # Clean up requires_arr
-  local cleaned_requires_arr=()
-  for elem in "${requires_arr[@]}"; do
-    debug "Cleaning elem: $elem"
-    elem="${elem#Requires: }"
-    elem="${elem//$'\n'/ }"
-    debug "Cleaned elem: $elem"
-    cleaned_requires_arr+=("$elem")
-  done
-
-  # Clean up recommends_arr
-  local cleaned_recommends_arr=()
-  for elem in "${recommends_arr[@]}"; do
-    debug "Cleaning elem: $elem"
-    elem="${elem#Recommends: }"
-    elem="${elem//$'\n'/ }"
-    debug "Cleaned elem: $elem"
-    cleaned_recommends_arr+=("$elem")
-  done
-
-  debug "Cleaned requires: ${cleaned_requires_arr[*]}"
-  debug "Cleaned recommends: ${cleaned_recommends_arr[*]}"
-
   # Create PKGBUILD file
   cat <<-EOF > "$pkgbuild_file"
 		pkgname=mediacenter$MC_MVERSION
@@ -1053,8 +1029,8 @@ build_pkgbuild() {
 		arch=("$ARCH")
 		url="https://www.jriver.com/"
 		license=("custom")
-		depends=(${cleaned_requires_arr[@]})
-		optdepends=(${cleaned_recommends_arr[@]})
+		depends=(${requires_arr[@]})
+		optdepends=(${recommends_arr[@]})
 		source=("$MC_SOURCE")
 
 		package() {
