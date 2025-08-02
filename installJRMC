@@ -21,7 +21,7 @@
 # shellcheck disable=SC2317
 shopt -s extglob
 
-declare -g SCRIPT_VERSION="1.34.7"
+declare -g SCRIPT_VERSION="1.34.8-dev"
 declare -g MC_VERSION="34.0.51" # do find all replace (hardcoded fallback)
 declare -g MC_REPO="bookworm" # should match the MC_VERSION
 declare -g BOARD_ID="89.0" # MC34 board ID for automatic version detection
@@ -843,6 +843,7 @@ translate_packages() {
       recommends_arr+=("mesa-vdpau-driver-freeworld|mesa-vdpau-driver")
       ;;
     suse)
+      requires_arr=("${requires_arr[@]/python*/python3}")
       requires_arr=("${requires_arr[@]/libc6/glibc}")
       requires_arr=("${requires_arr[@]/libasound2/alsa-lib}")
       requires_arr=("${requires_arr[@]/libx11-6/libX11-6}")
