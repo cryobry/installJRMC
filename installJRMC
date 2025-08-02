@@ -21,7 +21,7 @@
 # shellcheck disable=SC2317
 shopt -s extglob
 
-declare -g SCRIPT_VERSION="1.34.8-dev"
+declare -g SCRIPT_VERSION="1.34.8"
 declare -g MC_VERSION="34.0.51" # do find all replace (hardcoded fallback)
 declare -g MC_REPO="bookworm" # should match the MC_VERSION
 declare -g BOARD_ID="89.0" # MC34 board ID for automatic version detection
