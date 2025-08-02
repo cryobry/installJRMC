@@ -1143,6 +1143,8 @@ install_mc_generic() {
 install_mc_arch() {
   debug "${FUNCNAME[0]}()"
   
+  execute "${PKG_INSTALL[@]}" fakeroot # makepkg requires fakeroot
+
   pushd "$OUTPUT_DIR/PKGBUILD" &>/dev/null || return
 
   if ! execute makepkg \
