@@ -681,7 +681,9 @@ install_mc_repo() {
 
   # Add older repository for libwebkit2gtk-4.0-37, etc, on newer Debian/Ubuntu
   if add_temp_repo; then
+    debug "Removing temporary repository: $TEMP_REPO_FILE"
     trap 'execute sudo rm -f "$TEMP_REPO_FILE"' EXIT
+    echo "Removed temporary repository"
   else
     err "Failed to add temporary repository"
     return 1
@@ -701,7 +703,11 @@ install_mc_repo() {
 
   # Unset the trap and remove temporary legacy repository
   trap - EXIT
-  [[ -f $TEMP_REPO_FILE ]] && execute sudo rm -f "$TEMP_REPO_FILE"
+  if [[ -f $TEMP_REPO_FILE ]]; then
+    debug "Removing temporary repository: $TEMP_REPO_FILE"
+    execute sudo rm -f "$TEMP_REPO_FILE"
+    echo "Removed temporary repository"
+  fi
   return 0
 }
 
@@ -1070,7 +1076,9 @@ install_mc_deb() {
 
   # Add older repository for libwebkit2gtk-4.0-37, etc, on newer Debian/Ubuntu
   if add_temp_repo; then
+    debug "Removing temporary repo"
     trap 'execute sudo rm -f "$TEMP_REPO_FILE"' EXIT
+    debug "Removed temporary repo"
   else
     err "Failed to add temporary repository"
     return 1
