@@ -21,7 +21,7 @@
 # shellcheck disable=SC2317
 shopt -s extglob
 
-declare -g SCRIPT_VERSION="1.34.8"
+declare -g SCRIPT_VERSION="1.34.9-dev"
 declare -g MC_VERSION="34.0.51" # do find all replace (hardcoded fallback)
 declare -g MC_REPO="bookworm" # should match the MC_VERSION
 declare -g BOARD_ID="89.0" # MC34 board ID for automatic version detection
@@ -252,10 +252,16 @@ init() {
   # Run the self-updater if enabled
   ((SELF_UPDATE_SWITCH)) && update "$@"
 
-  fix_permissions "$HOME/.jriver" "$USER"
+  # Check that the .jriver directory is owned by the user
+  ((YES_SWITCH)) || fix_permissions "$HOME/.jriver" "$USER"
 
-  # Get host information
+  # Get host information and immediately fail if required vars are unavailable
   [[ -f /etc/os-release ]] && source /etc/os-release
+  if [[ -n $ID && -n $VERSION_ID ]]; then
+    err "Failed to detect OS ID and VERSION_ID"
+    err "Use ID=debian VERSION_ID=12 installJRMC to pass manually"
+    exit 1
+  fi
 
   # Detect host architecture and translate to MC convention
   if ARCH=$(uname -m); then
@@ -923,8 +929,8 @@ translate_packages() {
 # @description Creates a SPEC file and builds the RPM from the source DEB using rpmbuild
 build_rpm() {
   debug "${FUNCNAME[0]}()"
-  declare -n requires_arr="$1"
-  declare -n recommends_arr="$2"
+  # shellcheck disable=SC2178
+  declare -n requires_arr="$1" recommends_arr="$2"
   local requires_str recommends_str 
   local i rpmbuild_cmd stub
   local spec_file="$OUTPUT_DIR/SPECS/mediacenter$MC_MVERSION-$MC_VERSION-$MC_RELEASE-$BUILD_TARGET-$ARCH.spec"
@@ -1021,8 +1027,8 @@ build_rpm() {
 # @description Creates the Arch PKGBUILD file for Media Center
 build_pkgbuild() {
   debug "${FUNCNAME[0]}()"
-  declare -n requires_arr="$1"
-  declare -n recommends_arr="$2"
+  # shellcheck disable=SC2178
+  declare -n requires_arr="$1" recommends_arr="$2"
   local pkgbuild_file="$OUTPUT_DIR/PKGBUILD/mediacenter.pkgbuild"
 
   [[ -d $OUTPUT_DIR/PKGBUILD ]] || execute mkdir -p "$OUTPUT_DIR/PKGBUILD"
@@ -1924,6 +1930,7 @@ main() {
 }
 
 # @section Helper functions
+# @internal
 debug() { ((DEBUG)) && echo "Debug: $*"; }
 err() { echo "Error: $*" >&2; }
 ask_ok() {

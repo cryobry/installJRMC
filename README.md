@@ -104,7 +104,6 @@ Multiple services (but not `--service-types`) can be installed at one time using
 
 `installJRMC` automatically creates port forwarding firewall rules for remote access to Media Network (52100-52200/tcp, 1900/udp DLNA) and Xvnc/x11vnc (if selected), using `firewall-cmd` or `ufw` (if available).
 
-
 ## Other Nicities
 
 * Automatically updates `installJRMC` to the latest release
