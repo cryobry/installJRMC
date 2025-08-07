@@ -18,7 +18,7 @@
 # * Avoid execute() for stdout
 #
 # Allow indirection to match service names to their functions
-# shellcheck disable=SC2317
+# shellcheck disable=SC2329
 shopt -s extglob
 
 declare -g SCRIPT_VERSION="1.34.9-dev"
@@ -46,71 +46,71 @@ print_help() {
 
 		OPTIONS
 		  --install, -i repo|local
-		    repo: Install MC from repository, updates are handled by the system package manager
-		    local: Build and install MC locally from official source package
+		    repo: Install MC from repository, updates are handled by the system package manager.
+		    local: Build and install MC locally from official source package.
 		  --build[=suse|fedora|centos|mandriva]
-		    Build RPM from source DEB but do not install
-		    Optionally, specify a target distro for cross-building (ex. --build=suse, note the '=')
+		    Build RPM from source DEB but do not install.
+		    Optionally, specify a target distro for cross-building (ex. --build=suse, note the '=').
 		  --compat
-		    Build/install MC locally without minimum dependency version requirements
+		    Build/install MC locally without minimum dependency version requirements.
 		  --mcversion VERSION
-		    Specify the MC version, ex. "$MC_VERSION" or "${MC_VERSION%%.*}" (default: latest release)
+		    Specify the MC version, ex. "$MC_VERSION" or "${MC_VERSION%%.*}" (default: latest release).
 		  --arch VERSION
-		    Specify the target MC architecture, ex. "amd64", "arm64", etc (default: host)
+		    Specify the target MC architecture, ex. "amd64", "arm64", etc (default: host).
 		  --mcrepo REPO
-		    Specify the MC repository, ex. "bullseye", "bookworm", "noble", etc (default: auto)
+		    Specify the MC repository, ex. "bullseye", "bookworm", "noble", etc (default: auto).
 		  --outputdir PATH
-		    Generate reusable installJRMC output in this PATH (default: ./output)
+		    Generate reusable installJRMC output in this PATH (default: ./output).
 		  --restorefile MJR_FILE
-		    Restore file location for automatic license registration
+		    Restore file location for automatic license registration.
 		  --betapass PASSWORD
-		    Enter beta team password for access to beta builds
+		    Enter beta team password for access to beta builds.
 		  --service, -s SERVICE
-		    See SERVICES section below for a list of possible services to install
+		    See SERVICES section below for a list of possible services to install.
 		    --service-type user|system
-		      Starts services at boot (system) or at user login (user) (default: per service, see SERVICES)
+		      Starts services at boot (system) or at user login (user) (default: per service, see SERVICES).
 		  --container, -c CONTAINER (TODO: Under construction)
-		    See CONTAINERS section below for a list of possible services to install
+		    See CONTAINERS section below for a list of possible services to install.
 		  --createrepo[=suse|fedora|centos|mandriva]
 		    Build rpm, copy to webroot, and run createrepo. 
-		    Use in conjunction with --build=TARGET for crossbuilding repos
-		    Optionally, specify a target distro for non-native repo (ex. --createrepo=fedora, note the '=')
+		    Use in conjunction with --build=TARGET for crossbuilding repos.
+		    Optionally, specify a target distro for non-native repo (ex. --createrepo=fedora, note the '=').
 		    --createrepo-webroot PATH
-		      Specify the webroot directory to install the repo (default: /var/www/jriver)
+		      Specify the webroot directory to install the repo (default: /var/www/jriver).
 		    --createrepo-user USER
-		      Specify the web server user if it differs from \$USER
+		      Specify the web server user if it differs from \$USER.
 		  --no-update
-		    Disable automatic installJRMC self-update
+		    Disable automatic installJRMC self-update.
 		  --uninstall, -u
-		    Uninstall JRiver MC, remove services, containers, and firewall rules (does not remove library files)
+		    Uninstall JRiver MC, remove services, containers, and firewall rules (does not remove library files).
 		  --yes, -y, --auto
-		    Assume yes response to questions
+		    Assume yes response to questions.
 		  --version, -v
-		    Print installJRMC version and exit
+		    Print installJRMC version and exit.
 		  --debug, -d
-		    Print debug output
+		    Print debug output.
 		  --help, -h
-		    Print help dialog and exit
+		    Print help dialog and exit.
 
 		SERVICES
 		  jriver-mediaserver (default --service-type=user)
-		    Enable and start a mediaserver systemd service (requires an existing X server)
+		    Enable and start a mediaserver systemd service (requires an existing X server).
 		  jriver-mediacenter (user)
-		    Enable and start a mediacenter systemd service (requires an existing X server)
+		    Enable and start a mediacenter systemd service (requires an existing X server).
 		  jriver-x11vnc (user)
-		    Enable and start x11vnc for the local desktop (requires an existing X server)
-		    Usually combined with jriver-mediaserver or jriver-mediacenter services
-		    --vncpass and --display are optional (see below)
+		    Enable and start x11vnc for the local desktop (requires an existing X server).
+		    Usually combined with jriver-mediaserver or jriver-mediacenter services.
+		    --vncpass and --display are optional (see below).
 		  jriver-xvnc (system)
-		    Enable and start a new Xvnc session running JRiver Media Center
+		    Enable and start a new Xvnc session running JRiver Media Center.
 		    --vncpass PASSWORD
 		      Set the vnc password for x11vnc/Xvnc access. If no password is set, installJRMC
-		      will either use existing password stored in \$HOME/.vnc/jrmc_passwd or else no password
+		      will either use existing password stored in \$HOME/.vnc/jrmc_passwd or else no password.
 		    --display DISPLAY
 		      Display to use for x11vnc/Xvnc (default: The current display (x11vnc) or the
-		      current display incremented by 1 (Xvnc))
+		      current display incremented by 1 (Xvnc)).
 		  jriver-createrepo (system)
-		    Install hourly service to build latest MC RPM and run createrepo
+		    Install hourly service to build latest MC RPM and run createrepo.
 	EOF
 }
 
@@ -783,8 +783,8 @@ acquire_deb() {
 translate_packages() {
   debug "${FUNCNAME[0]}()" "$*"
   local deb_file="$1"
-  declare -n requires_arr="$2"
-  declare -n recommends_arr="$3"
+  # shellcheck disable=SC2178
+  declare -n requires_arr="$2" recommends_arr="$3"
   local -i i
 
   # Load deb dependencies into array
@@ -924,6 +924,8 @@ translate_packages() {
     *)
       echo "Skipping package translations for $ID"
   esac
+
+  unset requires_arr recommends_arr
 }
 
 # @description Creates a SPEC file and builds the RPM from the source DEB using rpmbuild
@@ -955,6 +957,9 @@ build_rpm() {
   # Convert array to newline delim'd string (for heredoc)
   printf -v requires_str "Requires: %s\n" "${requires_arr[@]}"
   printf -v recommends_str "Recommends: %s\n" "${recommends_arr[@]}"
+
+  unset requires_arr recommends_arr
+
   # Strip last newline
   requires_str="${requires_str%?}" 
   recommends_str="${recommends_str%?}"
@@ -1051,6 +1056,7 @@ build_pkgbuild() {
 			bsdtar xf data.tar.xz -C "\$pkgdir"
 		}
 	EOF
+  unset requires_arr recommends_arr
 }
 
 # @description Installs Media Center via DEB package w/ optional compatability fixes
