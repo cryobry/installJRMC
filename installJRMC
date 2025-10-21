@@ -21,7 +21,7 @@
 # shellcheck disable=SC2329
 shopt -s extglob
 
-declare -g SCRIPT_VERSION="1.34.9"
+declare -g SCRIPT_VERSION="1.34.10-dev"
 declare -g MC_VERSION_HARDCODE="34.0.71" # do find all replace
 declare -g MC_REPO_HARDCODE="bookworm" # should match the MC_VERSION_HARDCODE
 declare -g BOARD_ID="89.0" # MC34 board ID for automatic version detection
@@ -698,7 +698,19 @@ install_mc_repo() {
     err "Failed to add temporary repository"
     return 1
   fi
-  execute "${PKG_UPDATE[@]}" || { err "Package update failed!"; return 1; }
+
+  # Update package lists
+  if ! execute "${PKG_UPDATE[@]}"; then
+    error=$?
+    err "Package update failed!"
+    if [[ $error -eq 100 ]]; then
+      if [[ $MC_REPO != "$MC_REPO_HARDCODE" ]] &&
+      ask_ok "Re-run installJRMC with --mcrepo=$MC_REPO_HARDCODE?"; then
+        exec "$SCRIPT_PATH" "$@" "--no-update" "--mcrepo=$MC_REPO_HARDCODE"
+      fi
+    fi
+    return 1
+  fi
 
   echo "Installing $MC_PKG package"
   if ! install_package \
@@ -1115,7 +1127,7 @@ install_mc_deb() {
     --reinstall \
     "$temp_deb"; then
     err "Local MC DEB installation failed"
-    if ask_ok "Remove source DEB and retry"; then
+    if ask_ok "Remove source DEB and retry?"; then
       execute sudo rm -f "$MC_DEB" "$temp_deb"
       exec "$SCRIPT_PATH" "$@" "--no-update"
     fi
@@ -1651,7 +1663,7 @@ uninstall() {
   debug "${FUNCNAME[0]}()"
   local service type unit f
 
-  if ! ask_ok "Do you really want to uninstall JRiver Media Center?"; then
+  if ! ask_ok "Uninstall JRiver Media Center, services, and firewall rules?"; then
     echo "Uninstall cancelled"
     return 1
   fi
@@ -1856,7 +1868,7 @@ main() {
 
   if ((REPO_INSTALL_SWITCH)); then
     echo "Installing JRiver Media Center from remote repository"
-    if install_mc_repo; then
+    if install_mc_repo "$@"; then
       echo "JRiver Media Center installed successfully from remote repository"
       install_mesa_freeworld
       link_ssl_certs

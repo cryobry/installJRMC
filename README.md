@@ -1,6 +1,6 @@
 # installJRMC
 
-Install [JRiver Media Center](https://www.jriver.com/) and associated services on most Linux distributions.
+Installs [JRiver Media Center](https://www.jriver.com/) and associated services on most Linux distributions.
 
 You can find the latest version of installJRMC, changelog, and documentation in [my repository](https://git.bryanroessler.com/bryan/installJRMC).
 
