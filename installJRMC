@@ -928,8 +928,6 @@ translate_packages() {
     *)
       echo "Skipping package translations for $ID"
   esac
-
-  unset requires_arr recommends_arr
 }
 
 # @description Creates an RPM .spec file and builds the RPM from the source DEB using rpmbuild
@@ -1873,7 +1871,7 @@ main() {
   if ((BUILD_SWITCH)); then
     acquire_deb || { err "Could not download Media Center DEB package"; return 1; }
 
-    # Convert the source DEB dependencies to various distro-specific package naming
+    # Convert the source DEB dependencies to various distro-specific packages
     install_package dpkg
     translate_packages "$MC_DEB" requires recommends
 
