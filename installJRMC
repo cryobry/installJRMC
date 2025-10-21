@@ -22,7 +22,7 @@
 shopt -s extglob
 
 declare -g SCRIPT_VERSION="1.34.9-dev"
-declare -g MC_VERSION="34.0.51" # do find all replace (hardcoded fallback)
+declare -g MC_VERSION="34.0.58" # do find all replace (hardcoded fallback)
 declare -g MC_REPO="bookworm" # should match the MC_VERSION
 declare -g BOARD_ID="89.0" # MC34 board ID for automatic version detection
 declare -gi SELF_UPDATE_SWITCH=1 # 0 to disable installJRMC self-update
@@ -208,7 +208,7 @@ parse_input() {
     err "Incorrect option provided, see installJRMC --help"; exit 1
   fi
 
-  # Set some default conditions
+  # Default to --install=repo (can be overridden later by OS defaults)
   if ! ((UNINSTALL_SWITCH || BUILD_SWITCH || CREATEREPO_SWITCH || LOCAL_INSTALL_SWITCH
   || CONTAINER_INSTALL_SWITCH || SNAP_INSTALL_SWITCH || APPIMAGE_INSTALL_SWITCH)) &&
   [[ ${#SERVICES[@]} -eq 0 && ${#CONTAINERS[@]} -eq 0 ]]; then
@@ -257,11 +257,6 @@ init() {
 
   # Get host information and immediately fail if required vars are unavailable
   [[ -f /etc/os-release ]] && source /etc/os-release
-  if [[ -n $ID && -n $VERSION_ID ]]; then
-    err "Failed to detect OS ID and VERSION_ID"
-    err "Use ID=debian VERSION_ID=12 installJRMC to pass manually"
-    exit 1
-  fi
 
   # Detect host architecture and translate to MC convention
   if ARCH=$(uname -m); then
@@ -287,7 +282,7 @@ init() {
     esac
   fi
 
-  # Normalize ID and set host-specific vars
+  # Normalize ID and set OS defaults
   case $ID in
     debian|fedora|centos) ;;
     rhel|almalinux) ID="centos" ;;
@@ -314,7 +309,7 @@ init() {
         BUILD_SWITCH=1
         LOCAL_INSTALL_SWITCH=1
       fi ;;
-    *) err "Auto-detecting distro, this is unreliable and --compat may be required"
+    *) err "Auto-detecting OS, this is unreliable and --compat may be required."
       for cmd in dnf yum apt-get pacman; do
         if command -v "$cmd" &>/dev/null; then
           case "$cmd" in
@@ -330,7 +325,7 @@ init() {
       if [[ -z $ID ]]; then
         err "OS detection failed!"
         if ask_ok "Continue with manual installation?"; then
-          debug "Automatically using --install=local for unknown distro"
+          debug "Automatically using --install=local for unknown distro."
           ID="unknown"
           REPO_INSTALL_SWITCH=0
           BUILD_SWITCH=1
@@ -341,7 +336,7 @@ init() {
       fi ;;
   esac
 
-  # Set distro-specific package manager commands for normalized IDs
+  # Set distro-specific package manager commands for normalized OS
   case $ID in
     fedora|centos|mandriva)
       local rpm_mgr
@@ -395,7 +390,7 @@ init() {
 
   echo "MC source -> target: $MC_REPO $MC_ARCH -> $BUILD_TARGET $ARCH"
 
-  # Retrieves the latest MC version number if we need it
+  # Retrieve the latest MC version number if we need it
   if ((BUILD_SWITCH || LOCAL_INSTALL_SWITCH || CREATEREPO_SWITCH)); then
     get_latest_mc_version
   fi
@@ -476,7 +471,7 @@ install_package() {
     shift
   done
 
-  # Define distribution-specific package aliases
+  # Distribution-specific package aliases
   case $ID in
     debian|ubuntu) pkg_aliases=(
       [rpm-build]="rpm"
@@ -509,7 +504,7 @@ install_package() {
     done
   done
 
-  # Generate installation flags based on the distribution
+  # Add OS install flags to package manager command
   case $ID in
     debian|ubuntu)
       ((allow_downgrades)) && install_flags+=(--allow-downgrades)
@@ -928,7 +923,7 @@ translate_packages() {
   unset requires_arr recommends_arr
 }
 
-# @description Creates a SPEC file and builds the RPM from the source DEB using rpmbuild
+# @description Creates an RPM .spec file and builds the RPM from the source DEB using rpmbuild
 build_rpm() {
   debug "${FUNCNAME[0]}()"
   # shellcheck disable=SC2178
@@ -2018,7 +2013,7 @@ add_temp_repo() {
   if [[ "$ID" == "ubuntu" ]]; then
     local major_version="${VERSION_ID%%.*}"
     local minor_version="${VERSION_ID##*.}"
-    minor_version="${minor_version#0}"  # strip leading zero
+    minor_version="${minor_version#0}" # strip leading zero
     if [[ $major_version -gt 24 || ( $major_version -eq 24 && minor_version -ge 4 ) ]]; then
       echo "Temporarily adding jammy repository for libwebkit2gtk-4.0-37, etc."
       repo_name="ubuntu-jammy-temp"
