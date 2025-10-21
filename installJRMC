@@ -22,8 +22,8 @@
 shopt -s extglob
 
 declare -g SCRIPT_VERSION="1.34.9-dev"
-declare -g MC_VERSION="34.0.71" # do find all replace (hardcoded fallback)
-declare -g MC_REPO="bookworm" # should match the MC_VERSION
+declare -g MC_VERSION_HARDCODE="34.0.71" # do find all replace
+declare -g MC_REPO_HARDCODE="bookworm" # should match the MC_VERSION_HARDCODE
 declare -g BOARD_ID="89.0" # MC34 board ID for automatic version detection
 declare -gi SELF_UPDATE_SWITCH=1 # 0 to disable installJRMC self-update
 declare -g SCRIPT_URL="https://git.bryanroessler.com/bryan/installJRMC/raw/master/installJRMC" # self-update URL
@@ -54,7 +54,7 @@ print_help() {
 		  --compat
 		    Build/install MC locally without minimum dependency version requirements.
 		  --mcversion VERSION
-		    Specify the MC version, ex. "$MC_VERSION" or "${MC_VERSION%%.*}" (default: latest release).
+		    Specify the MC version, ex. "$MC_VERSION_HARDCODE" or "${MC_VERSION_HARDCODE%%.*}" (default: latest release).
 		  --arch VERSION
 		    Specify the target MC architecture, ex. "amd64", "arm64", etc (default: host).
 		  --mcrepo REPO
@@ -121,7 +121,7 @@ parse_input() {
   declare -gi BUILD_SWITCH REPO_INSTALL_SWITCH LOCAL_INSTALL_SWITCH \
     CONTAINER_INSTALL_SWITCH CREATEREPO_SWITCH SNAP_INSTALL_SWITCH \
     APPIMAGE_INSTALL_SWITCH COMPAT_SWITCH UNINSTALL_SWITCH YES_SWITCH DEBUG=0
-  declare -g USER_MC_VERSION USER_MC_MVERSION USER_MC_RELEASE USER_MC_REPO USER_ARCH MJR_FILE \
+  declare -g MC_VERSION_USER MC_MVERSION_USER MC_RELEASE_USER MC_REPO_USER USER_ARCH MJR_FILE \
     BETAPASS SERVICE_TYPE VNCPASS USER_DISPLAY BUILD_TARGET CREATEREPO_TARGET
   local long_opts short_opts input
   long_opts="install:,build::,outputdir:,mcversion:,arch:,mcrepo:,compat,"
@@ -151,29 +151,29 @@ parse_input() {
         --mcversion) shift;
           if [[ $1 =~ ^([0-9]+)(\.[0-9]+\.[0-9]+)?(-([0-9]+))?$ ]]; then
             # Major version is required
-            USER_MC_MVERSION="${BASH_REMATCH[1]}"
+            MC_MVERSION_USER="${BASH_REMATCH[1]}"
             # Set default release to 1 if not provided
-            USER_MC_RELEASE="${BASH_REMATCH[4]:-1}"
+            MC_RELEASE_USER="${BASH_REMATCH[4]:-1}"
             # If we get the full version, use it
-            [[ -n ${BASH_REMATCH[2]} ]] && USER_MC_VERSION="${BASH_REMATCH[1]}${BASH_REMATCH[2]}"
+            [[ -n ${BASH_REMATCH[2]} ]] && MC_VERSION_USER="${BASH_REMATCH[1]}${BASH_REMATCH[2]}"
 
             # Set major version defaults
-            case "$USER_MC_MVERSION" in
-              34) MC_VERSION="${USER_MC_VERSION:-$MC_VERSION}" MC_REPO="bookworm" BOARD_ID="89.0" ;;
-              33) MC_VERSION="${USER_MC_VERSION:-33.0.72}" MC_REPO="bullseye" BOARD_ID="86.0" ;;
-              32) MC_VERSION="${USER_MC_VERSION:-32.0.58}" MC_REPO="bullseye" BOARD_ID="83.0" ;;
-              31) MC_VERSION="${USER_MC_VERSION:-31.0.83}" MC_REPO="bullseye" BOARD_ID="80.0" ;;
-              30) MC_VERSION="${USER_MC_VERSION:-30.0.96}" MC_REPO="buster" BOARD_ID="76.0" ;;
-              29) MC_VERSION="${USER_MC_VERSION:-29.0.91}" MC_REPO="buster" BOARD_ID="74.0" ;;
-              28) MC_VERSION="${USER_MC_VERSION:-28.0.110}" MC_REPO="buster" BOARD_ID="71.0" ;;
-              27) MC_VERSION="${USER_MC_VERSION:-27.0.88}"  MC_REPO="buster" BOARD_ID="67.0" ;;
-              26) MC_VERSION="${USER_MC_VERSION:-26.0.107}" MC_REPO="jessie" BOARD_ID="64.0" ;;
-              25) MC_VERSION="${USER_MC_VERSION:-25.0.114}" MC_REPO="jessie" BOARD_ID="62.0" ;;
-              24) MC_VERSION="${USER_MC_VERSION:-24.0.78}" MC_REPO="jessie" BOARD_ID="58.0" ;;
-              23) MC_VERSION="${USER_MC_VERSION:-23.0.104}" MC_REPO="jessie" BOARD_ID="54.0" ;;
-              22) MC_VERSION="${USER_MC_VERSION:-22.0.102}" MC_REPO="jessie" BOARD_ID="51.0" ;;
-              21) MC_VERSION="${USER_MC_VERSION:-21.0.90}" MC_REPO="jessie" BOARD_ID="44.0" ;;
-              20) MC_VERSION="${USER_MC_VERSION:-20.0.131}" MC_REPO="jessie" BOARD_ID="35.0";;
+            case "$MC_MVERSION_USER" in
+              34) MC_REPO_HARDCODE="bookworm" BOARD_ID="89.0" ;; # fallback to hardcoded version if full version not provided
+              33) MC_VERSION_USER="${MC_VERSION_USER:-33.0.72}" MC_REPO_HARDCODE="bullseye" BOARD_ID="86.0" ;;
+              32) MC_VERSION_USER="${MC_VERSION_USER:-32.0.58}" MC_REPO_HARDCODE="bullseye" BOARD_ID="83.0" ;;
+              31) MC_VERSION_USER="${MC_VERSION_USER:-31.0.83}" MC_REPO_HARDCODE="bullseye" BOARD_ID="80.0" ;;
+              30) MC_VERSION_USER="${MC_VERSION_USER:-30.0.96}" MC_REPO_HARDCODE="buster" BOARD_ID="76.0" ;;
+              29) MC_VERSION_USER="${MC_VERSION_USER:-29.0.91}" MC_REPO_HARDCODE="buster" BOARD_ID="74.0" ;;
+              28) MC_VERSION_USER="${MC_VERSION_USER:-28.0.110}" MC_REPO_HARDCODE="buster" BOARD_ID="71.0" ;;
+              27) MC_VERSION_USER="${MC_VERSION_USER:-27.0.88}"  MC_REPO_HARDCODE="buster" BOARD_ID="67.0" ;;
+              26) MC_VERSION_USER="${MC_VERSION_USER:-26.0.107}" MC_REPO_HARDCODE="jessie" BOARD_ID="64.0" ;;
+              25) MC_VERSION_USER="${MC_VERSION_USER:-25.0.114}" MC_REPO_HARDCODE="jessie" BOARD_ID="62.0" ;;
+              24) MC_VERSION_USER="${MC_VERSION_USER:-24.0.78}" MC_REPO_HARDCODE="jessie" BOARD_ID="58.0" ;;
+              23) MC_VERSION_USER="${MC_VERSION_USER:-23.0.104}" MC_REPO_HARDCODE="jessie" BOARD_ID="54.0" ;;
+              22) MC_VERSION_USER="${MC_VERSION_USER:-22.0.102}" MC_REPO_HARDCODE="jessie" BOARD_ID="51.0" ;;
+              21) MC_VERSION_USER="${MC_VERSION_USER:-21.0.90}" MC_REPO_HARDCODE="jessie" BOARD_ID="44.0" ;;
+              20) MC_VERSION_USER="${MC_VERSION_USER:-20.0.131}" MC_REPO_HARDCODE="jessie" BOARD_ID="35.0";;
               *) err "Bad --mcversion"; print_help; exit 1 ;;
             esac
           else
@@ -181,7 +181,7 @@ parse_input() {
           fi
           ;;
         --arch) shift; USER_ARCH="$1" ;;
-        --mcrepo) shift; USER_MC_REPO="$1" ;;
+        --mcrepo) shift; MC_REPO_USER="$1" ;;
         --restorefile) shift; MJR_FILE="$1"; [[ -f $MJR_FILE ]] || err "Specified license $MJR_FILE missing." ;;
         --betapass) shift; BETAPASS="$1" ;;
         --service-type) shift; SERVICE_TYPE="$1" ;;
@@ -216,7 +216,7 @@ parse_input() {
     REPO_INSTALL_SWITCH=1
   fi
 
-  if [[ -n $BETA_PASS ]] && ((REPO_INSTALL_SWITCH)); then
+  if [[ -n $BETAPASS ]] && ((REPO_INSTALL_SWITCH)); then
     echo "Warning: not all repositories have beta channels"
     echo "If the MC package is unavailable, try using --mcrepo to select another repository"
   fi
@@ -381,30 +381,33 @@ init() {
   BUILD_TARGET="${BUILD_TARGET:-$ID}"
   CREATEREPO_TARGET="${CREATEREPO_TARGET:-$ID}"
 
-  # Repo selection
-  # Match repo to the host on MC31+ unless overriden by user
-  if [[ $ID =~ debian|ubuntu && "${USER_MC_MVERSION:-${MC_VERSION%%.*}}" -ge 31 ]]; then
-    MC_REPO=${UBUNTU_CODENAME:-${VERSION_CODENAME:-$MC_REPO}}
+  # Repo selection (precedence: user > host (MC31+ debian/ubuntu) > hardcoded)
+  if [[ -n $MC_REPO_USER ]]; then
+    MC_REPO="$MC_REPO_USER"
+  elif [[ $ID =~ debian|ubuntu && "${MC_MVERSION_USER:-${MC_VERSION_HARDCODE%%.*}}" -ge 31 ]]; then
+    MC_REPO=${UBUNTU_CODENAME:-${VERSION_CODENAME:-$MC_REPO_HARDCODE}}
+  else
+    MC_REPO="$MC_REPO_HARDCODE"
   fi
-  MC_REPO="${USER_MC_REPO:-$MC_REPO}" # allow user override
 
   echo "MC source -> target: $MC_REPO $MC_ARCH -> $BUILD_TARGET $ARCH"
 
   # Retrieve the latest MC version number if we need it
   if ((BUILD_SWITCH || LOCAL_INSTALL_SWITCH || CREATEREPO_SWITCH)); then
-    get_latest_mc_version
+    get_mc_version
   fi
+
+  echo "Selected MC version $MC_VERSION from the $MC_REPO repo (via $MC_VERSION_SOURCE)"
   
-  # Set MC version variables
-  MC_VERSION="${USER_MC_VERSION:-$MC_VERSION}"
-  MC_RELEASE="${USER_MC_RELEASE:-1}"
-  MC_MVERSION="${USER_MC_MVERSION:-${MC_VERSION%%.*}}"
+  # Set additional MC version variables
+  MC_RELEASE="${MC_RELEASE_USER:-1}"
+  MC_MVERSION="${MC_MVERSION_USER:-${MC_VERSION%%.*}}"
   MC_PKG="mediacenter$MC_MVERSION"
   MC_RPM="$OUTPUT_DIR/RPMS/$ARCH/mediacenter$MC_MVERSION-$MC_VERSION-$MC_RELEASE.$ARCH.rpm"
   MC_ROOT="/usr/lib/jriver/Media Center $MC_MVERSION"
 
   # Generate explicit package name
-  if [[ -n $USER_MC_VERSION ]]; then
+  if [[ -n $MC_VERSION_USER ]]; then
     # Append explicit package version when user provides --mcversion
     case $ID in
       fedora|centos|suse|mandriva) MC_PKG+="-$MC_VERSION" ;;
@@ -414,30 +417,29 @@ init() {
 }
 
 # @description Determines the latest JRiver MC version using several methods
-get_latest_mc_version() {
+get_mc_version() {
   debug "${FUNCNAME[0]}()"
-  local mc_version_source
+  declare -g MC_VERSION MC_VERSION_SOURCE
 
   # User --mcversion
-  if [[ -n $USER_MC_VERSION ]]; then
-    mc_version_source="user input"
+  if [[ -n $MC_VERSION_USER ]]; then
+    MC_VERSION="$MC_VERSION_USER"
+    MC_VERSION_SOURCE="user input"
   # Containerized package manager
   elif create_mc_apt_container &&
-  MC_VERSION=$(sudo buildah run "$CNT" -- apt-cache policy "mediacenter${USER_MC_MVERSION:-${MC_VERSION%%.*}}" | awk '/Candidate:/ {sub(/-.*/, "", $2); print $2}' | sort -V | tail -n1) &&
-  execute sudo buildah rm "$CNT" &&
+  MC_VERSION=$(sudo buildah run "$CNT" -- apt-cache policy "mediacenter${MC_MVERSION_USER:-${MC_VERSION_HARDCODE%%.*}}" | awk '/Candidate:/ {sub(/-.*/, "", $2); print $2}' | sort -V | tail -n1) &&
+  execute sudo buildah rm -f "$CNT" &&
   [[ $MC_VERSION =~ ^[0-9]+\.[0-9]+\.[0-9]+$ ]]; then
-    mc_version_source="containerized package manager"
+    MC_VERSION_SOURCE="containerized package manager"
   # Fallback to webscrape
   elif MC_VERSION=$(download "https://yabb.jriver.com/interact/index.php/board,$BOARD_ID.html" "-" | grep -Eo '[0-9]+\.[0-9]+\.[0-9]+' | head -n 1) &&
   [[ $MC_VERSION =~ ^[0-9]+\.[0-9]+\.[0-9]+$ ]]; then
-    mc_version_source="webscrape"
+    MC_VERSION_SOURCE="webscrape"
   # Fallback to hardcoded value
   else
-    mc_version_source="hardcoded"
-    echo "Warning! Using hardcoded version number"
+    MC_VERSION="$MC_VERSION_HARDCODE"
+    MC_VERSION_SOURCE="hardcoded"
   fi
-    
-  echo "Selected MC version $MC_VERSION from the $MC_REPO repo (via $mc_version_source)"
 }
 
 # @description Installs a package using the system package manager
