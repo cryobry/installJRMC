@@ -702,6 +702,7 @@ install_mc_repo() {
   # Update package lists
   if ! execute "${PKG_UPDATE[@]}"; then
     error=$?
+    debug "Error code: $error"
     err "Package update failed!"
     if [[ $error -eq 100 ]]; then
       if [[ $MC_REPO != "$MC_REPO_HARDCODE" ]] &&
