@@ -175,13 +175,11 @@ parse_input() {
               21) MC_VERSION_USER="${MC_VERSION_USER:-21.0.90}" MC_REPO_HARDCODE="jessie" BOARD_ID="44.0" ;;
               20) MC_VERSION_USER="${MC_VERSION_USER:-20.0.131}" MC_REPO_HARDCODE="jessie" BOARD_ID="35.0" ;;
               *) 
-                # Allow future major beta versions
+                # Warn for future major beta versions
                 if [[ $MC_MVERSION_USER -gt ${MC_VERSION_HARDCODE%%.*} ]]; then
-                  echo "Using future major version, supply --betapass if necessary."
-                  BOARD_ID="13.0"
-                else
-                  err "Bad --mcversion"; print_help; exit 1
+                  echo "Using future major version, supply full version number and --betapass."
                 fi
+                err "Bad --mcversion"; print_help; exit 1
                 ;;
             esac
           else
@@ -441,9 +439,7 @@ set_mc_version() {
 
   # Determine latest version
   # Containerized package manager
-  # Skip for beta versions (default to webscrape)
-  if [[ -z $BETAPASS ]] &&
-  create_mc_apt_container &&
+  if create_mc_apt_container &&
   MC_VERSION=$(sudo buildah run "$CNT" -- apt-cache policy "mediacenter${MC_MVERSION_USER:-${MC_VERSION_HARDCODE%%.*}}" | awk '/Candidate:/ {sub(/-.*/, "", $2); print $2}' | sort -V | tail -n1) &&
   execute sudo buildah rm "$CNT" &&
   [[ $MC_VERSION =~ ^[0-9]+\.[0-9]+\.[0-9]+$ ]]; then
