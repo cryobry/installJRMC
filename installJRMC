@@ -174,7 +174,15 @@ parse_input() {
               22) MC_VERSION_USER="${MC_VERSION_USER:-22.0.102}" MC_REPO_HARDCODE="jessie" BOARD_ID="51.0" ;;
               21) MC_VERSION_USER="${MC_VERSION_USER:-21.0.90}" MC_REPO_HARDCODE="jessie" BOARD_ID="44.0" ;;
               20) MC_VERSION_USER="${MC_VERSION_USER:-20.0.131}" MC_REPO_HARDCODE="jessie" BOARD_ID="35.0" ;;
-              *) err "Bad --mcversion"; print_help; exit 1 ;;
+              *) 
+                # Allow future major beta versions
+                if [[ $MC_MVERSION_USER -gt ${MC_VERSION_HARDCODE%%.*} ]]; then
+                  echo "Using future major version, supply --betapass if necessary."
+                  BOARD_ID="13.0"
+                else
+                  err "Bad --mcversion"; print_help; exit 1
+                fi
+                ;;
             esac
           else
             err "Bad --mcversion"; print_help; exit 1
@@ -290,21 +298,21 @@ init() {
     raspbian) ID="debian" ;;
     *mandriva*) ID="mandriva"
       if ((REPO_INSTALL_SWITCH)); then
-        debug "Automatically using --install=local for Mandriva"
+        debug "Automatically using --install=local for Mandriva."
         REPO_INSTALL_SWITCH=0
         BUILD_SWITCH=1
         LOCAL_INSTALL_SWITCH=1
       fi ;;
     manjaro|arch|cachyos) ID="arch"
       if ((REPO_INSTALL_SWITCH)); then
-        debug "Automatically using --install=local for Arch"
+        debug "Automatically using --install=local for Arch."
         REPO_INSTALL_SWITCH=0
         BUILD_SWITCH=1
         LOCAL_INSTALL_SWITCH=1
       fi ;;
     *suse*) ID="suse"
       if ((REPO_INSTALL_SWITCH)); then
-        debug "Automatically using --install=local for SUSE"
+        debug "Automatically using --install=local for SUSE."
         REPO_INSTALL_SWITCH=0
         BUILD_SWITCH=1
         LOCAL_INSTALL_SWITCH=1
