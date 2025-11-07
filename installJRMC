@@ -176,10 +176,10 @@ parse_input() {
               20) MC_VERSION_USER="${MC_VERSION_USER:-20.0.131}" MC_REPO_HARDCODE="jessie" BOARD_ID="35.0" ;;
               *) 
                 # Warn for future major beta versions
-                if [[ $MC_MVERSION_USER -gt ${MC_VERSION_HARDCODE%%.*} ]]; then
-                  echo "Using future major version, supply full version number and --betapass."
+                if [[ $MC_MVERSION_USER -gt ${MC_VERSION_HARDCODE%%.*} ]] && [[ -z $MC_VERSION_USER ]]; then
+                  echo "For future major versions, supply full version (and --betapass if necessary)."
+                  err "Bad --mcversion"; print_help; exit 1
                 fi
-                err "Bad --mcversion"; print_help; exit 1
                 ;;
             esac
           else
