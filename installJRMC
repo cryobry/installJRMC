@@ -742,7 +742,7 @@ install_mc_repo() {
 acquire_deb() {
   debug "${FUNCNAME[0]}()"
   declare -g MC_DEB MC_SOURCE
-  local fname mnt
+  local fname
 
   [[ -d $OUTPUT_DIR/SOURCES ]] || execute mkdir -p "$OUTPUT_DIR/SOURCES"
 
