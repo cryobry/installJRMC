@@ -768,11 +768,11 @@ acquire_deb() {
 
   # Download the deb file using the containerized package manager
   if ! { create_mc_apt_container "apt-get download --allow-unauthenticated mediacenter$MC_MVERSION &>/dev/null" &&
-  mnt="$(sudo buildah mount "$CNT")" &&
-  execute sudo find "$mnt" -maxdepth 1 -type f -name "*.deb" -exec cp {} "$MC_DEB" \; &&
+  mnt="$(buildah mount "$CNT")" &&
+  execute find "$mnt" -maxdepth 1 -type f -name "*.deb" -exec cp {} "$MC_DEB" \; &&
   [[ -f $MC_DEB ]] &&
-  execute sudo buildah umount "$CNT" &&
-  execute sudo buildah rm "$CNT"; }; then
+  execute buildah umount "$CNT" &&
+  execute buildah rm "$CNT"; }; then
     debug "Failed to download DEB using containerized package manager"
     echo "Using legacy download method"
     # Define the repository search order
