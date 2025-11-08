@@ -2027,7 +2027,7 @@ create_mc_apt_container() {
     apt-get update &>/dev/null' &&
   # If user passes command strings run them in the container
   for cmd in "${cmds[@]}"; do
-    sudo buildah run "$CNT" -- sh -c "$cmd" || { err "$cmd failed"; return 1; }
+    buildah run "$CNT" -- sh -c "$cmd" || { err "$cmd failed"; return 1; }
   done
 }
 add_temp_repo() {
