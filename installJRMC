@@ -441,7 +441,7 @@ set_mc_version() {
   # Containerized package manager
   if create_mc_apt_container &&
   MC_VERSION=$(buildah run "$CNT" -- apt-cache policy "mediacenter${MC_MVERSION_USER:-${MC_VERSION_HARDCODE%%.*}}" | awk '/Candidate:/ {sub(/-.*/, "", $2); print $2}' | sort -V | tail -n1) &&
-  buildah rm "$CNT" &>/dev/null &&
+  execute buildah rm "$CNT" &>/dev/null &&
   [[ $MC_VERSION =~ ^[0-9]+\.[0-9]+\.[0-9]+$ ]]; then
     MC_VERSION_SOURCE="containerized package manager"
   # Fallback to webscrape
@@ -779,7 +779,7 @@ acquire_deb() {
       [[ -n "$deb" ]] && cp -f "$deb" "$MC_DEB"
       buildah umount "$CNT"' && 
     [[ -f $MC_DEB ]] &&
-    buildah rm "$CNT" &>/dev/null;
+    execute buildah rm "$CNT" &>/dev/null;
   }; then
     debug "Failed to download DEB using containerized package manager"
     echo "Using legacy download method"
