@@ -2010,6 +2010,7 @@ create_mc_apt_container() {
   debug "${FUNCNAME[0]}()" "$@"
   declare -g CNT
   local -a cmds=("$@")
+  # shellcheck disable=SC2086
   { command -v buildah &>/dev/null || install_package buildah &>/dev/null; } &&
   CNT=$(sudo buildah from --quiet alpine:edge) &&
   sudo buildah run "$CNT" -- sh -c '
@@ -2019,9 +2020,9 @@ create_mc_apt_container() {
 			Types: deb
 			URIs: https://dist.jriver.com/latest/mediacenter/
 			Signed-By: /usr/share/keyrings/jriver-com-archive-keyring.gpg
-			Suites: '"$MC_REPO"'
+			Suites: '$MC_REPO'
 			Components: main
-			Architectures: '"$MC_ARCH"'
+			Architectures: '$MC_ARCH'
 		EOF
     apt-get update &>/dev/null' &&
   # If user passes command strings run them in the container
