@@ -347,31 +347,31 @@ init() {
     fedora|centos|mandriva)
       local rpm_mgr
       rpm_mgr=$(command -v dnf &>/dev/null && echo "dnf" || echo "yum")
-      PKG_INSTALL=(sudo "$rpm_mgr" install -y)
-      PKG_REMOVE=(sudo "$rpm_mgr" remove -y)
-      PKG_UPDATE=(sudo "$rpm_mgr" makecache)
+      PKG_INSTALL=(sudo "$rpm_mgr" install --assumeyes)
+      PKG_REMOVE=(sudo "$rpm_mgr" remove --assumeyes)
+      PKG_UPDATE=(sudo "$rpm_mgr" makecache --assumeyes)
       PKG_QUERY=(rpm -q)
       PKG_INSTALL_LOCAL() { install_mc_rpm; }
       ;;
     debian|ubuntu)
-      PKG_INSTALL=(sudo apt-get -f install --install-recommends -y -q0)
-      PKG_REMOVE=(sudo apt-get remove --auto-remove -y -q0)
-      PKG_UPDATE=(sudo apt-get update -y -q0)
+      PKG_INSTALL=(sudo apt-get install --fix-broken --install-recommends --assume-yes)
+      PKG_REMOVE=(sudo apt-get remove --auto-remove --assume-yes)
+      PKG_UPDATE=(sudo apt-get update --assume-yes)
       PKG_QUERY=(dpkg -s)
       PKG_INSTALL_LOCAL() { install_mc_deb "$@"; }
       ;;
     suse)
-      PKG_INSTALL=(sudo zypper --gpg-auto-import-keys --non-interactive --quiet install --force --force-resolution --replacefiles --no-confirm)
-      PKG_REMOVE=(sudo zypper --non-interactive --quiet remove --clean-deps)
-      PKG_UPDATE=(sudo zypper --non-interactive --quiet refresh jriver)
-      PKG_QUERY=(rpm -q)
+      PKG_INSTALL=(sudo zypper --gpg-auto-import-keys --non-interactive install --force --force-resolution --replacefiles --no-confirm)
+      PKG_REMOVE=(sudo zypper --non-interactive remove --clean-deps)
+      PKG_UPDATE=(sudo zypper --non-interactive refresh jriver)
+      PKG_QUERY=(rpm --query)
       PKG_INSTALL_LOCAL() { install_mc_rpm; }
       ;;
     arch)
-      PKG_INSTALL=(sudo pacman -Sy --noconfirm)
-      PKG_REMOVE=(sudo pacman -Rs --noconfirm)
-      PKG_UPDATE=(sudo pacman -Syy)
-      PKG_QUERY=(sudo pacman -Qs)
+      PKG_INSTALL=(sudo pacman --sync --refresh --noconfirm)
+      PKG_REMOVE=(sudo pacman --remove --recursive --noconfirm)
+      PKG_UPDATE=(sudo pacman --sync --refresh --refresh)
+      PKG_QUERY=(sudo pacman --query --search)
       PKG_INSTALL_LOCAL() { install_mc_arch; }
       ;;
     unknown)
@@ -440,7 +440,6 @@ set_mc_version() {
   # Determine latest version
   # Containerized package manager
   if create_mc_apt_container &&
-  debug "MC_MVERSION_USER=$MC_MVERSION_USER MC_VERSION_HARDCODE=$MC_VERSION_HARDCODE" &&
   MC_VERSION=$(buildah run "$CNT" -- apt-cache policy "mediacenter${MC_MVERSION_USER:-${MC_VERSION_HARDCODE%%.*}}" | awk '/Candidate:/ {sub(/-.*/, "", $2); print $2}' | sort -V | tail -n1) &&
   execute buildah rm "$CNT" &&
   [[ $MC_VERSION =~ ^[0-9]+\.[0-9]+\.[0-9]+$ ]]; then
@@ -537,6 +536,8 @@ install_package() {
     suse)
       ((no_gpg_check)) && install_flags+=(--allow-unsigned-rpm) ;;
   esac
+
+  ((silent)) && install_flags+=(--quiet)
 
   # Install packages
   if [[ ${#pkg_array[@]} -gt 0 ]]; then
@@ -1990,14 +1991,14 @@ download() {
   local url="$1"
   local output="${2:-}"
   local -a cmd
-  if command -v curl &>/dev/null || install_package --silent curl; then
+  if command -v curl &>/dev/null || install_package curl; then
     cmd=(curl --silent --fail --location)
     if [[ -n "$output" ]]; then
       cmd+=(--output "$output")
     else
       cmd+=(--remote-name)
     fi
-  elif command -v wget &>/dev/null || install_package --silent wget; then
+  elif command -v wget &>/dev/null || install_package wget; then
     cmd=(wget --quiet)
     [[ -n "$output" ]] && cmd+=("--output-document=$output")
   else
@@ -2012,11 +2013,11 @@ create_mc_apt_container() {
   declare -g CNT
   local -a cmds=("$@")
   # shellcheck disable=SC2016
-  { command -v buildah &>/dev/null || install_package buildah &>/dev/null; } &&
+  { command -v buildah &>/dev/null || install_package buildah; } &&
   CNT=$(buildah from --quiet alpine:edge) &&
   buildah run --env MC_REPO="$MC_REPO" --env MC_ARCH="$MC_ARCH" "$CNT" -- sh -c '
-    apk add --no-cache apt curl gnupg
-    curl -fsSL https://dist.jriver.com/mediacenter@jriver.com.gpg.key | gpg --dearmor -o /usr/share/keyrings/jriver-com-archive-keyring.gpg
+    apk add --quiet --no-progress --no-cache apt curl gnupg
+    curl -fsSL https://dist.jriver.com/mediacenter@jriver.com.gpg.key | gpg --quiet --dearmor -o /usr/share/keyrings/jriver-com-archive-keyring.gpg
     cat <<-EOF > /etc/apt/sources.list.d/jriver.sources
 			Types: deb
 			URIs: https://dist.jriver.com/latest/mediacenter/
@@ -2025,7 +2026,7 @@ create_mc_apt_container() {
 			Components: main
 			Architectures: $MC_ARCH
 		EOF
-    apt-get update' &&
+    apt-get update -qq' &&
   # If user passes command strings run them in the container
   for cmd in "${cmds[@]}"; do
     buildah run "$CNT" -- sh -c "$cmd" || { err "$cmd failed"; return 1; }
