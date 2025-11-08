@@ -770,15 +770,15 @@ acquire_deb() {
 
   # Download the deb file using the containerized package manager
   # shellcheck disable=SC2016
-  if ! { create_mc_apt_container "apt-get download --allow-unauthenticated mediacenter$MC_MVERSION -qq" &&
+  if ! { 
+    create_mc_apt_container "cd /tmp && apt-get download --allow-unauthenticated mediacenter$MC_MVERSION -qq" &&
     env CNT="$CNT" MC_DEB="$MC_DEB" buildah unshare -- bash -eu -o pipefail -c '
       mnt="$(buildah mount "$CNT")"
-      deb="$(find "$mnt" -maxdepth 1 -type f -name "*.deb" | head -n1)"
+      deb="$(find "$mnt/tmp" -maxdepth 1 -type f -name "*.deb" | head -n1)"
       [[ -n "$deb" ]] && cp -f "$deb" "$MC_DEB"
-      buildah umount "$CNT"
-    ' &&
-  [[ -f $MC_DEB ]] &&
-  buildah rm "$CNT";
+      buildah umount "$CNT"' && 
+    [[ -f $MC_DEB ]] &&
+    execute buildah rm "$CNT";
   }; then
     debug "Failed to download DEB using containerized package manager"
     echo "Using legacy download method"
