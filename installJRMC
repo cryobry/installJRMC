@@ -1005,6 +1005,8 @@ build_rpm() {
 		%global _binary_filedigest_algorithm 8
 		%global _source_filedigest_algorithm 8
 		%global _signature_digest_algorithm 8
+		%global _source_header_digest_algorithm 8
+		%global _binary_header_digest_algorithm 8
 
 		AutoReq:  0
 
