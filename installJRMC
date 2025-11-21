@@ -1005,6 +1005,8 @@ build_rpm() {
 		%define _binary_filedigest_algorithm sha256
 		%define _source_filedigest_algorithm sha256
 		%define _gpg_digest_algo sha256
+		%define _digest_algorithm sha256
+		%define _pkgverify_level digest
 
 		AutoReq:  0
 
