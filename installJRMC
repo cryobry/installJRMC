@@ -1044,6 +1044,8 @@ build_rpm() {
       --define="_libdir /usr/lib"
       --define="_file_digest_algorithm 8"
       --define="_binary_filedigest_algorithm 8"
+      --define="_gpg_digest_algo sha256"
+      --define="_binary_filedigest_algorithm 8"
       --target="$ARCH"
       -bb
       "$spec_file"
