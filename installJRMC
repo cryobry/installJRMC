@@ -21,7 +21,7 @@
 # shellcheck disable=SC2329
 shopt -s extglob
 
-declare -g SCRIPT_VERSION="1.35.2"
+declare -g SCRIPT_VERSION="1.35.3-dev"
 declare -g MC_VERSION_HARDCODE="35.0.24" # do find all replace
 declare -g MC_REPO_HARDCODE="bookworm" # should match the MC_VERSION_HARDCODE
 declare -g BOARD_ID="92.0" # MC35 board ID for legacy latest version detection
@@ -1233,10 +1233,10 @@ run_createrepo() {
   fi
 
   # Run createrepo
-  local -a cr_opts=(-q "$CREATEREPO_WEBROOT")
+  local -a cr_opts=(--checksum=sha256)
   # [[ -d "$CREATEREPO_WEBROOT/repodata" ]] && cr_opts+=(--update) # TODO temporarily disabled for legacy createrepo
-  if ! execute sudo -u "$CREATEREPO_USER" createrepo "${cr_opts[@]}"; then
-    if ! (execute sudo createrepo "${cr_opts[@]}" && execute sudo chown -R "$CREATEREPO_USER:$CREATEREPO_USER" "$CREATEREPO_WEBROOT"); then
+  if ! execute sudo -u "$CREATEREPO_USER" createrepo "${cr_opts[@]}" "$CREATEREPO_WEBROOT"; then
+    if ! (execute sudo createrepo "${cr_opts[@]}" "$CREATEREPO_WEBROOT" && execute sudo chown -R "$CREATEREPO_USER:$CREATEREPO_USER" "$CREATEREPO_WEBROOT"); then
       err "createrepo failed"
       return 1
     fi
