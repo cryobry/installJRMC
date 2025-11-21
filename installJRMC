@@ -21,10 +21,10 @@
 # shellcheck disable=SC2329
 shopt -s extglob
 
-declare -g SCRIPT_VERSION="1.34.12-dev"
-declare -g MC_VERSION_HARDCODE="34.0.71" # do find all replace
+declare -g SCRIPT_VERSION="1.35.1-dev"
+declare -g MC_VERSION_HARDCODE="35.0.24" # do find all replace
 declare -g MC_REPO_HARDCODE="bookworm" # should match the MC_VERSION_HARDCODE
-declare -g BOARD_ID="89.0" # MC34 board ID for automatic version detection
+declare -g BOARD_ID="92.0" # MC35 board ID for legacy latest version detection
 declare -gi SELF_UPDATE_SWITCH=1 # 0 to disable installJRMC self-update
 declare -g SCRIPT_URL="https://git.bryanroessler.com/bryan/installJRMC/raw/master/installJRMC" # self-update URL
 # declare -g SCRIPT_URL="https://raw.githubusercontent.com/cryobry/installJRMC/refs/heads/master/installJRMC" # backup URL
@@ -159,7 +159,8 @@ parse_input() {
 
             # Set major version defaults
             case "$MC_MVERSION_USER" in
-              34) MC_REPO_HARDCODE="bookworm" BOARD_ID="89.0" ;; # fallback to hardcoded version if full version not provided
+              35) MC_REPO_HARDCODE="bookworm" BOARD_ID="92.0" ;; # fallback to hardcoded version if full version not provided
+              34) MC_VERSION_USER="${MC_VERSION_USER:-35.0.24}" MC_REPO_HARDCODE="bookworm" BOARD_ID="89.0" ;;
               33) MC_VERSION_USER="${MC_VERSION_USER:-33.0.72}" MC_REPO_HARDCODE="bullseye" BOARD_ID="86.0" ;;
               32) MC_VERSION_USER="${MC_VERSION_USER:-32.0.58}" MC_REPO_HARDCODE="bullseye" BOARD_ID="83.0" ;;
               31) MC_VERSION_USER="${MC_VERSION_USER:-31.0.83}" MC_REPO_HARDCODE="bullseye" BOARD_ID="80.0" ;;
