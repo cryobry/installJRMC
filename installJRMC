@@ -1042,6 +1042,8 @@ build_rpm() {
     rpmbuild 
       --define="_topdir $OUTPUT_DIR" 
       --define="_libdir /usr/lib"
+      --define="_file_digest_algorithm 8"
+      --define="_binary_filedigest_algorithm 8"
       --target="$ARCH"
       -bb
       "$spec_file"
