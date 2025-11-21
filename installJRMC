@@ -1000,6 +1000,12 @@ build_rpm() {
 		Source0: $MC_SOURCE
 		%define _rpmfilename %%{ARCH}/%%{NAME}-%%{version}-%%{release}.%%{ARCH}.rpm
 
+		# RPM 6.0 compatibility
+		%define _file_digest_algorithm sha256
+		%define _binary_filedigest_algorithm sha256
+		%define _source_filedigest_algorithm sha256
+		%define _gpg_digest_algo sha256
+
 		AutoReq:  0
 
 		$requires_str
@@ -1042,10 +1048,6 @@ build_rpm() {
     rpmbuild 
       --define="_topdir $OUTPUT_DIR" 
       --define="_libdir /usr/lib"
-      --define="_file_digest_algorithm 8"
-      --define="_binary_filedigest_algorithm 8"
-      --define="_gpg_digest_algo sha256"
-      --define="_binary_filedigest_algorithm 8"
       --target="$ARCH"
       -bb
       "$spec_file"
