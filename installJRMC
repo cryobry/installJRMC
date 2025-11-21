@@ -1001,13 +1001,10 @@ build_rpm() {
 		%define _rpmfilename %%{ARCH}/%%{NAME}-%%{version}-%%{release}.%%{ARCH}.rpm
 
 		# RPM 6.0 compatibility
-		%define _file_digest_algorithm sha256
-		%define _binary_filedigest_algorithm sha256
-		%define _source_filedigest_algorithm sha256
-		%define _gpg_digest_algo sha256
-		%define _digest_algorithm sha256
-		%define _pkgverify_level digest
-		%define _pkgverify_flags 0x0
+		%global _file_digest_algorithm 8
+		%global _binary_filedigest_algorithm 8
+		%global _source_filedigest_algorithm 8
+		%global _signature_digest_algorithm 8
 
 		AutoReq:  0
 
@@ -1018,7 +1015,7 @@ build_rpm() {
 
 		Provides: mediacenter$MC_MVERSION
 
-		License: Copyright 1998-$(date +%Y), JRiver, Inc.  All rights reserved.  Protected by U.S. patents #7076468 and #7062468
+		License: LicenseRef-Proprietary
 		URL: https://www.jriver.com/
 
 		%define __provides_exclude_from ^%{_libdir}/jriver/.*/.*\\.so.*$
