@@ -1007,6 +1007,7 @@ build_rpm() {
 		%define _gpg_digest_algo sha256
 		%define _digest_algorithm sha256
 		%define _pkgverify_level digest
+		%define _pkgverify_flags 0x0
 
 		AutoReq:  0
 
