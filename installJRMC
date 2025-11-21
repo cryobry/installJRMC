@@ -1007,6 +1007,8 @@ build_rpm() {
 		%global _signature_digest_algorithm 8
 		%global _source_header_digest_algorithm 8
 		%global _binary_header_digest_algorithm 8
+		%global _use_legacy_md5 0
+		%global _md5_digest_algorithm 0
 
 		AutoReq:  0
 
