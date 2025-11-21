@@ -1017,7 +1017,6 @@ build_rpm() {
 		%description
 		Media Center is more than a world class player.
 
-		%global __os_install_post %{nil}
 		%prep
 
 		%build
