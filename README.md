@@ -13,7 +13,7 @@ Specifying `--build`, `--createrepo`, `--service`, or `--uninstall` disables the
 
 ### tl;dr
 
-`curl https://git.bryanroessler.com/bryan/installJRMC/raw/master/installJRMC|bash`
+`curl https://git.bryanroessler.com/bryan/installJRMC/raw/branch/master/installJRMC|bash`
 
 ## Options
 
