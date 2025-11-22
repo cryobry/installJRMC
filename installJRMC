@@ -21,12 +21,12 @@
 # shellcheck disable=SC2329
 shopt -s extglob
 
-declare -g SCRIPT_VERSION="1.35.3"
+declare -g SCRIPT_VERSION="1.35.4-dev"
 declare -g MC_VERSION_HARDCODE="35.0.24" # do find all replace
 declare -g MC_REPO_HARDCODE="bookworm" # should match the MC_VERSION_HARDCODE
 declare -g BOARD_ID="92.0" # MC35 board ID for legacy latest version detection
 declare -gi SELF_UPDATE_SWITCH=1 # 0 to disable installJRMC self-update
-declare -g SCRIPT_URL="https://git.bryanroessler.com/bryan/installJRMC/raw/master/installJRMC" # self-update URL
+declare -g SCRIPT_URL="https://git.bryanroessler.com/bryan/installJRMC/raw/branch/master/installJRMC" # self-update URL
 # declare -g SCRIPT_URL="https://raw.githubusercontent.com/cryobry/installJRMC/refs/heads/master/installJRMC" # backup URL
 declare -gi DEBUG=${DEBUG:-0} # set default debug and allow DEBUG env override (default: disabled)
 
