@@ -992,35 +992,25 @@ build_rpm() {
 
   # Create spec file
   cat <<-EOF > "$spec_file"
-		Name:  mediacenter$MC_MVERSION
+		Name: mediacenter$MC_MVERSION
 		Version: $MC_VERSION
 		Release: $MC_RELEASE
 		Summary: JRiver Media Center
-		Group:   Applications/Media
+		Group: Applications/Media
+		License: LicenseRef-JRiver-Proprietary
+		URL: https://www.jriver.com/
 		Source0: $MC_SOURCE
-		%define _rpmfilename %%{ARCH}/%%{NAME}-%%{version}-%%{release}.%%{ARCH}.rpm
 
-		# RPM 6.0 compatibility
-		%global _file_digest_algorithm 8
-		%global _binary_filedigest_algorithm 8
-		%global _source_filedigest_algorithm 8
-		%global _signature_digest_algorithm 8
-		%global _source_header_digest_algorithm 8
-		%global _binary_header_digest_algorithm 8
-		%global _use_legacy_md5 0
-		%global _md5_digest_algorithm 0
+		BuildArch: $ARCH
 
-		AutoReq:  0
+		%global _rpmfilename %%{ARCH}/%%{NAME}-%%{version}-%%{release}.%%{ARCH}.rpm
+
+		AutoReqProv: no
 
 		$requires_str
 		$recommends_str
 
-		Conflicts: MediaCenter
-
 		Provides: mediacenter$MC_MVERSION
-
-		License: LicenseRef-Proprietary
-		URL: https://www.jriver.com/
 
 		%define __provides_exclude_from ^%{_libdir}/jriver/.*/.*\\.so.*$
 
@@ -1033,9 +1023,6 @@ build_rpm() {
 
 		%install
 		dpkg -x %{S:0} %{buildroot}
-
-		%post -p /sbin/ldconfig
-		%postun -p /sbin/ldconfig
 
 		%files
 		%{_bindir}/mediacenter$MC_MVERSION
@@ -1242,7 +1229,7 @@ run_createrepo() {
   fi
 
   # Run createrepo
-  local -a cr_opts=(--checksum=sha256)
+  local -a cr_opts=(--update)
   # [[ -d "$CREATEREPO_WEBROOT/repodata" ]] && cr_opts+=(--update) # TODO temporarily disabled for legacy createrepo
   if ! execute sudo -u "$CREATEREPO_USER" createrepo "${cr_opts[@]}" "$CREATEREPO_WEBROOT"; then
     if ! (execute sudo createrepo "${cr_opts[@]}" "$CREATEREPO_WEBROOT" && execute sudo chown -R "$CREATEREPO_USER:$CREATEREPO_USER" "$CREATEREPO_WEBROOT"); then
