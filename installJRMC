@@ -160,7 +160,7 @@ parse_input() {
             # Set major version defaults
             case "$MC_MVERSION_USER" in
               35) MC_REPO_HARDCODE="bookworm" BOARD_ID="92.0" ;; # fallback to hardcoded version if full version not provided
-              34) MC_VERSION_USER="${MC_VERSION_USER:-34.0.71}" MC_REPO_HARDCODE="bookworm" BOARD_ID="89.0" ;;
+              34) MC_VERSION_USER="${MC_VERSION_USER:-34.0.75}" MC_REPO_HARDCODE="bookworm" BOARD_ID="89.0" ;;
               33) MC_VERSION_USER="${MC_VERSION_USER:-33.0.72}" MC_REPO_HARDCODE="bullseye" BOARD_ID="86.0" ;;
               32) MC_VERSION_USER="${MC_VERSION_USER:-32.0.58}" MC_REPO_HARDCODE="bullseye" BOARD_ID="83.0" ;;
               31) MC_VERSION_USER="${MC_VERSION_USER:-31.0.83}" MC_REPO_HARDCODE="bullseye" BOARD_ID="80.0" ;;
