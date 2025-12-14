@@ -21,7 +21,7 @@
 # shellcheck disable=SC2329
 shopt -s extglob
 
-declare -g SCRIPT_VERSION="1.35.5"
+declare -g SCRIPT_VERSION="1.35.6-dev"
 declare -g MC_VERSION_HARDCODE="35.0.24" # do find all replace
 declare -g MC_REPO_HARDCODE="bookworm" # should match the MC_VERSION_HARDCODE
 declare -g BOARD_ID="92.0" # MC35 board ID for legacy latest version detection
@@ -631,9 +631,10 @@ install_mc_repo() {
       repo_file="/etc/yum.repos.d/jriver.repo"
       read -r -d '' repo_text <<-EOF
 				[jriver]
-				name=JRiver Media Center by BryanC
-				baseurl=https://repos.bryanroessler.com/jriver
-				gpgcheck=0
+				baseurl = https://repos.bryanroessler.com/jriver
+				enabled = 1
+				gpgcheck = 0
+				name = JRiver Media Center by BryanC
 			EOF
       ;;
     debian|ubuntu)
