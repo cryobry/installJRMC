@@ -1005,6 +1005,11 @@ build_rpm() {
 		BuildArch: $ARCH
 
 		%global _rpmfilename %%{ARCH}/%%{NAME}-%%{version}-%%{release}.%%{ARCH}.rpm
+		%undefine _source_date_epoch_from_changelog
+		%define __brp_strip /bin/true
+		%define __brp_strip_comment_note /bin/true
+		%define __brp_strip_static_archive /bin/true
+		%define __brp_strip_lto /bin/true
 
 		AutoReqProv: no
 
