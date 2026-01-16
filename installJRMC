@@ -1996,11 +1996,18 @@ create_mc_apt_container() {
   declare -g CNT
   local -a cmds=("$@")
   local channel="latest"
-  [[ -n $BETAPASS ]] && channel="beta"
+  local repo="$MC_REPO"
+  
+  if [[ -n $BETAPASS ]]; then
+    debug "Using beta channel for apt container"
+    channel="beta"
+    repo="$MC_REPO_HARDCODE"
+  fi
+
   # shellcheck disable=SC2016
   { command -v buildah &>/dev/null || install_package buildah; } &&
   CNT=$(buildah from --quiet alpine:edge) &&
-  buildah run --env MC_REPO="$MC_REPO" --env MC_ARCH="$MC_ARCH" --env CHANNEL="$channel" "$CNT" -- sh -c '
+  buildah run --env MC_REPO="$repo" --env MC_ARCH="$MC_ARCH" --env CHANNEL="$channel" "$CNT" -- sh -c '
     apk add --quiet --no-progress --no-cache apt curl gnupg
     curl -fsSL https://dist.jriver.com/mediacenter@jriver.com.gpg.key | gpg --quiet --dearmor -o /usr/share/keyrings/jriver-com-archive-keyring.gpg
     cat <<-EOF > /etc/apt/sources.list.d/jriver.sources
