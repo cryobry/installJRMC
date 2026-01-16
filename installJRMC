@@ -1995,14 +1995,15 @@ create_mc_apt_container() {
   debug "${FUNCNAME[0]}()" "$@"
   declare -g CNT
   local -a cmds=("$@")
-  local channel="latest"
   local repo="$MC_REPO"
+  local channel="latest"
   
   if [[ -n $BETAPASS ]]; then
-    debug "Using beta channel for apt container"
-    channel="beta"
     repo="$MC_REPO_HARDCODE"
+    channel="beta"
   fi
+
+  debug "Using MC $repo repo $channel channel for apt container"
 
   # shellcheck disable=SC2016
   { command -v buildah &>/dev/null || install_package buildah; } &&
