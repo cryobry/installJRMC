@@ -2,7 +2,7 @@
 # @file installJRMC
 # @brief Installs JRiver Media Center and associated services
 # @description See installJRMC --help or print_help() below for usage
-# Copyright (c) 2021-2025 Bryan C. Roessler
+# Copyright (c) 2021-2026 Bryan C. Roessler
 # This software is released under the Apache License.
 # https://www.apache.org/licenses/LICENSE-2.0
 #
@@ -352,35 +352,30 @@ init() {
       PKG_REMOVE=(sudo "$rpm_mgr" remove --assumeyes)
       PKG_UPDATE=(sudo "$rpm_mgr" makecache --assumeyes)
       PKG_QUERY=(rpm -q)
-      PKG_INSTALL_LOCAL() { install_mc_rpm; }
       ;;
     debian|ubuntu)
       PKG_INSTALL=(sudo apt-get install --fix-broken --install-recommends --assume-yes)
       PKG_REMOVE=(sudo apt-get remove --auto-remove --assume-yes)
       PKG_UPDATE=(sudo apt-get update --assume-yes)
       PKG_QUERY=(dpkg -s)
-      PKG_INSTALL_LOCAL() { install_mc_deb "$@"; }
       ;;
     suse)
       PKG_INSTALL=(sudo zypper --gpg-auto-import-keys --non-interactive install --force --force-resolution --replacefiles --no-confirm)
       PKG_REMOVE=(sudo zypper --non-interactive remove --clean-deps)
       PKG_UPDATE=(sudo zypper --non-interactive refresh jriver)
       PKG_QUERY=(rpm --query)
-      PKG_INSTALL_LOCAL() { install_mc_rpm; }
       ;;
     arch)
       PKG_INSTALL=(sudo pacman --sync --refresh --noconfirm)
       PKG_REMOVE=(sudo pacman --remove --recursive --noconfirm)
       PKG_UPDATE=(sudo pacman --sync --refresh --refresh)
       PKG_QUERY=(sudo pacman --query --search)
-      PKG_INSTALL_LOCAL() { install_mc_arch; }
       ;;
     unknown)
       PKG_INSTALL=(:)
       PKG_REMOVE=(:)
       PKG_UPDATE=(:)
       PKG_QUERY=(:)
-      PKG_INSTALL_LOCAL() { install_mc_generic; }
       ;;
   esac
 
@@ -546,7 +541,7 @@ install_package() {
   return 0
 }
 
-# @description install host-specific external repos
+# @description Installs host-specific external repos
 install_external_repos() {
   debug "${FUNCNAME[0]}()"
 
@@ -573,8 +568,6 @@ install_external_repos() {
         install_package --no-install-check \
           "https://download1.rpmfusion.org/free/el/rpmfusion-free-release-${VERSION_ID%%.*}.noarch.rpm"
       fi
-      # Install mesa-va-drivers-freeworld separately from the RPM using dnf swap
-      # install_mesa_freeworld # no longer provided by RPMFusion for EL9, etc.
       ;;
     fedora)
       if ! "${PKG_QUERY[@]}" rpmfusion-free-release &>/dev/null; then
@@ -599,141 +592,68 @@ install_external_repos() {
   esac
 }
 
+# @description Installs host-specific temporary legacy repo for missing dependencies
+install_legacy_repo() {
+  debug "${FUNCNAME[0]}()"
+  local major_version="${VERSION_ID%%.*}"
+  local minor_version="${VERSION_ID##*.}"; minor_version="${minor_version#0}" # strip leading zero
+  local repo_name repo_uri repo_suite repo_key temp_repo_file
+
+  case $ID in
+    ubuntu)
+      if [[ $major_version -gt 24 || ( $major_version -eq 24 && minor_version -ge 4 ) ]]; then
+        echo "Temporarily adding jammy repository for libwebkit2gtk-4.0-37, etc."
+        repo_name="ubuntu-jammy-temp"
+        repo_uri="https://archive.ubuntu.com/ubuntu"
+        repo_suite="jammy"
+        repo_key="/usr/share/keyrings/ubuntu-archive-keyring.gpg"
+      fi
+      ;;
+    debian)
+      if [[ $major_version -ge 13 ]]; then
+        echo "Temporarily adding bookworm repository for libwebkit2gtk-4.0-37, etc."
+        repo_name="debian-bookworm-temp"
+        repo_uri="https://deb.debian.org/debian"
+        repo_suite="bookworm"
+        repo_key="/usr/share/keyrings/debian-archive-keyring.gpg"
+      fi
+      ;;
+  esac
+
+  if [[ -n $repo_name ]]; then
+    echo "Adding temporary repository: $repo_name"
+    temp_repo_file="/etc/apt/sources.list.d/$repo_name.sources"
+    sudo tee "$temp_repo_file" &>/dev/null <<-EOF
+			Types: deb
+			URIs: $repo_uri
+			Suites: $repo_suite
+			Components: main
+			Architectures: $MC_ARCH
+			Signed-By: $repo_key
+		EOF
+    # Set a trap to always cleanup legacy repo
+    # shellcheck disable=SC2064
+    trap "sudo rm -f $temp_repo_file" EXIT ERR INT
+  fi
+}
+
 # @description Installs mesa-va-drivers-freeworld on Fedora
 install_mesa_freeworld() {
   debug "${FUNCNAME[0]}()"
   local pkg freeworld_pkg
-  case $ID in
-    fedora)
-      for pkg in mesa-va-drivers mesa-vdpau-drivers mesa-vulkan-drivers; do
-        freeworld_pkg="${pkg}-freeworld"
-        if ! "${PKG_QUERY[@]}" "$freeworld_pkg" &>/dev/null; then
-          if "${PKG_QUERY[@]}" "$pkg" &>/dev/null; then
-            if ! execute sudo dnf swap -y "$pkg" "$freeworld_pkg"; then
-              err "Package swap failed for $pkg!"
-            fi
-          else
-            "${PKG_INSTALL[@]}" "$freeworld_pkg"
-          fi
+  for pkg in mesa-va-drivers mesa-vdpau-drivers mesa-vulkan-drivers; do
+    freeworld_pkg="${pkg}-freeworld"
+    if ! "${PKG_QUERY[@]}" "$freeworld_pkg" &>/dev/null; then
+      if "${PKG_QUERY[@]}" "$pkg" &>/dev/null; then
+        if ! execute sudo dnf swap -y "$pkg" "$freeworld_pkg"; then
+          err "Package swap failed for $pkg!"
         fi
-      done
-      ;;
-  esac
-}
-
-# @description Installs JRiver Media Center from a remote repository
-install_mc_repo() {
-  debug "${FUNCNAME[0]}()"
-  local repo_file repo_text channel
-
-  case $ID in
-    fedora|centos)
-      repo_file="/etc/yum.repos.d/jriver.repo"
-      read -r -d '' repo_text <<-EOF
-				[jriver]
-				baseurl = https://repos.bryanroessler.com/jriver
-				enabled = 1
-				gpgcheck = 0
-				name = JRiver Media Center by BryanC
-			EOF
-      ;;
-    debian|ubuntu)
-      [[ -n $BETAPASS ]] && channel="beta" || channel="latest"
-      local major_version="${VERSION_ID%%.*}"
-      local keyfile="/usr/share/keyrings/jriver-com-archive-keyring.gpg"
-      if [[ ($ID == "ubuntu" && $major_version -ge 24) ||
-      ($ID == "debian" && (-z $major_version || $major_version -ge 12)) ]]; then
-        if [[ $channel == "beta" ]]; then
-          repo_file="/etc/apt/sources.list.d/jriver-beta.sources"
-        else
-          repo_file="/etc/apt/sources.list.d/jriver.sources"
-        fi
-
-        # Remove deprecated repo files
-        old_repo_files=(
-          "/etc/apt/sources.list.d/jriver.list"
-          "/etc/apt/sources.list.d/jriver-beta.list"
-          "/etc/apt/sources.list.d/jriver_beta.list"
-        )
-
-        for f in "${old_repo_files[@]}"; do
-          [[ -f $f ]] && execute sudo rm -f "$f"
-        done
-
-        read -r -d '' repo_text <<-EOF
-					Types: deb
-					URIs: https://dist.jriver.com/$channel/mediacenter/
-					Signed-By: $keyfile
-					Suites: $MC_REPO
-					Components: main
-					Architectures: amd64 armhf arm64
-				EOF
       else
-        if [[ $channel == "beta" ]]; then
-          execute sudo rm -f "/etc/apt/sources.list.d/jriver_beta.list"
-          repo_file="/etc/apt/sources.list.d/jriver-beta.list"
-        else
-          repo_file="/etc/apt/sources.list.d/jriver.list"
-        fi
-        repo_text="deb [signed-by=$keyfile arch=amd64,armhf,arm64] https://dist.jriver.com/$channel/mediacenter/ $MC_REPO main"
+        "${PKG_INSTALL[@]}" "$freeworld_pkg"
       fi
-      echo "Installing JRiver Media Center GPG key"
-      download "https://dist.jriver.com/mediacenter@jriver.com.gpg.key" "-" | 
-      gpg --dearmor | sudo tee "$keyfile" &>/dev/null
-      ;;
-    *)
-      err "An MC repository for $ID is not yet available"
-      err "Use --install=local to install MC on $ID"
-      return 1
-      ;;
-  esac
-
-  # Remove existing repository file if it exists
-  [[ -f $repo_file ]] && execute sudo rm -f "$repo_file" 
-
-  echo "Adding MC repository file: $repo_file"
-  debug "$repo_text"
-  sudo tee "$repo_file" &>/dev/null <<< "$repo_text"
-
-  # Add older repository for libwebkit2gtk-4.0-37, etc, on newer Debian/Ubuntu
-  if add_temp_repo; then
-    debug "Removing temporary repository: $TEMP_REPO_FILE"
-    trap 'execute sudo rm -f "$TEMP_REPO_FILE"' EXIT
-    echo "Removed temporary repository"
-  else
-    err "Failed to add temporary repository"
-    return 1
-  fi
-
-  # Update package lists
-  if ! execute "${PKG_UPDATE[@]}"; then
-    err "Package update failed!"
-    if [[ $MC_REPO != "$MC_REPO_HARDCODE" ]] &&
-    ask_ok "Re-run installJRMC with --mcrepo=$MC_REPO_HARDCODE?"; then
-      exec "$SCRIPT_PATH" "$@" "--no-update" "--mcrepo=$MC_REPO_HARDCODE"
     fi
-  return 1
-  fi
+  done
 
-  echo "Installing $MC_PKG package"
-  if ! install_package \
-    --no-install-check \
-    --allow-downgrades \
-    --no-gpg-check \
-    --reinstall \
-    "$MC_PKG"; then
-    err "Package install failed!"
-    return 1
-  fi
-
-  # Unset the trap and remove temporary legacy repository
-  trap - EXIT
-  if [[ -f $TEMP_REPO_FILE ]]; then
-    debug "Removing temporary repository: $TEMP_REPO_FILE"
-    execute sudo rm -f "$TEMP_REPO_FILE"
-    echo "Removed temporary repository"
-  fi
-  return 0
 }
 
 # @description Acquires the source DEB package from JRiver
@@ -1113,14 +1033,7 @@ install_mc_deb() {
   fi
 
   # Add older repository for libwebkit2gtk-4.0-37, etc, on newer Debian/Ubuntu
-  if add_temp_repo; then
-    debug "Removing temporary repo"
-    trap 'execute sudo rm -f "$TEMP_REPO_FILE"' EXIT
-    debug "Removed temporary repo"
-  else
-    err "Failed to add temporary repository"
-    return 1
-  fi
+  install_legacy_repo
   execute "${PKG_UPDATE[@]}" || { err "Package update failed!"; return 1; }
 
   # Copy the DEB to a temporary file so _apt can read it
@@ -1138,23 +1051,15 @@ install_mc_deb() {
     --reinstall \
     "$temp_deb"; then
     err "Local MC DEB installation failed"
+    execute sudo rm -f "$temp_deb"
     if ask_ok "Remove source DEB and retry?"; then
-      execute sudo rm -f "$MC_DEB" "$temp_deb"
+      execute sudo rm -f "$MC_DEB"
       exec "$SCRIPT_PATH" "$@" "--no-update"
     fi
+    return 1
   fi
-
-  # Unset the trap and remove temporary legacy repository
-  trap - EXIT
-  [[ -f $TEMP_REPO_FILE ]] && execute sudo rm -f "$TEMP_REPO_FILE"
   execute sudo rm -f "$temp_deb"
   return 0
-}
-
-# @description Installs MC via RPM package
-install_mc_rpm() {
-  debug "${FUNCNAME[0]}()"
-  install_package --no-install-check --no-gpg-check --allow-downgrades "$MC_RPM"
 }
 
 # @description Installs Media Center generically for unsupported OSes
@@ -1869,9 +1774,9 @@ main() {
   ((UNINSTALL_SWITCH)) && uninstall
 
   # Exit now if only --uninstall is passed
-  if ! (( BUILD_SWITCH || CREATEREPO_SWITCH || REPO_INSTALL_SWITCH || LOCAL_INSTALL_SWITCH ||
-  CONTAINER_INSTALL_SWITCH || SNAP_INSTALL_SWITCH || APPIMAGE_INSTALL_SWITCH )) &&
-  [[ ${#SERVICES[@]} -eq 0 && ${#CONTAINERS[@]} -eq 0 ]]; then
+  if ((UNINSTALL_SWITCH)) && 
+     ! ((BUILD_SWITCH || CREATEREPO_SWITCH || REPO_INSTALL_SWITCH || LOCAL_INSTALL_SWITCH)) &&
+     [[ ${#SERVICES[@]} -eq 0 && ${#CONTAINERS[@]} -eq 0 ]]; then
     exit 0
   fi
 
@@ -1879,16 +1784,86 @@ main() {
 
   if ((REPO_INSTALL_SWITCH)); then
     echo "Installing JRiver Media Center from remote repository"
-    if install_mc_repo "$@"; then
-      echo "JRiver Media Center installed successfully from remote repository"
-      install_mesa_freeworld
-      link_ssl_certs
-      restore_license
-      open_firewall "jriver-mediacenter" "52100-52200/tcp" "1900/udp"
-    else
-      err "JRiver Media Center installation from remote repository failed"
+    local repo_file
+
+    case $ID in
+      fedora|centos)
+        repo_file="/etc/yum.repos.d/jriver.repo"
+        echo "Installing repository file: $repo_file"
+        sudo tee "$repo_file" &>/dev/null <<-EOF
+					[jriver]
+					baseurl = https://repos.bryanroessler.com/jriver
+					enabled = 1
+					gpgcheck = 0
+					name = JRiver Media Center hosted by BryanC
+				EOF
+        case $ID in
+          fedora)
+            install_mesa_freeworld
+            ;;
+        esac
+        ;;
+      debian|ubuntu)
+        local major_version="${VERSION_ID%%.*}"
+        local minor_version="${VERSION_ID##*.}"; minor_version="${minor_version#0}" # strip leading zero
+        local keyfile="/usr/share/keyrings/jriver-com-archive-keyring.gpg"
+        local channel="latest"
+        [[ -n $BETAPASS ]] && channel="beta"
+
+        if [[ $channel == "beta" ]]; then
+          repo_file="/etc/apt/sources.list.d/jriver-beta.sources"
+        else
+          repo_file="/etc/apt/sources.list.d/jriver.sources"
+        fi
+
+        echo "Installing repository file: $repo_file"
+        if [[ ($ID == "ubuntu" && $major_version -ge 24) ||
+        ($ID == "debian" && (-z $major_version || $major_version -ge 12)) ]]; then
+          sudo tee "$repo_file" &>/dev/null <<-EOF
+						Types: deb
+						URIs: https://dist.jriver.com/$channel/mediacenter/
+						Signed-By: $keyfile
+						Suites: $MC_REPO
+						Components: main
+						Architectures: amd64 armhf arm64
+					EOF
+        else
+          sudo tee "$repo_file" &>/dev/null <<-EOF
+						deb [signed-by=$keyfile arch=amd64,armhf,arm64] https://dist.jriver.com/$channel/mediacenter/ $MC_REPO main
+					EOF
+         fi
+      
+        echo "Installing JRiver Media Center GPG key"
+        download "https://dist.jriver.com/mediacenter@jriver.com.gpg.key" "-" | 
+          gpg --dearmor | sudo tee "$keyfile" &>/dev/null
+        install_legacy_repo
+        ;;
+      *) 
+        err "An MC repository for $ID is not yet available"
+        err "Use --install=local to install MC on $ID"
+        return 1
+        ;;
+    esac
+
+    echo "Updating package lists"
+    if ! execute "${PKG_UPDATE[@]}"; then
+      err "Package update failed!"
+      if [[ $MC_REPO != "$MC_REPO_HARDCODE" ]] &&
+      ask_ok "Re-run installJRMC with --mcrepo=$MC_REPO_HARDCODE?"; then
+        exec "$SCRIPT_PATH" "$@" "--no-update" "--mcrepo=$MC_REPO_HARDCODE"
+      fi
       return 1
     fi
+
+    echo "Installing $MC_PKG package"
+    if ! install_package --no-install-check --no-gpg-check --allow-downgrades "$MC_PKG"; then
+      err "MC package install failed!"
+      return 1
+    fi
+
+    link_ssl_certs
+    restore_license
+    open_firewall "jriver-mediacenter" "52100-52200/tcp" "1900/udp"
   fi
 
   if ((BUILD_SWITCH)); then
@@ -1923,13 +1898,16 @@ main() {
 
   if ((LOCAL_INSTALL_SWITCH)); then
     echo "Installing JRiver Media Center from local package"
-    if PKG_INSTALL_LOCAL "$@"; then
-      echo "JRiver Media Center installed successfully from local package"
-    else
-      err "JRiver Media Center local package installation failed"
-      return 1
-    fi
-    install_mesa_freeworld
+
+    # Install MC package
+    case $ID in
+      fedora) install_package --no-install-check --no-gpg-check --allow-downgrades "$MC_RPM"; install_mesa_freeworld ;;
+      centos|mandriva|suse) install_package --no-install-check --no-gpg-check --allow-downgrades "$MC_RPM" ;;
+      debian|ubuntu) install_mc_deb "$@" ;;
+      arch) install_mc_arch ;;
+      unknown) install_mc_generic ;;
+    esac
+    
     link_ssl_certs
     restore_license
     open_firewall "jriver-mediacenter" "52100-52200/tcp" "1900/udp"
@@ -2017,15 +1995,17 @@ create_mc_apt_container() {
   debug "${FUNCNAME[0]}()" "$@"
   declare -g CNT
   local -a cmds=("$@")
+  local channel="latest"
+  [[ -n $BETAPASS ]] && channel="beta"
   # shellcheck disable=SC2016
   { command -v buildah &>/dev/null || install_package buildah; } &&
   CNT=$(buildah from --quiet alpine:edge) &&
-  buildah run --env MC_REPO="$MC_REPO" --env MC_ARCH="$MC_ARCH" "$CNT" -- sh -c '
+  buildah run --env MC_REPO="$MC_REPO" --env MC_ARCH="$MC_ARCH" --env CHANNEL="$channel" "$CNT" -- sh -c '
     apk add --quiet --no-progress --no-cache apt curl gnupg
     curl -fsSL https://dist.jriver.com/mediacenter@jriver.com.gpg.key | gpg --quiet --dearmor -o /usr/share/keyrings/jriver-com-archive-keyring.gpg
     cat <<-EOF > /etc/apt/sources.list.d/jriver.sources
 			Types: deb
-			URIs: https://dist.jriver.com/latest/mediacenter/
+			URIs: https://dist.jriver.com/$CHANNEL/mediacenter/
 			Signed-By: /usr/share/keyrings/jriver-com-archive-keyring.gpg
 			Suites: $MC_REPO
 			Components: main
@@ -2036,51 +2016,6 @@ create_mc_apt_container() {
   for cmd in "${cmds[@]}"; do
     buildah run "$CNT" -- sh -c "$cmd" || { err "$cmd failed"; return 1; }
   done
-}
-add_temp_repo() {
-  debug "${FUNCNAME[0]}()"
-  local repo_name repo_uri repo_suite repo_key
-
-  if [[ "$ID" == "ubuntu" ]]; then
-    local major_version="${VERSION_ID%%.*}"
-    local minor_version="${VERSION_ID##*.}"
-    minor_version="${minor_version#0}" # strip leading zero
-    if [[ $major_version -gt 24 || ( $major_version -eq 24 && minor_version -ge 4 ) ]]; then
-      echo "Temporarily adding jammy repository for libwebkit2gtk-4.0-37, etc."
-      repo_name="ubuntu-jammy-temp"
-      repo_uri="https://archive.ubuntu.com/ubuntu"
-      repo_suite="jammy"
-      repo_key="/usr/share/keyrings/ubuntu-archive-keyring.gpg"
-    else
-      return 0
-    fi
-  elif [[ "$ID" == "debian" ]]; then
-    local major_version="${VERSION_ID%%.*}"
-    if [[ $major_version -ge 13 ]]; then
-      echo "Temporarily adding bookworm repository for libwebkit2gtk-4.0-37, etc."
-      repo_name="debian-bookworm-temp"
-      repo_uri="https://deb.debian.org/debian"
-      repo_suite="bookworm"
-      repo_key="/usr/share/keyrings/debian-archive-keyring.gpg"
-    else
-      return 0
-    fi
-  else
-    # For other distributions, do nothing.
-    return 0
-  fi
-
-  declare -g TEMP_REPO_FILE="/etc/apt/sources.list.d/${repo_name}.sources"
-
-  echo "Creating temporary repository file $TEMP_REPO_FILE for $repo_suite"
-  sudo bash -c "cat <<-EOF > $TEMP_REPO_FILE
-		Types: deb
-		URIs: $repo_uri
-		Suites: $repo_suite
-		Components: main
-		Architectures: $MC_ARCH
-		Signed-By: $repo_key
-	EOF"
 }
 
 # Roughly turn debugging on for pre-init
