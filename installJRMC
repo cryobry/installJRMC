@@ -237,14 +237,11 @@ init() {
   declare -g SCRIPT_PATH; SCRIPT_PATH=$(readlink -f "${BASH_SOURCE[0]}")
   declare -g SCRIPT_DIR; SCRIPT_DIR=$(readlink -f "$(dirname "${BASH_SOURCE[0]}")")
   
-  # If script is being piped, save it to a temp file for re-execution
+  # Detect if script is being piped (SCRIPT_PATH won't be a regular file)
   if [[ ! -f $SCRIPT_PATH ]]; then
-    declare -g SCRIPT_TEMP
-    SCRIPT_TEMP=$(mktemp)
-    cat "${BASH_SOURCE[0]}" > "$SCRIPT_TEMP"
-    chmod +x "$SCRIPT_TEMP"
-    SCRIPT_PATH="$SCRIPT_TEMP"
-    SCRIPT_DIR=$(dirname "$SCRIPT_TEMP")
+    declare -g SCRIPT_IS_PIPED=1
+  else
+    declare -g SCRIPT_IS_PIPED=0
   fi
   
   declare -g OUTPUT_DIR="$SCRIPT_DIR/output"
@@ -1057,7 +1054,7 @@ install_mc_deb() {
     execute sudo rm -f "$temp_deb"
     if ask_ok "Remove source DEB and retry?"; then
       execute sudo rm -f "$MC_DEB"
-      exec "$SCRIPT_PATH" "$@" "--no-update"
+      exec bash "$SCRIPT_PATH" "$@" "--no-update"
     fi
     return 1
   fi
@@ -1719,7 +1716,7 @@ update() {
     # If the commit hash has changed, an update occurred
     if [[ "$before_pull_hash" != $(git -C "$SCRIPT_DIR" rev-parse HEAD) ]]; then
       echo "Detected installJRMC update, restarting"
-      exec "$SCRIPT_PATH" "$@" "--no-update"
+      exec bash "$SCRIPT_PATH" "$@" "--no-update"
     fi
   else
     debug "Not in the installJRMC repository, checking for installJRMC update via webscrape."
@@ -1750,7 +1747,7 @@ update() {
       execute rm -f "$tmp"
 
       echo "Detected installJRMC update, restarting"
-      exec "$SCRIPT_PATH" "$@" "--no-update"
+      exec bash "$SCRIPT_PATH" "$@" "--no-update"
     else
       debug "Current installJRMC $SCRIPT_VERSION is the latest version"
       execute rm -f "$tmp"
@@ -1849,7 +1846,13 @@ main() {
       [[ -n $LEGACY_REPO_FILE ]] && sudo rm -f "$LEGACY_REPO_FILE"
       if [[ $MC_REPO != "$MC_REPO_HARDCODE" ]]; then
         echo "Rerunning installJRMC with --mcrepo=$MC_REPO_HARDCODE"
-        exec "$SCRIPT_PATH" "$@" "--no-update" "--mcrepo=$MC_REPO_HARDCODE"
+        if ((SCRIPT_IS_PIPED)); then
+          # Re-download and execute if script was piped
+          curl -fsSL "$SCRIPT_URL" | bash -s -- "$@" "--no-update" "--mcrepo=$MC_REPO_HARDCODE"
+          exit $?
+        else
+          exec bash "$SCRIPT_PATH" "$@" "--no-update" "--mcrepo=$MC_REPO_HARDCODE"
+        fi
       fi
       return 1
     fi
