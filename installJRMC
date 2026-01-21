@@ -646,7 +646,7 @@ install_legacy_repo() {
 		EOF
     # Set a trap to always cleanup legacy repo
     # shellcheck disable=SC2064
-    # trap "sudo rm -f $temp_repo_file" EXIT ERR INT
+    trap "sudo rm -f $temp_repo_file" EXIT ERR INT
   fi
 }
 
@@ -1837,6 +1837,7 @@ main() {
     echo "Updating package lists"
     if ! execute "${PKG_UPDATE[@]}"; then
       err "Package update failed!"
+      debug "MC_REPO: $MC_REPO, MC_REPO_HARDCODE: $MC_REPO_HARDCODE"
       if [[ $MC_REPO != "$MC_REPO_HARDCODE" ]] &&
       ask_ok "Re-run installJRMC with --mcrepo=$MC_REPO_HARDCODE?"; then
         exec "$SCRIPT_PATH" "$@" "--no-update" "--mcrepo=$MC_REPO_HARDCODE"
