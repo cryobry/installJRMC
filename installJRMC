@@ -244,7 +244,7 @@ init() {
   declare -g OUTPUT_DIR="$SCRIPT_DIR/output"
   declare -g CREATEREPO_WEBROOT="/var/www/jriver"
   declare -g CREATEREPO_USER="$USER" # can be root
-  declare -g ID VERSION_ID ARCH MC_ARCH NAME
+  declare -g ID VERSION_ID UBUNTU_CODENAME ARCH MC_ARCH NAME
   declare -g MC_MVERSION MC_RELEASE MC_PKG MC_RPM MC_ROOT
   declare -ga PKG_INSTALL PKG_REMOVE PKG_UPDATE PKG_QUERY
   declare -ga SERVICES CONTAINERS
@@ -387,20 +387,10 @@ init() {
   # Set default targets
   BUILD_TARGET="${BUILD_TARGET:-$ID}"
   CREATEREPO_TARGET="${CREATEREPO_TARGET:-$ID}"
-
-  # Repo selection (precedence: user > host (MC31+ debian/ubuntu) > hardcoded)
-  if [[ -n $MC_REPO_USER ]]; then
-    MC_REPO="$MC_REPO_USER"
-  elif [[ $ID =~ debian|ubuntu && "${MC_MVERSION_USER:-${MC_VERSION_HARDCODE%%.*}}" -ge 31 ]]; then
-    MC_REPO=${UBUNTU_CODENAME:-${VERSION_CODENAME:-$MC_REPO_HARDCODE}}
-  else
-    MC_REPO="$MC_REPO_HARDCODE"
-  fi
-
+  MC_REPO="${MC_REPO_USER:-${UBUNTU_CODENAME:-$MC_REPO_HARDCODE}}" # user>host>hardcoded
+  
   echo "MC source -> target: $MC_REPO $MC_ARCH -> $BUILD_TARGET $ARCH"
-
   set_mc_version
-
   echo "Selected MC version $MC_VERSION from the $MC_REPO repo (via $MC_VERSION_SOURCE)"
   
   # Set additional MC version variables
@@ -613,13 +603,11 @@ install_external_repos() {
 # @description Installs host-specific temporary legacy repo for missing dependencies
 install_legacy_repo() {
   debug "${FUNCNAME[0]}()"
-  local major_version="${VERSION_ID%%.*}"
-  local minor_version="${VERSION_ID##*.}"; minor_version="${minor_version#0}" # strip leading zero
   local repo_name repo_uri repo_suite repo_key temp_repo_file
 
   case $ID in
     ubuntu)
-      if [[ $major_version -gt 24 || ( $major_version -eq 24 && minor_version -ge 4 ) ]]; then
+      if [[ $UBUNTU_CODENAME =~ ^[n-z] ]]; then # noble and later
         echo "Temporarily adding jammy repository for libwebkit2gtk-4.0-37, etc."
         repo_name="ubuntu-jammy-temp"
         repo_uri="https://archive.ubuntu.com/ubuntu"
@@ -628,7 +616,7 @@ install_legacy_repo() {
       fi
       ;;
     debian)
-      if [[ $major_version -ge 13 ]]; then
+      if [[ ${VERSION_ID%%.*} -ge 13 ]]; then
         echo "Temporarily adding bookworm repository for libwebkit2gtk-4.0-37, etc."
         repo_name="debian-bookworm-temp"
         repo_uri="https://deb.debian.org/debian"
@@ -1796,8 +1784,6 @@ main() {
 				EOF
         ;;
       debian|ubuntu)
-        local major_version="${VERSION_ID%%.*}"
-        local minor_version="${VERSION_ID##*.}"; minor_version="${minor_version#0}" # strip leading zero
         local keyfile="/usr/share/keyrings/jriver-com-archive-keyring.gpg"
         local channel="latest"
         [[ -n $BETAPASS ]] && channel="beta"
@@ -1809,8 +1795,8 @@ main() {
         fi
 
         echo "Installing repository file: $repo_file"
-        if [[ ($ID == "ubuntu" && $major_version -ge 24) ||
-        ($ID == "debian" && (-z $major_version || $major_version -ge 12)) ]]; then
+        if [[ ($ID == "ubuntu" && $UBUNTU_CODENAME =~ ^[n-z]) ||
+        ($ID == "debian" && ${VERSION_ID%%.*} -ge 12) ]]; then
           sudo tee "$repo_file" &>/dev/null <<-EOF
 						Types: deb
 						URIs: https://dist.jriver.com/$channel/mediacenter/
