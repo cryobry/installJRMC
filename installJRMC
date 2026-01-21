@@ -21,7 +21,7 @@
 # shellcheck disable=SC2329
 shopt -s extglob
 
-declare -g SCRIPT_VERSION="1.35.8-dev"
+declare -g SCRIPT_VERSION="1.35.8"
 declare -g MC_VERSION_HARDCODE="35.0.37" # do find all replace
 declare -g MC_REPO_HARDCODE="bookworm" # should match the MC_VERSION_HARDCODE
 declare -g BOARD_ID="92.0" # MC35 board ID for fallback latest version detection
@@ -388,7 +388,7 @@ init() {
   BUILD_TARGET="${BUILD_TARGET:-$ID}"
   CREATEREPO_TARGET="${CREATEREPO_TARGET:-$ID}"
   MC_REPO="${MC_REPO_USER:-${UBUNTU_CODENAME:-$MC_REPO_HARDCODE}}" # user>host>hardcoded
-  
+
   echo "MC source -> target: $MC_REPO $MC_ARCH -> $BUILD_TARGET $ARCH"
   set_mc_version
   echo "Selected MC version $MC_VERSION from the $MC_REPO repo (via $MC_VERSION_SOURCE)"
