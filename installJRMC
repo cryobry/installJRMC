@@ -21,7 +21,7 @@
 # shellcheck disable=SC2329
 shopt -s extglob
 
-declare -g SCRIPT_VERSION="1.35.7"
+declare -g SCRIPT_VERSION="1.35.8-dev"
 declare -g MC_VERSION_HARDCODE="35.0.37" # do find all replace
 declare -g MC_REPO_HARDCODE="bookworm" # should match the MC_VERSION_HARDCODE
 declare -g BOARD_ID="92.0" # MC35 board ID for fallback latest version detection
@@ -1848,7 +1848,7 @@ main() {
         echo "Rerunning installJRMC with --mcrepo=$MC_REPO_HARDCODE"
         if ((SCRIPT_IS_PIPED)); then
           # Re-download and execute if script was piped
-          curl -fsSL "$SCRIPT_URL" | bash -s -- "$@" "--no-update" "--mcrepo=$MC_REPO_HARDCODE"
+          download "$SCRIPT_URL" | bash -s -- "$@" "--no-update" "--mcrepo=$MC_REPO_HARDCODE"
           exit $?
         else
           exec bash "$SCRIPT_PATH" "$@" "--no-update" "--mcrepo=$MC_REPO_HARDCODE"
