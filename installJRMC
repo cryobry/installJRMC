@@ -1848,7 +1848,7 @@ main() {
         echo "Rerunning installJRMC with --mcrepo=$MC_REPO_HARDCODE"
         if ((SCRIPT_IS_PIPED)); then
           # Re-download and execute if script was piped
-          download "$SCRIPT_URL" | bash -s -- "$@" "--no-update" "--mcrepo=$MC_REPO_HARDCODE"
+          curl -fsSL "$SCRIPT_URL" | bash -s -- "$@" "--no-update" "--mcrepo=$MC_REPO_HARDCODE"
           exit $?
         else
           exec bash "$SCRIPT_PATH" "$@" "--no-update" "--mcrepo=$MC_REPO_HARDCODE"
