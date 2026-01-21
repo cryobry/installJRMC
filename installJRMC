@@ -236,6 +236,17 @@ init() {
   declare -g USER
   declare -g SCRIPT_PATH; SCRIPT_PATH=$(readlink -f "${BASH_SOURCE[0]}")
   declare -g SCRIPT_DIR; SCRIPT_DIR=$(readlink -f "$(dirname "${BASH_SOURCE[0]}")")
+  
+  # If script is being piped, save it to a temp file for re-execution
+  if [[ ! -f $SCRIPT_PATH ]]; then
+    declare -g SCRIPT_TEMP
+    SCRIPT_TEMP=$(mktemp)
+    cat "${BASH_SOURCE[0]}" > "$SCRIPT_TEMP"
+    chmod +x "$SCRIPT_TEMP"
+    SCRIPT_PATH="$SCRIPT_TEMP"
+    SCRIPT_DIR=$(dirname "$SCRIPT_TEMP")
+  fi
+  
   declare -g OUTPUT_DIR="$SCRIPT_DIR/output"
   declare -g CREATEREPO_WEBROOT="/var/www/jriver"
   declare -g CREATEREPO_USER="$USER" # can be root
@@ -644,9 +655,7 @@ install_legacy_repo() {
 			Architectures: $MC_ARCH
 			Signed-By: $repo_key
 		EOF
-    # Set a trap to always cleanup legacy repo
-    # shellcheck disable=SC2064
-    trap "sudo rm -f $temp_repo_file" EXIT INT TERM
+    declare -g LEGACY_REPO_FILE="$temp_repo_file"
   fi
 }
 
@@ -1837,6 +1846,7 @@ main() {
     echo "Updating package lists"
     if ! execute "${PKG_UPDATE[@]}"; then
       err "Package update failed!"
+      [[ -n $LEGACY_REPO_FILE ]] && sudo rm -f "$LEGACY_REPO_FILE"
       if [[ $MC_REPO != "$MC_REPO_HARDCODE" ]]; then
         echo "Rerunning installJRMC with --mcrepo=$MC_REPO_HARDCODE"
         exec "$SCRIPT_PATH" "$@" "--no-update" "--mcrepo=$MC_REPO_HARDCODE"
@@ -1847,8 +1857,12 @@ main() {
     echo "Installing $MC_PKG package"
     if ! install_package --no-install-check --no-gpg-check --allow-downgrades "$MC_PKG"; then
       err "MC package install failed!"
+      [[ -n $LEGACY_REPO_FILE ]] && sudo rm -f "$LEGACY_REPO_FILE"
       return 1
     fi
+
+    # Clean up legacy repo after successful install
+    [[ -n $LEGACY_REPO_FILE ]] && sudo rm -f "$LEGACY_REPO_FILE"
 
     link_ssl_certs
     restore_license
