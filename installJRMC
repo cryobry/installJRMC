@@ -21,7 +21,7 @@
 # shellcheck disable=SC2329
 shopt -s extglob
 
-declare -g SCRIPT_VERSION="1.35.8"
+declare -g SCRIPT_VERSION="1.35.9-dev"
 declare -g MC_VERSION_HARDCODE="35.0.37" # do find all replace
 declare -g MC_REPO_HARDCODE="bookworm" # should match the MC_VERSION_HARDCODE
 declare -g BOARD_ID="92.0" # MC35 board ID for fallback latest version detection
@@ -1005,7 +1005,7 @@ install_mc_deb() {
     execute sed -E -i 's/,[[:space:]]*libwebkit2gtk[^,]*(,|\?)?//g' control
 
     # TODO workaround for legacy ZorinOS
-    if [[ $ID == "ubuntu" && ${VERSION_ID%.*} -le 16 ]] &&
+    if [[ $ID == "ubuntu" && ${VERSION_ID%%.*} -le 16 ]] &&
     grep -q zorin /etc/os-release; then
       execute sed -i 's/libva2/libva1/g' control
     fi
@@ -1795,7 +1795,7 @@ main() {
         fi
 
         echo "Installing repository file: $repo_file"
-        if [[ ($ID == "ubuntu" && $UBUNTU_CODENAME =~ ^[n-z]) ||
+        if [[ ($ID == "ubuntu" && $UBUNTU_CODENAME =~ ^[j-z]) ||
         ($ID == "debian" && ${VERSION_ID%%.*} -ge 12) ]]; then
           sudo tee "$repo_file" &>/dev/null <<-EOF
 						Types: deb
