@@ -21,7 +21,7 @@
 # shellcheck disable=SC2329
 shopt -s extglob
 
-declare -g SCRIPT_VERSION="1.35.9"
+declare -g SCRIPT_VERSION="1.35.10-dev"
 declare -g MC_VERSION_HARDCODE="35.0.37" # do find all replace
 declare -g MC_REPO_HARDCODE="bookworm" # should match the MC_VERSION_HARDCODE
 declare -g BOARD_ID="92.0" # MC35 board ID for fallback latest version detection
@@ -1795,22 +1795,15 @@ main() {
         fi
 
         echo "Installing repository file: $repo_file"
-        if [[ ($ID == "ubuntu" && $UBUNTU_CODENAME =~ ^[j-z]) ||
-        ($ID == "debian" && ${VERSION_ID%%.*} -ge 12) ]]; then
-          sudo tee "$repo_file" &>/dev/null <<-EOF
-						Types: deb
-						URIs: https://dist.jriver.com/$channel/mediacenter/
-						Signed-By: $keyfile
-						Suites: $MC_REPO
-						Components: main
-						Architectures: amd64 armhf arm64
-					EOF
-        else
-          sudo tee "$repo_file" &>/dev/null <<-EOF
-						deb [signed-by=$keyfile arch=amd64,armhf,arm64] https://dist.jriver.com/$channel/mediacenter/ $MC_REPO main
-					EOF
-         fi
-      
+        sudo tee "$repo_file" &>/dev/null <<-EOF
+					Types: deb
+					URIs: https://dist.jriver.com/$channel/mediacenter/
+					Signed-By: $keyfile
+					Suites: $MC_REPO
+					Components: main
+					Architectures: amd64 armhf arm64
+				EOF
+
         echo "Installing JRiver Media Center GPG key"
         download "https://dist.jriver.com/mediacenter@jriver.com.gpg.key" "-" | 
           gpg --dearmor | sudo tee "$keyfile" &>/dev/null
