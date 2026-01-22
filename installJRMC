@@ -601,7 +601,7 @@ install_external_repos() {
 }
 
 # @description Installs host-specific temporary legacy repo for missing dependencies
-install_legacy_repo() {
+add_legacy_repo() {
   debug "${FUNCNAME[0]}()"
   local repo_name repo_uri repo_suite repo_key temp_repo_file
 
@@ -639,6 +639,11 @@ install_legacy_repo() {
 		EOF
     declare -g LEGACY_REPO_FILE="$temp_repo_file"
   fi
+}
+
+# @description Removes temporary legacy repository if present
+remove_legacy_repo() {
+  [[ -n $LEGACY_REPO_FILE ]] && execute sudo rm -f "$LEGACY_REPO_FILE"
 }
 
 # @description Acquires the source DEB package from JRiver
@@ -1018,8 +1023,8 @@ install_mc_deb() {
   fi
 
   # Add older repository for libwebkit2gtk-4.0-37, etc, on newer Debian/Ubuntu
-  install_legacy_repo
-  execute "${PKG_UPDATE[@]}" || { err "Package update failed!"; return 1; }
+  add_legacy_repo
+  execute "${PKG_UPDATE[@]}" || { err "Package update failed!"; remove_legacy_repo; return 1; }
 
   # Copy the DEB to a temporary file so _apt can read it
   debug "Creating temporary deb file owned by _apt"
@@ -1036,6 +1041,7 @@ install_mc_deb() {
     --reinstall \
     "$temp_deb"; then
     err "Local MC DEB installation failed"
+    remove_legacy_repo
     execute sudo rm -f "$temp_deb"
     if ask_ok "Remove source DEB and retry?"; then
       execute sudo rm -f "$MC_DEB"
@@ -1043,6 +1049,7 @@ install_mc_deb() {
     fi
     return 1
   fi
+  remove_legacy_repo
   execute sudo rm -f "$temp_deb"
   return 0
 }
@@ -1807,7 +1814,7 @@ main() {
         echo "Installing JRiver Media Center GPG key"
         download "https://dist.jriver.com/mediacenter@jriver.com.gpg.key" "-" | 
           gpg --dearmor | sudo tee "$keyfile" &>/dev/null
-        install_legacy_repo
+        add_legacy_repo
         ;;
       *) 
         err "An MC repository for $ID is not yet available"
@@ -1819,7 +1826,7 @@ main() {
     echo "Updating package lists"
     if ! execute "${PKG_UPDATE[@]}"; then
       err "Package update failed!"
-      [[ -n $LEGACY_REPO_FILE ]] && sudo rm -f "$LEGACY_REPO_FILE"
+      remove_legacy_repo
       if [[ $MC_REPO != "$MC_REPO_HARDCODE" ]]; then
         echo "Rerunning installJRMC with --mcrepo=$MC_REPO_HARDCODE"
         rerun "$@" "--mcrepo=$MC_REPO_HARDCODE"
@@ -1830,12 +1837,12 @@ main() {
     echo "Installing $MC_PKG package"
     if ! install_package --no-install-check --no-gpg-check --allow-downgrades "$MC_PKG"; then
       err "MC package install failed!"
-      [[ -n $LEGACY_REPO_FILE ]] && sudo rm -f "$LEGACY_REPO_FILE"
+      remove_legacy_repo
       return 1
     fi
 
     # Clean up legacy repo after successful install
-    [[ -n $LEGACY_REPO_FILE ]] && sudo rm -f "$LEGACY_REPO_FILE"
+    remove_legacy_repo
 
     link_ssl_certs
     restore_license
