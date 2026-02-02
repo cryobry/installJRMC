@@ -244,7 +244,7 @@ init() {
   declare -g OUTPUT_DIR="$SCRIPT_DIR/output"
   declare -g CREATEREPO_WEBROOT="/var/www/jriver"
   declare -g CREATEREPO_USER="$USER" # can be root
-  declare -g ID VERSION_ID UBUNTU_CODENAME ARCH MC_ARCH NAME
+  declare -g ID VERSION_ID UBUNTU_CODENAME VERSION_CODENAME ARCH MC_ARCH NAME
   declare -g MC_MVERSION MC_RELEASE MC_PKG MC_RPM MC_ROOT
   declare -ga PKG_INSTALL PKG_REMOVE PKG_UPDATE PKG_QUERY
   declare -ga SERVICES CONTAINERS
@@ -387,7 +387,7 @@ init() {
   # Set default targets
   BUILD_TARGET="${BUILD_TARGET:-$ID}"
   CREATEREPO_TARGET="${CREATEREPO_TARGET:-$ID}"
-  MC_REPO="${MC_REPO_USER:-${UBUNTU_CODENAME:-$MC_REPO_HARDCODE}}" # user>host>hardcoded
+  MC_REPO="${MC_REPO_USER:-${VERSION_CODENAME:-${UBUNTU_CODENAME:-$MC_REPO_HARDCODE}}}" # user>host>hardcoded
 
   echo "MC source -> target: $MC_REPO $MC_ARCH -> $BUILD_TARGET $ARCH"
   set_mc_version
@@ -643,6 +643,7 @@ add_legacy_repo() {
 
 # @description Removes temporary legacy repository if present
 remove_legacy_repo() {
+  debug "${FUNCNAME[0]}()"
   [[ -n $LEGACY_REPO_FILE ]] && execute sudo rm -f "$LEGACY_REPO_FILE"
 }
 
@@ -1801,6 +1802,10 @@ main() {
           repo_file="/etc/apt/sources.list.d/jriver.sources"
         fi
 
+        echo "Installing JRiver Media Center GPG key"
+        download "https://dist.jriver.com/mediacenter@jriver.com.gpg.key" "-" | 
+          gpg --dearmor | sudo tee "$keyfile" &>/dev/null
+
         echo "Installing repository file: $repo_file"
         sudo tee "$repo_file" &>/dev/null <<-EOF
 					Types: deb
@@ -1811,9 +1816,6 @@ main() {
 					Architectures: amd64 armhf arm64
 				EOF
 
-        echo "Installing JRiver Media Center GPG key"
-        download "https://dist.jriver.com/mediacenter@jriver.com.gpg.key" "-" | 
-          gpg --dearmor | sudo tee "$keyfile" &>/dev/null
         add_legacy_repo
         ;;
       *) 
