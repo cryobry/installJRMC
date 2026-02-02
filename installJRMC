@@ -387,7 +387,7 @@ init() {
   # Set default targets
   BUILD_TARGET="${BUILD_TARGET:-$ID}"
   CREATEREPO_TARGET="${CREATEREPO_TARGET:-$ID}"
-  MC_REPO="${MC_REPO_USER:-${VERSION_CODENAME:-${UBUNTU_CODENAME:-$MC_REPO_HARDCODE}}}" # user>host>hardcoded
+  MC_REPO="${MC_REPO_USER:-${UBUNTU_CODENAME:-${VERSION_CODENAME:-$MC_REPO_HARDCODE}}}" # user>host>hardcoded
 
   echo "MC source -> target: $MC_REPO $MC_ARCH -> $BUILD_TARGET $ARCH"
   set_mc_version
@@ -1595,16 +1595,6 @@ uninstall() {
     done
   done
 
-  # Remove the repository files
-  for file in "/etc/yum.repos.d/jriver.repo" /etc/apt/sources.list.d/{jriver,mediacenter}*.{list,sources}; do
-    if [[ -e $file ]]; then
-      echo "Removing repository file: $file"
-      execute sudo rm -f "$file"
-    fi
-  done
-
-  [[ $ID == "suse" ]] && execute sudo zypper --non-interactive removerepo jriver
-
   echo "Removing firewall rules"
   for service in jriver-mediacenter jriver-xvnc jriver-x11vnc; do
     if command -v firewall-cmd &>/dev/null; then
@@ -1626,6 +1616,16 @@ uninstall() {
   else
     err "Could not remove Media Center package"
   fi
+
+  # Remove the repository files
+  for file in "/etc/yum.repos.d/jriver.repo" /etc/apt/sources.list.d/{jriver,mediacenter}*.{list,sources}; do
+    if [[ -e $file ]]; then
+      echo "Removing repository file: $file"
+      execute sudo rm -f "$file"
+    fi
+  done
+
+  [[ $ID == "suse" ]] && execute sudo zypper --non-interactive removerepo jriver
 
   local keyfile="/usr/share/keyrings/jriver-com-archive-keyring.gpg"
   if [[ -f $keyfile ]]; then
