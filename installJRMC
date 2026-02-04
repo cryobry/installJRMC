@@ -21,7 +21,7 @@
 # shellcheck disable=SC2329
 shopt -s extglob
 
-declare -g SCRIPT_VERSION="1.35.10"
+declare -g SCRIPT_VERSION="1.35.11-dev"
 declare -g MC_VERSION_HARDCODE="35.0.39" # do find all replace
 declare -g MC_REPO_HARDCODE="bookworm" # should match the MC_VERSION_HARDCODE
 declare -g BOARD_ID="92.0" # MC35 board ID for fallback latest version detection
@@ -1792,7 +1792,8 @@ main() {
 				EOF
         ;;
       debian|ubuntu)
-        local keyfile="/usr/share/keyrings/jriver-com-archive-keyring.gpg"
+        local keyurl="http://dist.jriver.com/mediacenter@jriver.com.gpg.complete"
+        local keyfile="/usr/share/keyrings/jriver-com-archive-keyring-complete.gpg"
         local channel="latest"
         [[ -n $BETAPASS ]] && channel="beta"
 
@@ -1803,7 +1804,7 @@ main() {
         fi
 
         echo "Installing JRiver Media Center GPG key"
-        download "https://dist.jriver.com/mediacenter@jriver.com.gpg.key" "-" | 
+        download "$keyurl" "-" | 
           gpg --dearmor | sudo tee "$keyfile" &>/dev/null
 
         echo "Installing repository file: $repo_file"
