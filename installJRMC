@@ -1792,7 +1792,7 @@ main() {
 				EOF
         ;;
       debian|ubuntu)
-        local keyurl="http://dist.jriver.com/mediacenter@jriver.com.gpg.complete"
+        local keyurl="https://dist.jriver.com/mediacenter@jriver.com.gpg.complete"
         local keyfile="/usr/share/keyrings/jriver-com-archive-keyring-complete.gpg"
         local channel="latest"
         [[ -n $BETAPASS ]] && channel="beta"
@@ -1995,7 +1995,7 @@ create_mc_apt_container() {
   CNT=$(buildah from --quiet alpine:edge) &&
   buildah run --env MC_REPO="$repo" --env MC_ARCH="$MC_ARCH" --env CHANNEL="$channel" "$CNT" -- sh -c '
     apk add --quiet --no-progress --no-cache apt curl gnupg
-    curl -fsSL https://dist.jriver.com/mediacenter@jriver.com.gpg.key | gpg --quiet --dearmor -o /usr/share/keyrings/jriver-com-archive-keyring.gpg
+    curl -fsSL https://dist.jriver.com/mediacenter@jriver.com.gpg.complete | gpg --quiet --dearmor -o /usr/share/keyrings/jriver-com-archive-keyring.gpg
     cat <<-EOF > /etc/apt/sources.list.d/jriver.sources
 			Types: deb
 			URIs: https://dist.jriver.com/$CHANNEL/mediacenter/
