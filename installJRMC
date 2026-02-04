@@ -21,7 +21,7 @@
 # shellcheck disable=SC2329
 shopt -s extglob
 
-declare -g SCRIPT_VERSION="1.35.11-dev"
+declare -g SCRIPT_VERSION="1.35.11"
 declare -g MC_VERSION_HARDCODE="35.0.39" # do find all replace
 declare -g MC_REPO_HARDCODE="bookworm" # should match the MC_VERSION_HARDCODE
 declare -g BOARD_ID="92.0" # MC35 board ID for fallback latest version detection
@@ -1159,7 +1159,7 @@ link_ssl_certs() {
   for f in "${source_certs[@]}"; do
     if [[ -f $f ]]; then
       if execute sudo ln -fs "$f" "$mc_cert_link"; then
-        debug "Symlinked $mc_cert_link to $f"
+        echo "Symlinked $mc_cert_link to $f"
         return 0
       fi
     fi
@@ -1207,6 +1207,7 @@ restore_license() {
         fi
       fi
     done
+    return 1
   fi
 }
 
@@ -1892,6 +1893,13 @@ main() {
       arch) install_mc_arch ;;
       unknown) install_mc_generic ;;
     esac
+
+    # shellcheck disable=SC2181
+    if [[ $? -eq 0 ]]; then
+      echo "Successfully installed JRiver Media Center"
+    else
+      err "MC package install failed!"
+    fi
     
     link_ssl_certs
     restore_license
