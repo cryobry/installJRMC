@@ -806,6 +806,7 @@ translate_packages() {
       requires_arr=("${requires_arr[@]/libharfbuzz0b/libharfbuzz0}")
       requires_arr=("${requires_arr[@]/libwebkit2gtk-4.0*/libwebkit2gtk-4_0-37}")
       requires_arr=("${requires_arr[@]/libwebkit2gtk-4.1*/libwebkit2gtk-4_1-0}")
+      requires_arr=("${requires_arr[@]/libxss1/libXss1}")
       for i in "${!requires_arr[@]}"; do
         [[ ${requires_arr[$i]} == "mesa-vulkan-drivers" ]] && unset -v 'requires_arr[i]'
         [[ ${requires_arr[$i]} == "libsdbus-c++1" ]] && unset -v 'requires_arr[i]'
@@ -847,6 +848,8 @@ translate_packages() {
       requires_arr=("${requires_arr[@]/mesa-vulkan-drivers/lib64dri-drivers}")
       requires_arr=("${requires_arr[@]/vulkan-icd/vulkan-loader}")
       requires_arr=("${requires_arr[@]/libwebkit2gtk-4.1-0/lib64webkit2gtk4.1}")
+      requires_arr=("${requires_arr[@]/libdbus-1-3/libdbus-1_3}")
+      requires_arr=("${requires_arr[@]/libxss1/libxscrnsaver1}")
       recommends_arr=("${recommends_arr[@]/musepack-tools/mppenc}")
       for i in "${!recommends_arr[@]}"; do
         [[ ${recommends_arr[$i]} == "fdkaac" ]] && unset -v 'recommends_arr[i]'
