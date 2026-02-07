@@ -21,7 +21,7 @@
 # shellcheck disable=SC2329
 shopt -s extglob
 
-declare -g SCRIPT_VERSION="1.35.12"
+declare -g SCRIPT_VERSION="1.35.13-dev"
 declare -g MC_VERSION_HARDCODE="35.0.43" # do find all replace
 declare -g MC_REPO_HARDCODE="bookworm" # should match the MC_VERSION_HARDCODE
 declare -g BOARD_ID="92.0" # MC35 board ID for fallback latest version detection
@@ -857,8 +857,8 @@ translate_packages() {
       ;;
     arch)
       # Set these manually for Arch since they are quite different
-      requires_arr=('alsa-lib' 'ca-certificates' 'gtk3' 'gcc-libs' 'libx11' 'libxext'
-        'libxcb' 'libxau' 'libxdmcp' 'util-linux' 'mesa-libgl' 'webkit2gtk')
+      requires_arr=('alsa-lib' 'ca-certificates' 'dbus' 'gtk3' 'gcc-libs' 'libx11' 'libxext'
+        'libxcb' 'libxau' 'libxdmcp' 'libxss' 'util-linux' 'mesa-libgl' 'webkit2gtk')
       recommends_arr=('mesa-libgl' 'nvidia-libgl' 'nvidia-utils' 'vulkan-intel'
         'vulkan-radeon' 'vorbis-tools' 'musepack-tools')
       ;;
