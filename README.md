@@ -28,7 +28,7 @@ $ installJRMC --help
 --compat
     Build/install MC without minimum dependency version requirements.
 --mcversion VERSION
-    Build or install a specific MC version, ex. "35.0.43" or "33" (default: latest).
+    Build or install a specific MC version, ex. "35.0.51" or "33" (default: latest).
 --mcrepo REPO
     Specify the MC repository, ex. "bullseye", "bookworm", "noble", etc (default: latest official).
 --arch ARCH
@@ -130,9 +130,9 @@ Multiple services (but not `--service-types`) can be installed at one time using
 
     Install MC from the repository and start/enable `jriver-mediacenter.service` as a user service.
 
-* `installJRMC --install local --compat --restorefile /path/to/license.mjr --mcversion 35.0.43`
+* `installJRMC --install local --compat --restorefile /path/to/license.mjr --mcversion 35.0.51`
 
-    Build and install an MC 35.0.43 compatibility RPM locally and activate it using the `/path/to/license.mjr`.
+    Build and install an MC 35.0.51 compatibility RPM locally and activate it using the `/path/to/license.mjr`.
 
 * `installJRMC --createrepo --createrepo-webroot /srv/jriver/repo --createrepo-user www-user`
 
