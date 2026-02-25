@@ -1844,8 +1844,10 @@ main() {
     fi
 
     echo "Installing $MC_PKG package"
-    if ! install_package --no-install-check --no-gpg-check --allow-downgrades "$MC_PKG"; then
-      err "MC package install failed!"
+    if install_package --no-install-check --no-gpg-check --allow-downgrades "$MC_PKG"; then
+      echo "Successfully installed JRiver Media Center from repository"
+    else
+      err "MC failed to install"
       remove_legacy_repo
       return 1
     fi
@@ -1901,7 +1903,7 @@ main() {
 
     # shellcheck disable=SC2181
     if [[ $? -eq 0 ]]; then
-      echo "Successfully installed JRiver Media Center"
+      echo "Successfully installed JRiver Media Center from local package"
     else
       err "MC package install failed!"
     fi
