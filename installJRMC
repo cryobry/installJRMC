@@ -1661,14 +1661,20 @@ service_jriver-x11vnc() {
 service_jriver-createrepo() {
   debug "${FUNCNAME[0]}()"
   local -a sign_args start_cmd
-  local service_script start_cmd
+  local service_script start_cmd SERVICE_RUN_USER
 
   CREATEREPO_SWITCH=0 # skip running createrepo when generating service
 
-  if [[ $WEBROOT_USER != "$USER" ]]; then
-    USER="root" set_service_vars "${FUNCNAME[0]##*_}" "system"
+  set_service_vars "${FUNCNAME[0]##*_}" "system"
+
+  # Keep this as a system service, but run the process as the signing user
+  # so rpmbuild/rpmsign operate on files owned by the same account.
+  SERVICE_RUN_USER="${SIGN_USER:-$USER}"
+  if id "$SERVICE_RUN_USER" &>/dev/null; then
+    USER_STRING="User=$SERVICE_RUN_USER"
   else
-    set_service_vars "${FUNCNAME[0]##*_}" "system"
+    err "Service run user does not exist: $SERVICE_RUN_USER"
+    return 1
   fi
 
   # System services cannot exec files from home directories (SELinux).
