@@ -244,6 +244,14 @@ parse_input() {
     echo "Warning: not all repositories have beta channels"
     echo "If the MC package is unavailable, try using --mcrepo to select another repository"
   fi
+
+  # If jriver-createrepo is being installed as a service, treat --createrepo
+  # as service configuration only and defer build/repo execution to the timer.
+  if [[ " ${SERVICES[*]} " =~ [[:space:]]jriver-createrepo[[:space:]] ]] && ((CREATEREPO_SWITCH)); then
+    debug "Deferring --createrepo execution while configuring jriver-createrepo service"
+    BUILD_SWITCH=0
+    CREATEREPO_SWITCH=0
+  fi
 }
 
 # @description Perform OS detection and generate OS-specific functions
