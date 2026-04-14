@@ -894,7 +894,7 @@ build_rpm() {
   # shellcheck disable=SC2178
   declare -n requires_arr="$1" recommends_arr="$2"
   local requires_str recommends_str 
-  local i rpmbuild_cmd sign_cmd stub
+  local i rpmbuild_cmd sign_cmd stub sign_output
   local spec_file="$OUTPUT_DIR/SPECS/mediacenter$MC_MVERSION-$MC_VERSION-$MC_RELEASE-$BUILD_TARGET-$ARCH.spec"
 
   # skip rebuilding the rpm if it already exists
@@ -995,16 +995,46 @@ build_rpm() {
   if ((SIGN_SWITCH)); then
     local -a sign_prefix
     command -v rpmsign &>/dev/null || { err "rpmsign command missing (install rpm-sign/rpm-build)"; return 1; }
+    command -v gpg &>/dev/null || { err "gpg command missing"; return 1; }
+
+    if ! id "$SIGN_USER" &>/dev/null; then
+      err "Signing user does not exist: $SIGN_USER"
+      return 1
+    fi
+
     if [[ $(id -un) == "$SIGN_USER" ]]; then
       sign_prefix=()
     else
-      sign_prefix=(sudo -u "$SIGN_USER")
+      # Use target HOME so rpmsign reads the expected user keyring.
+      sign_prefix=(sudo -H -u "$SIGN_USER")
     fi
+
+    if [[ -n $SIGN_KEY ]] && ! "${sign_prefix[@]}" gpg --batch --list-secret-keys --with-colons "$SIGN_KEY" 2>/dev/null | grep -q '^sec'; then
+      err "Signing key not found in $SIGN_USER keyring: $SIGN_KEY"
+      err "Import the private key for $SIGN_USER or adjust --sign-user/--sign-key"
+      return 1
+    fi
+
     sign_cmd=(rpmsign --addsign)
-    [[ -n $SIGN_KEY ]] && sign_cmd+=(--define "_gpg_name $SIGN_KEY")
+    if [[ -n $SIGN_KEY ]]; then
+      if rpmsign --help 2>&1 | grep -q -- '--key-id'; then
+        sign_cmd+=(--key-id "$SIGN_KEY")
+      else
+        sign_cmd+=(--define "_gpg_name $SIGN_KEY")
+      fi
+    fi
     sign_cmd+=("$MC_RPM")
     echo "Signing RPM: $MC_RPM"
-    execute "${sign_prefix[@]}" "${sign_cmd[@]}" || { err "RPM signing failed"; return 1; }
+    debug "${sign_prefix[*]} ${sign_cmd[*]}"
+
+    if ! sign_output=$("${sign_prefix[@]}" "${sign_cmd[@]}" 2>&1); then
+      err "RPM signing failed"
+      [[ -n $sign_output ]] && echo "$sign_output" >&2
+      err "Hint: for non-interactive service runs, ensure $SIGN_USER can access an unlocked GPG key"
+      return 1
+    fi
+
+    ((DEBUG)) && [[ -n $sign_output ]] && echo "$sign_output"
   fi
 
   return 0
