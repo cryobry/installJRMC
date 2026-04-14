@@ -1219,7 +1219,10 @@ run_createrepo() {
 
     # Sign repo.md to a temp file first and then move to webroot
     local repomd_asc_tmp
-    repomd_asc_tmp=$(mktemp) || { err "Failed to create temp file for signature"; return 1; }
+    if ! repomd_asc_tmp=$("${sign_prefix[@]}" mktemp); then
+      err "Failed to create temp file for signature"
+      return 1
+    fi
 
     gpg_cmd=(gpg --batch --yes --pinentry-mode loopback --default-key "$SIGN_KEY" --armor --detach-sign --output "$repomd_asc_tmp")
     ((DEBUG)) && gpg_cmd+=(--verbose)
@@ -1238,7 +1241,10 @@ run_createrepo() {
     # Export public key so clients can import it via repo gpgkey URL
     pubkey_file="$CREATEREPO_WEBROOT/RPM-GPG-KEY-jriver.asc"
     local pubkey_tmp
-    pubkey_tmp=$(mktemp) || { err "Failed to create temp file for public key"; return 1; }
+    if ! pubkey_tmp=$("${sign_prefix[@]}" mktemp); then
+      err "Failed to create temp file for public key"
+      return 1
+    fi
     if ! execute "${sign_prefix[@]}" gpg --batch --yes --armor --output "$pubkey_tmp" --export "$SIGN_KEY"; then
       rm -f "$pubkey_tmp"
       err "Public key export failed for SIGN_KEY=$SIGN_KEY"
