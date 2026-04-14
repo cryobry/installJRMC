@@ -1615,7 +1615,7 @@ service_jriver-x11vnc() {
 # JRiver Media Center RPM from the source DEB and create/update an RPM repository
 service_jriver-createrepo() {
   debug "${FUNCNAME[0]}()"
-  local -a sign_args
+  local -a sign_args start_cmd
   local service_script start_cmd
 
   if [[ $WEBROOT_USER != "$USER" ]]; then
@@ -1642,8 +1642,19 @@ service_jriver-createrepo() {
   [[ -n $SIGN_USER ]] && sign_args+=(--sign-user="$SIGN_USER")
   [[ -n $SIGN_KEY ]] && sign_args+=(--sign-key="$SIGN_KEY")
 
-  debug "ExecStart=$service_script --outputdir=$OUTPUT_DIR --createrepo=$CREATEREPO_TARGET \
-    --createrepo-webroot=$CREATEREPO_WEBROOT --webroot-user=$WEBROOT_USER --mcrepo=$MC_REPO ${sign_args[*]} --yes --no-update"
+  start_cmd=(
+    "$service_script"
+    --outputdir="$OUTPUT_DIR"
+    --createrepo="$CREATEREPO_TARGET"
+    --createrepo-webroot="$CREATEREPO_WEBROOT"
+    --webroot-user="$WEBROOT_USER"
+    --mcrepo="$MC_REPO"
+    "${sign_args[@]}"
+    --yes
+    --no-update
+  )
+
+  debug "ExecStart=${start_cmd[*]}"
 
   sudo bash -c "cat <<-EOF > $SERVICE_FNAME
 		[Unit]
@@ -1651,8 +1662,7 @@ service_jriver-createrepo() {
 
 		[Service]
 		$USER_STRING
-		ExecStart=$service_script --outputdir=$OUTPUT_DIR --createrepo=$CREATEREPO_TARGET \
-      --createrepo-webroot=$CREATEREPO_WEBROOT --webroot-user=$WEBROOT_USER --mcrepo=$MC_REPO ${sign_args[*]} --yes --no-update
+		ExecStart=${start_cmd[*]}
 
 		[Install]
 		WantedBy=multi-user.target
