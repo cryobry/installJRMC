@@ -20,50 +20,61 @@ Specifying `--build`, `--createrepo`, `--service`, or `--uninstall` disables the
 ```text
 $ installJRMC --help
 --install, -i repo|local
-    repo: Install MC from repository, future updates will be handled by the system package manager.
-    local: Build and install MC package locally from official source package.
+    repo: Install MC from repository, updates are handled by the system package manager.
+    local: Build and install MC locally from official source package.
 --build[=suse|fedora|centos|mandriva]
     Build RPM from source DEB but do not install.
     Optionally, specify a target distro for cross-building (ex. --build=suse, note the '=').
 --compat
-    Build/install MC without minimum dependency version requirements.
+    Build/install MC locally without minimum dependency version requirements.
 --mcversion VERSION
-    Build or install a specific MC version, ex. "35.0.51" or "33" (default: latest).
+    Specify the MC version, ex. "35.0.51" or "35" (default: latest release).
 --mcrepo REPO
-    Specify the MC repository, ex. "bullseye", "bookworm", "noble", etc (default: latest official).
+    Specify the MC repository, ex. "bullseye", "bookworm", "noble", etc (default: auto).
 --arch ARCH
-    Specify the MC architecture, ex. "amd64", "arm64", etc (default: host architecture).
+    Specify the target MC architecture, ex. "amd64", "arm64", etc (default: host).
 --outputdir PATH
-    Generate rpmbuild output in this PATH (default: ./output).
---restorefile RESTOREFILE
+    Generate reusable installJRMC output in this PATH (default: ./output).
+--restorefile MJR_FILE
     Restore file location for automatic license registration.
 --betapass PASSWORD
     Enter beta team password for access to beta builds.
 --service, -s SERVICE
-    See SERVICES section below for the list of services to deploy.
+    See SERVICES below for possible services to install.
   --service-type user|system
-      Starts services at boot (system) or user login (user) (default: per-service, see SERVICES).
---container, -c CONTAINER (TODO: Under construction)
-    See CONTAINERS section below for a list of containers to deploy.
---createrepo[=suse|fedora|centos|mandriva]
-    Build rpm, copy to webroot, and run createrepo.
-    Optionally, specify a target distro for non-native repo (ex. --createrepo=fedora, note the '=').
-  --createrepo-webroot PATH
-      The webroot directory to install the repo (default: /var/www/jriver/).
-  --createrepo-user USER
-      The web server user if different from the current user.
+      Starts services at boot (system) or at user login (user) (default: per service, see SERVICES).
 --no-update
-    Disable the installJRMC update check.
+    Disable automatic installJRMC self-update.
+--uninstall, -u
+    Uninstall JRiver MC, remove services, containers, and firewall rules (does not remove library files).
 --yes, -y, --auto
-    Always assume yes for questions.
+    Assume yes response to questions.
 --version, -v
     Print installJRMC version and exit.
 --debug, -d
     Print debug output.
 --help, -h
     Print help dialog and exit.
---uninstall, -u
-    Uninstall JRiver MC, service files, and firewall rules (does not remove library or media files).
+
+ADVANCED OPTIONS
+--container, -c CONTAINER (TODO: Under construction)
+    See CONTAINERS section below for a list of possible services to install.
+--createrepo[=suse|fedora|centos|mandriva]
+    Build rpm, copy to webroot, and run createrepo. 
+    Use in conjunction with --build=TARGET for crossbuilding repos.
+    Optionally, specify a target distro for non-native repo (ex. --createrepo=fedora).
+--createrepo-webroot PATH
+    Specify the webroot directory to install the repo (default: /var/www/jriver).
+--webroot-user USER
+    Owner/user for createrepo output in the webroot (default: current user).
+--createrepo-user USER
+    Backward-compatible alias for --webroot-user.
+--sign
+    Sign the built RPM and repodata/repomd.xml (if --createrepo).
+--sign-user USER
+    User account used to run rpmsign and gpg signing (default: current user).
+--sign-key KEYID
+    GPG key ID, fingerprint, or UID used for --sign.
 ```
 
 ### `--service=`
@@ -134,13 +145,17 @@ Multiple services (but not `--service-types`) can be installed at one time using
 
     Build and install an MC 35.0.51 compatibility RPM locally and activate it using the `/path/to/license.mjr`.
 
-* `installJRMC --createrepo --createrepo-webroot /srv/jriver/repo --createrepo-user www-user`
+* `installJRMC --createrepo --createrepo-webroot /srv/jriver/repo --webroot-user www-user`
 
-     Build an RPM locally for the current distro, move it to the webroot, and run createrepo as `www-user`.
+    Build an RPM locally for the current distro, move it to the webroot, and run createrepo as `www-user`.
 
-* `installJRMC --service jriver-createrepo --createrepo-webroot /srv/jriver/repo --createrepo-user www-user`
+* `installJRMC --service jriver-createrepo --createrepo-webroot /srv/jriver/repo --webroot-user www-user`
 
     Install the jriver-createrepo timer and service to build the RPM, move it to the webroot, and run createrepo as `www-user` hourly.
+
+* `installJRMC --createrepo --webroot-user nginx --sign --sign-user bryan --sign-key 0xDEADBEEF`
+
+    Build/update the RPM repo, sign both RPM and repodata as `bryan`, and publish files owned by `nginx`.
 
 * `installJRMC --install repo --service jriver-x11vnc --service jriver-mediacenter --vncpass "letmein"`
 

@@ -16,12 +16,13 @@
 # NOTES
 # * Be careful with tabs in heredocs
 # * Avoid execute() for stdout
+# * RPM repo creation requires rpmbuild and rpmsign
 #
 # Allow indirection to match service names to their functions
 # shellcheck disable=SC2329
 shopt -s extglob
 
-declare -g SCRIPT_VERSION="1.35.13"
+declare -g SCRIPT_VERSION="1.35.14-dev"
 declare -g MC_VERSION_HARDCODE="35.0.51" # do find all replace
 declare -g MC_REPO_HARDCODE="bookworm" # should match the MC_VERSION_HARDCODE
 declare -g BOARD_ID="92.0" # MC35 board ID for fallback latest version detection
@@ -41,7 +42,7 @@ print_help() {
 		USAGE:
 		  installJRMC [[OPTION] [VALUE]]...
 
-		  installJRMC defaults to --install=repo on platforms with a JRiver repository and --install=local on all others.
+		  installJRMC defaults to --install=repo on platforms with a JRiver repository and --install=local on others.
 		  Specifying --build, --createrepo, --service, or --uninstall disables the default install method.
 
 		OPTIONS
@@ -66,19 +67,9 @@ print_help() {
 		  --betapass PASSWORD
 		    Enter beta team password for access to beta builds.
 		  --service, -s SERVICE
-		    See SERVICES section below for a list of possible services to install.
+		    See SERVICES below for possible services to install.
 		    --service-type user|system
 		      Starts services at boot (system) or at user login (user) (default: per service, see SERVICES).
-		  --container, -c CONTAINER (TODO: Under construction)
-		    See CONTAINERS section below for a list of possible services to install.
-		  --createrepo[=suse|fedora|centos|mandriva]
-		    Build rpm, copy to webroot, and run createrepo. 
-		    Use in conjunction with --build=TARGET for crossbuilding repos.
-		    Optionally, specify a target distro for non-native repo (ex. --createrepo=fedora, note the '=').
-		    --createrepo-webroot PATH
-		      Specify the webroot directory to install the repo (default: /var/www/jriver).
-		    --createrepo-user USER
-		      Specify the web server user if it differs from \$USER.
 		  --no-update
 		    Disable automatic installJRMC self-update.
 		  --uninstall, -u
@@ -111,6 +102,26 @@ print_help() {
 		      current display incremented by 1 (Xvnc)).
 		  jriver-createrepo (system)
 		    Install hourly service to build latest MC RPM and run createrepo.
+
+		ADVANCED OPTIONS
+		  --container, -c CONTAINER (TODO: Under construction)
+		    See CONTAINERS section below for a list of possible services to install.
+		  --createrepo[=suse|fedora|centos|mandriva]
+		    Build rpm, copy to webroot, and run createrepo. 
+		    Use in conjunction with --build=TARGET for crossbuilding repos.
+		    Optionally, specify a target distro for non-native repo (ex. --createrepo=fedora).
+		  --createrepo-webroot PATH
+		    Specify the webroot directory to install the repo (default: /var/www/jriver).
+		  --webroot-user USER
+		    Owner/user for createrepo output in the webroot (default: current user).
+		  --createrepo-user USER
+		    Backward-compatible alias for --webroot-user.
+		  --sign
+		    Sign the built RPM and repodata/repomd.xml (if --createrepo).
+		  --sign-user USER
+		    User account used to run rpmsign and gpg signing (default: current user).
+		  --sign-key KEYID
+		    GPG key ID, fingerprint, or UID used for --sign.
 	EOF
 }
 
@@ -120,15 +131,18 @@ parse_input() {
   debug "${FUNCNAME[0]}()" "$@"
   declare -gi BUILD_SWITCH REPO_INSTALL_SWITCH LOCAL_INSTALL_SWITCH \
     CONTAINER_INSTALL_SWITCH CREATEREPO_SWITCH SNAP_INSTALL_SWITCH \
-    APPIMAGE_INSTALL_SWITCH COMPAT_SWITCH UNINSTALL_SWITCH YES_SWITCH DEBUG=0
+    APPIMAGE_INSTALL_SWITCH COMPAT_SWITCH UNINSTALL_SWITCH YES_SWITCH \
+    SIGN_SWITCH DEBUG=0
   declare -g MC_VERSION_USER MC_MVERSION_USER MC_RELEASE_USER MC_REPO_USER USER_ARCH MJR_FILE \
-    BETAPASS SERVICE_TYPE VNCPASS USER_DISPLAY BUILD_TARGET CREATEREPO_TARGET
+    BETAPASS SERVICE_TYPE VNCPASS USER_DISPLAY BUILD_TARGET CREATEREPO_TARGET \
+    WEBROOT_USER SIGN_USER SIGN_KEY
   local long_opts short_opts input
   long_opts="install:,build::,outputdir:,mcversion:,arch:,mcrepo:,compat,"
   long_opts+="restorefile:,betapass:,"
   long_opts+="service-type:,service:,services:,"
   long_opts+="version,debug,verbose,help,uninstall,yes,auto,no-update,"
-  long_opts+="createrepo::,createrepo-webroot:,createrepo-user:,"
+  long_opts+="createrepo::,createrepo-webroot:,webroot-user:,createrepo-user:,"
+  long_opts+="sign,sign-user:,sign-key:,"
   long_opts+="vncpass:,display:,container:"
   short_opts="+i:b::s:c:uyvdh"
 
@@ -196,7 +210,10 @@ parse_input() {
         --createrepo) shift; CREATEREPO_TARGET="$1"; BUILD_TARGET="$1"
           BUILD_SWITCH=1; CREATEREPO_SWITCH=1 ;;
         --createrepo-webroot) shift; CREATEREPO_WEBROOT="$1" ;;
-        --createrepo-user) shift; CREATEREPO_USER="$1" ;;
+        --webroot-user|--createrepo-user) shift; WEBROOT_USER="$1" ;;
+        --sign) SIGN_SWITCH=1 ;;
+        --sign-user) shift; SIGN_USER="$1" ;;
+        --sign-key) shift; SIGN_KEY="$1" ;;
         --vncpass) shift; VNCPASS="$1" ;;
         --display) shift; USER_DISPLAY="$1" ;;
         --compat) COMPAT_SWITCH=1; BUILD_SWITCH=1 ;;
@@ -243,7 +260,8 @@ init() {
   
   declare -g OUTPUT_DIR="$SCRIPT_DIR/output"
   declare -g CREATEREPO_WEBROOT="/var/www/jriver"
-  declare -g CREATEREPO_USER="$USER" # can be root
+  declare -g WEBROOT_USER="$USER" # can be root
+  declare -g SIGN_USER
   declare -g ID VERSION_ID UBUNTU_CODENAME VERSION_CODENAME ARCH MC_ARCH NAME
   declare -g MC_MVERSION MC_RELEASE MC_PKG MC_RPM MC_ROOT
   declare -ga PKG_INSTALL PKG_REMOVE PKG_UPDATE PKG_QUERY
@@ -253,7 +271,7 @@ init() {
 
   # Try to save users from themselves
   if [[ $EUID -eq 0 ]]; then
-    err "Running as root but attempting to continue"
+    echo "Warning: running as root"
     ask_ok "Continue as root user (not recommended)?" || exit 1
   elif [[ -n $SUDO_USER ]]; then
     err "Sudo detected, installJRMC should not be run with sudo but attempting to continue"
@@ -261,6 +279,8 @@ init() {
     USER="${SUDO_USER:-$USER}"
   fi
 
+  # Default signing context to the account currently running installJRMC.
+  SIGN_USER="${SIGN_USER:-$(id -un)}"
   # Run the self-updater if enabled
   ((SELF_UPDATE_SWITCH)) && ((! SCRIPT_IS_PIPED)) && update "$@"
 
@@ -872,7 +892,7 @@ build_rpm() {
   # shellcheck disable=SC2178
   declare -n requires_arr="$1" recommends_arr="$2"
   local requires_str recommends_str 
-  local i rpmbuild_cmd stub
+  local i rpmbuild_cmd sign_cmd stub
   local spec_file="$OUTPUT_DIR/SPECS/mediacenter$MC_MVERSION-$MC_VERSION-$MC_RELEASE-$BUILD_TARGET-$ARCH.spec"
 
   # skip rebuilding the rpm if it already exists
@@ -967,7 +987,25 @@ build_rpm() {
   )
 
   # Run rpmbuild and verify output RPM exists
-  execute "${rpmbuild_cmd[@]}" && [[ -f $MC_RPM ]]
+  execute "${rpmbuild_cmd[@]}" && [[ -f $MC_RPM ]] || return 1
+
+  # Optionally sign the built RPM with the configured key
+  if ((SIGN_SWITCH)); then
+    local -a sign_prefix
+    command -v rpmsign &>/dev/null || { err "rpmsign command missing (install rpm-sign/rpm-build)"; return 1; }
+    if [[ $(id -un) == "$SIGN_USER" ]]; then
+      sign_prefix=()
+    else
+      sign_prefix=(sudo -u "$SIGN_USER")
+    fi
+    sign_cmd=(rpmsign --addsign)
+    [[ -n $SIGN_KEY ]] && sign_cmd+=(--define "_gpg_name $SIGN_KEY")
+    sign_cmd+=("$MC_RPM")
+    echo "Signing RPM: $MC_RPM"
+    execute "${sign_prefix[@]}" "${sign_cmd[@]}" || { err "RPM signing failed"; return 1; }
+  fi
+
+  return 0
 }
 
 # @description Creates the Arch PKGBUILD file for Media Center
@@ -1111,20 +1149,22 @@ install_mc_arch() {
   popd &>/dev/null || return
 }
 
-# @description Copy the RPM to createrepo-webroot and run createrepo as the createrepo-user
+# @description Copy the RPM to createrepo-webroot and run createrepo as the webroot-user
 run_createrepo() {
   debug "${FUNCNAME[0]}()"
+  local -a cr_opts gpg_cmd sign_prefix
+  local repomd_xml repomd_asc pubkey_file
 
   install_package createrepo_c
 
   # Ensure the webroot exists
   if [[ ! -d $CREATEREPO_WEBROOT ]]; then
-    if ! execute sudo -u "$CREATEREPO_USER" mkdir -p "$CREATEREPO_WEBROOT"; then
+    if ! execute sudo -u "$WEBROOT_USER" mkdir -p "$CREATEREPO_WEBROOT"; then
       if ! (execute sudo mkdir -p "$CREATEREPO_WEBROOT" ||
-      execute sudo chown -R "$CREATEREPO_USER:$CREATEREPO_USER" "$CREATEREPO_WEBROOT"); then
+      execute sudo chown -R "$WEBROOT_USER:$WEBROOT_USER" "$CREATEREPO_WEBROOT"); then
         err "Could not create the createrepo-webroot path!"
-        err "Make sure that the webroot $CREATEREPO_WEBROOT is writable by user $CREATEREPO_USER"
-        err "Or change the repo ownership with --createrepo-user"
+        err "Make sure that the webroot $CREATEREPO_WEBROOT is writable by user $WEBROOT_USER"
+        err "Or change the repo ownership with --webroot-user"
         return 1
       fi
     fi
@@ -1132,18 +1172,55 @@ run_createrepo() {
 
   # Copy built RPMs to webroot
   if ! execute sudo cp -nf "$MC_RPM" "$CREATEREPO_WEBROOT" ||
-  ! execute sudo chown -R "$CREATEREPO_USER:$CREATEREPO_USER" "$CREATEREPO_WEBROOT"; then
+  ! execute sudo chown -R "$WEBROOT_USER:$WEBROOT_USER" "$CREATEREPO_WEBROOT"; then
     err "Could not copy $MC_RPM to $CREATEREPO_WEBROOT"
     return 1
   fi
 
   # Run createrepo
-  local -a cr_opts=(--update)
+  cr_opts=(--update)
   # [[ -d "$CREATEREPO_WEBROOT/repodata" ]] && cr_opts+=(--update) # TODO temporarily disabled for legacy createrepo
-  if ! execute sudo -u "$CREATEREPO_USER" createrepo "${cr_opts[@]}" "$CREATEREPO_WEBROOT"; then
-    if ! (execute sudo createrepo "${cr_opts[@]}" "$CREATEREPO_WEBROOT" && execute sudo chown -R "$CREATEREPO_USER:$CREATEREPO_USER" "$CREATEREPO_WEBROOT"); then
+  if ! execute sudo -u "$WEBROOT_USER" createrepo "${cr_opts[@]}" "$CREATEREPO_WEBROOT"; then
+    if ! (execute sudo createrepo "${cr_opts[@]}" "$CREATEREPO_WEBROOT" && execute sudo chown -R "$WEBROOT_USER:$WEBROOT_USER" "$CREATEREPO_WEBROOT"); then
       err "createrepo failed"
       return 1
+    fi
+  fi
+
+  # Optionally sign repodata so clients can use repo_gpgcheck=1
+  if ((SIGN_SWITCH)); then
+    command -v gpg &>/dev/null || { err "gpg command missing"; return 1; }
+    repomd_xml="$CREATEREPO_WEBROOT/repodata/repomd.xml"
+    repomd_asc="$repomd_xml.asc"
+    [[ -f $repomd_xml ]] || { err "repomd.xml missing after createrepo"; return 1; }
+
+    gpg_cmd=(gpg --batch --yes --armor --detach-sign --output "$repomd_asc")
+    [[ -n $SIGN_KEY ]] && gpg_cmd+=(--local-user "$SIGN_KEY")
+    gpg_cmd+=("$repomd_xml")
+
+    if [[ $(id -un) == "$SIGN_USER" ]]; then
+      sign_prefix=()
+    else
+      sign_prefix=(sudo -u "$SIGN_USER")
+    fi
+
+    echo "Signing repodata: $repomd_xml"
+    if ! execute "${sign_prefix[@]}" "${gpg_cmd[@]}"; then
+      err "Repodata signing failed"
+      return 1
+    fi
+    execute sudo chown "$WEBROOT_USER:$WEBROOT_USER" "$repomd_asc"
+
+    # Export public key so clients can import it via repo gpgkey URL
+    if [[ -n $SIGN_KEY ]]; then
+      pubkey_file="$CREATEREPO_WEBROOT/RPM-GPG-KEY-jriver.asc"
+      if ! execute "${sign_prefix[@]}" gpg --batch --yes --armor --output "$pubkey_file" --export "$SIGN_KEY"; then
+        err "Public key export failed for SIGN_KEY=$SIGN_KEY"
+        return 1
+      fi
+      execute sudo chown "$WEBROOT_USER:$WEBROOT_USER" "$pubkey_file"
+    else
+      err "SIGN_SWITCH enabled without --sign-key; skipping public key export"
     fi
   fi
 }
@@ -1522,12 +1599,18 @@ service_jriver-x11vnc() {
 # JRiver Media Center RPM from the source DEB and create/update an RPM repository
 service_jriver-createrepo() {
   debug "${FUNCNAME[0]}()"
+  local -a sign_args
 
-  if [[ $CREATEREPO_USER != "$USER" ]]; then
+  if [[ $WEBROOT_USER != "$USER" ]]; then
     USER="root" set_service_vars "${FUNCNAME[0]##*_}" "system"
   else
     set_service_vars "${FUNCNAME[0]##*_}" "system"
   fi
+
+  sign_args=()
+  ((SIGN_SWITCH)) && sign_args+=(--sign)
+  [[ -n $SIGN_USER ]] && sign_args+=(--sign-user="$SIGN_USER")
+  [[ -n $SIGN_KEY ]] && sign_args+=(--sign-key="$SIGN_KEY")
 
   sudo bash -c "cat <<-EOF > $SERVICE_FNAME
 		[Unit]
@@ -1536,7 +1619,7 @@ service_jriver-createrepo() {
 		[Service]
 		$USER_STRING
 		ExecStart=$SCRIPT_DIR/installJRMC --outputdir=$OUTPUT_DIR --createrepo=$CREATEREPO_TARGET \
-      --createrepo-webroot=$CREATEREPO_WEBROOT --createrepo-user=$CREATEREPO_USER --mcrepo=$MC_REPO --yes --no-update
+      --createrepo-webroot=$CREATEREPO_WEBROOT --webroot-user=$WEBROOT_USER --mcrepo=$MC_REPO ${sign_args[*]} --yes --no-update
 
 		[Install]
 		WantedBy=multi-user.target
@@ -1787,13 +1870,28 @@ main() {
 
     case $ID in
       fedora|centos)
+        local keyurl="https://repos.bryanroessler.com/jriver/RPM-GPG-KEY-jriver.asc"
+        local keyfile="/etc/pki/rpm-gpg/RPM-GPG-KEY-jriver"
+
+        echo "Installing JRiver Media Center RPM GPG key"
+        download "$keyurl" "-" | sudo tee "$keyfile" &>/dev/null || {
+          err "Failed to download/install RPM GPG key from $keyurl"
+          return 1
+        }
+        execute sudo rpm --import "$keyfile" || {
+          err "Failed to import RPM GPG key: $keyfile"
+          return 1
+        }
+
         repo_file="/etc/yum.repos.d/jriver.repo"
         echo "Installing repository file: $repo_file"
         sudo tee "$repo_file" &>/dev/null <<-EOF
 					[jriver]
 					baseurl = https://repos.bryanroessler.com/jriver
 					enabled = 1
-					gpgcheck = 0
+					gpgcheck = 1
+					repo_gpgcheck = 1
+					gpgkey = $keyurl
 					name = JRiver Media Center hosted by BryanC
 				EOF
         ;;
@@ -1844,7 +1942,7 @@ main() {
     fi
 
     echo "Installing $MC_PKG package"
-    if install_package --no-install-check --no-gpg-check --allow-downgrades "$MC_PKG"; then
+    if install_package --no-install-check --allow-downgrades "$MC_PKG"; then
       echo "Successfully installed JRiver Media Center from repository"
     else
       err "MC failed to install"
@@ -1895,7 +1993,10 @@ main() {
 
     # Install MC package
     case $ID in
-      fedora|centos|mandriva|suse) install_package --no-install-check --no-gpg-check --allow-downgrades "$MC_RPM" ;;
+      fedora|centos|mandriva|suse) 
+        local -a gpg_flag; ((SIGN_SWITCH)) || gpg_flag=(--no-gpg-check)
+        install_package --no-install-check "${gpg_flag[@]}" --allow-downgrades "$MC_RPM"
+        ;;
       debian|ubuntu) install_mc_deb "$@" ;;
       arch) install_mc_arch ;;
       unknown) install_mc_generic ;;
