@@ -260,7 +260,7 @@ init() {
   
   declare -g OUTPUT_DIR="$SCRIPT_DIR/output"
   declare -g CREATEREPO_WEBROOT="/var/www/jriver"
-  declare -g WEBROOT_USER="$USER" # can be root
+  declare -g WEBROOT_USER # can be root
   declare -g SIGN_USER
   declare -g ID VERSION_ID UBUNTU_CODENAME VERSION_CODENAME ARCH MC_ARCH NAME
   declare -g MC_MVERSION MC_RELEASE MC_PKG MC_RPM MC_ROOT
@@ -279,7 +279,8 @@ init() {
     USER="${SUDO_USER:-$USER}"
   fi
 
-  # Default signing context to the account currently running installJRMC.
+  # Default webroot/signing contexts to the account currently running installJRMC.
+  WEBROOT_USER="${WEBROOT_USER:-$USER}"
   SIGN_USER="${SIGN_USER:-$(id -un)}"
 
   # Run the self-updater if enabled
@@ -1615,7 +1616,7 @@ service_jriver-x11vnc() {
 service_jriver-createrepo() {
   debug "${FUNCNAME[0]}()"
   local -a sign_args
-  local service_script
+  local service_script start_cmd
 
   if [[ $WEBROOT_USER != "$USER" ]]; then
     USER="root" set_service_vars "${FUNCNAME[0]##*_}" "system"
@@ -1640,6 +1641,9 @@ service_jriver-createrepo() {
   ((SIGN_SWITCH)) && sign_args+=(--sign)
   [[ -n $SIGN_USER ]] && sign_args+=(--sign-user="$SIGN_USER")
   [[ -n $SIGN_KEY ]] && sign_args+=(--sign-key="$SIGN_KEY")
+
+  debug "ExecStart=$service_script --outputdir=$OUTPUT_DIR --createrepo=$CREATEREPO_TARGET \
+    --createrepo-webroot=$CREATEREPO_WEBROOT --webroot-user=$WEBROOT_USER --mcrepo=$MC_REPO ${sign_args[*]} --yes --no-update"
 
   sudo bash -c "cat <<-EOF > $SERVICE_FNAME
 		[Unit]
