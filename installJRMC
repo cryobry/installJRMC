@@ -1684,6 +1684,13 @@ service_jriver-createrepo() {
 
   set_service_vars "${FUNCNAME[0]##*_}" "system"
 
+  # jriver-createrepo must run as root, not templated per-user
+  SERVICE_NAME="jriver-createrepo.service"
+  TIMER_NAME="jriver-createrepo.timer"
+  SERVICE_FNAME="/usr/lib/systemd/system/jriver-createrepo.service"
+  TIMER_FNAME="/usr/lib/systemd/system/jriver-createrepo.timer"
+  USER_STRING=""
+
   # System services cannot exec files from home directories (SELinux).
   # If the script lives under /home/, copy it to a system path first.
   if [[ $SCRIPT_PATH == /home/* ]]; then
