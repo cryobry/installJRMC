@@ -1654,6 +1654,9 @@ service_jriver-createrepo() {
     --no-update
   )
 
+  # Pass --debug to service file if it was set for the main script
+  ((DEBUG)) && start_cmd+=("--debug")
+
   debug "ExecStart=${start_cmd[*]}"
 
   sudo bash -c "cat <<-EOF > $SERVICE_FNAME
@@ -1661,8 +1664,8 @@ service_jriver-createrepo() {
 		Description=Builds JRiver Media Center RPM, moves it to the repo dir, and runs createrepo
 
 		[Service]
-		$USER_STRING
 		ExecStart=${start_cmd[*]}
+		$USER_STRING
 
 		[Install]
 		WantedBy=multi-user.target
