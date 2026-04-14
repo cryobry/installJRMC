@@ -1600,11 +1600,25 @@ service_jriver-x11vnc() {
 service_jriver-createrepo() {
   debug "${FUNCNAME[0]}()"
   local -a sign_args
+  local service_script
 
   if [[ $WEBROOT_USER != "$USER" ]]; then
     USER="root" set_service_vars "${FUNCNAME[0]##*_}" "system"
   else
     set_service_vars "${FUNCNAME[0]##*_}" "system"
+  fi
+
+  # System services cannot exec files from home directories (SELinux).
+  # If the script lives under /home/, copy it to a system path first.
+  if [[ $SCRIPT_PATH == /home/* ]]; then
+    service_script="/opt/installJRMC/installJRMC"
+    echo "Script is in a home directory; installing to $service_script for system service"
+    if ! { execute sudo mkdir -p "/opt/installJRMC" && execute sudo install -m 0755 "$SCRIPT_PATH" "$service_script"; }; then
+      err "Could not install script to $service_script; the service may fail to start"
+      service_script="$SCRIPT_PATH"
+    fi
+  else
+    service_script="$SCRIPT_PATH"
   fi
 
   sign_args=()
@@ -1618,7 +1632,7 @@ service_jriver-createrepo() {
 
 		[Service]
 		$USER_STRING
-		ExecStart=$SCRIPT_DIR/installJRMC --outputdir=$OUTPUT_DIR --createrepo=$CREATEREPO_TARGET \
+		ExecStart=$service_script --outputdir=$OUTPUT_DIR --createrepo=$CREATEREPO_TARGET \
       --createrepo-webroot=$CREATEREPO_WEBROOT --webroot-user=$WEBROOT_USER --mcrepo=$MC_REPO ${sign_args[*]} --yes --no-update
 
 		[Install]
