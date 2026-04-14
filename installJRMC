@@ -1630,6 +1630,8 @@ service_jriver-createrepo() {
   local -a sign_args start_cmd
   local service_script start_cmd
 
+  CREATEREPO_SWITCH=0 # skip running createrepo when generating service
+
   if [[ $WEBROOT_USER != "$USER" ]]; then
     USER="root" set_service_vars "${FUNCNAME[0]##*_}" "system"
   else
@@ -2074,14 +2076,6 @@ main() {
     open_firewall "jriver-mediacenter" "52100-52200/tcp" "1900/udp"
   fi
 
-  if ((CREATEREPO_SWITCH)); then
-    if run_createrepo; then
-      echo "Successfully updated repo"
-    else
-      err "Repo creation failed"
-    fi
-  fi
-
   if [[ ${#SERVICES[@]} -gt 0 ]]; then
     declare service
     for service in "${SERVICES[@]}"; do
@@ -2096,6 +2090,14 @@ main() {
       fi
     done
     unset service
+  fi
+
+  if ((CREATEREPO_SWITCH)); then
+    if run_createrepo; then
+      echo "Successfully updated repo"
+    else
+      err "Repo creation failed"
+    fi
   fi
 }
 
