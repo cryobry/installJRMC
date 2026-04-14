@@ -895,6 +895,7 @@ build_rpm() {
   declare -n requires_arr="$1" recommends_arr="$2"
   local requires_str recommends_str 
   local i rpmbuild_cmd sign_cmd stub sign_output
+  local -a build_prefix sign_prefix
   local spec_file="$OUTPUT_DIR/SPECS/mediacenter$MC_MVERSION-$MC_VERSION-$MC_RELEASE-$BUILD_TARGET-$ARCH.spec"
 
   # skip rebuilding the rpm if it already exists
@@ -988,12 +989,20 @@ build_rpm() {
       "$spec_file"
   )
 
+  # Build as signing user when running as root with a non-root SIGN_USER.
+  # This keeps RPM ownership aligned with rpmsign and avoids permission mismatches.
+  if [[ $(id -un) == "$SIGN_USER" ]]; then
+    build_prefix=()
+  else
+    build_prefix=(sudo -H -u "$SIGN_USER")
+    execute chown -R "$SIGN_USER:$SIGN_USER" "$OUTPUT_DIR"
+  fi
+
   # Run rpmbuild and verify output RPM exists
-  execute "${rpmbuild_cmd[@]}" && [[ -f $MC_RPM ]] || return 1
+  execute "${build_prefix[@]}" "${rpmbuild_cmd[@]}" && [[ -f $MC_RPM ]] || return 1
 
   # Optionally sign the built RPM with the configured key
   if ((SIGN_SWITCH)); then
-    local -a sign_prefix
     command -v rpmsign &>/dev/null || { err "rpmsign command missing (install rpm-sign/rpm-build)"; return 1; }
     command -v gpg &>/dev/null || { err "gpg command missing"; return 1; }
 
@@ -1661,21 +1670,11 @@ service_jriver-x11vnc() {
 service_jriver-createrepo() {
   debug "${FUNCNAME[0]}()"
   local -a sign_args start_cmd
-  local service_script start_cmd SERVICE_RUN_USER
+  local service_script start_cmd
 
   CREATEREPO_SWITCH=0 # skip running createrepo when generating service
 
   set_service_vars "${FUNCNAME[0]##*_}" "system"
-
-  # Keep this as a system service, but run the process as the signing user
-  # so rpmbuild/rpmsign operate on files owned by the same account.
-  SERVICE_RUN_USER="${SIGN_USER:-$USER}"
-  if id "$SERVICE_RUN_USER" &>/dev/null; then
-    USER_STRING="User=$SERVICE_RUN_USER"
-  else
-    err "Service run user does not exist: $SERVICE_RUN_USER"
-    return 1
-  fi
 
   # System services cannot exec files from home directories (SELinux).
   # If the script lives under /home/, copy it to a system path first.
