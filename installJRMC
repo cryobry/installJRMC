@@ -1936,18 +1936,8 @@ main() {
         local keyurl="https://repos.bryanroessler.com/jriver/RPM-GPG-KEY-jriver.asc"
         local keyfile="/etc/pki/rpm-gpg/RPM-GPG-KEY-jriver"
 
-        echo "Installing JRiver Media Center RPM GPG key"
-        download "$keyurl" "-" | sudo tee "$keyfile" &>/dev/null || {
-          err "Failed to download/install RPM GPG key from $keyurl"
-          return 1
-        }
-        execute sudo rpm --import "$keyfile" || {
-          err "Failed to import RPM GPG key: $keyfile"
-          return 1
-        }
-
-        repo_file="/etc/yum.repos.d/jriver.repo"
         echo "Installing repository file: $repo_file"
+        repo_file="/etc/yum.repos.d/jriver.repo"
         sudo tee "$repo_file" &>/dev/null <<-EOF
 					[jriver]
 					baseurl = https://repos.bryanroessler.com/jriver
