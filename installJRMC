@@ -281,6 +281,7 @@ init() {
 
   # Default signing context to the account currently running installJRMC.
   SIGN_USER="${SIGN_USER:-$(id -un)}"
+
   # Run the self-updater if enabled
   ((SELF_UPDATE_SWITCH)) && ((! SCRIPT_IS_PIPED)) && update "$@"
 
@@ -1156,6 +1157,20 @@ run_createrepo() {
   local repomd_xml repomd_asc pubkey_file
 
   install_package createrepo_c
+
+  # Ensure WEBROOT_USER exists or offer to create it
+  if ! id "$WEBROOT_USER" &>/dev/null; then
+    err "Specified --webroot-user '$WEBROOT_USER' does not exist"
+    if ask_ok "Create local user '$WEBROOT_USER'?"; then
+      if ! execute sudo useradd "$WEBROOT_USER"; then
+        err "Failed to create user '$WEBROOT_USER'"
+        return 1
+      fi
+    else
+      err "Cannot continue without a valid --webroot-user"
+      return 1
+    fi
+  fi
 
   # Ensure the webroot exists
   if [[ ! -d $CREATEREPO_WEBROOT ]]; then
