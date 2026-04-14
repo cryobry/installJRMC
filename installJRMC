@@ -1908,11 +1908,11 @@ main() {
     exit 0
   fi
 
-  install_external_repos
-
   if ((REPO_INSTALL_SWITCH)); then
     echo "Installing JRiver Media Center from remote repository"
     local repo_file
+
+    install_external_repos
 
     case $ID in
       fedora|centos)
@@ -2036,6 +2036,8 @@ main() {
 
   if ((LOCAL_INSTALL_SWITCH)); then
     echo "Installing JRiver Media Center from local package"
+
+    install_external_repos
 
     # Install MC package
     case $ID in
