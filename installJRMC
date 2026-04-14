@@ -1209,20 +1209,20 @@ run_createrepo() {
     repomd_xml="$CREATEREPO_WEBROOT/repodata/repomd.xml"
     repomd_asc="$repomd_xml.asc"
     [[ -f $repomd_xml ]] || { err "repomd.xml missing after createrepo"; return 1; }
+    [[ -n $SIGN_KEY ]] || { err "--sign requires --sign-key for repodata signing"; return 1; }
 
     if [[ $(id -un) == "$SIGN_USER" ]]; then
       sign_prefix=()
     else
-      sign_prefix=(sudo -u "$SIGN_USER")
+      sign_prefix=(sudo -H -u "$SIGN_USER")
     fi
 
     # Sign repo.md to a temp file first and then move to webroot
     local repomd_asc_tmp
     repomd_asc_tmp=$(mktemp) || { err "Failed to create temp file for signature"; return 1; }
 
-    gpg_cmd=(gpg --batch --yes --armor --detach-sign --output "$repomd_asc_tmp")
+    gpg_cmd=(gpg --batch --yes --pinentry-mode loopback --default-key "$SIGN_KEY" --armor --detach-sign --output "$repomd_asc_tmp")
     ((DEBUG)) && gpg_cmd+=(--verbose)
-    [[ -n $SIGN_KEY ]] && gpg_cmd+=(--local-user "$SIGN_KEY")
     gpg_cmd+=("$repomd_xml")
 
     echo "Signing repodata: $repomd_xml"
@@ -1236,21 +1236,17 @@ run_createrepo() {
     rm -f "$repomd_asc_tmp"
 
     # Export public key so clients can import it via repo gpgkey URL
-    if [[ -n $SIGN_KEY ]]; then
-      pubkey_file="$CREATEREPO_WEBROOT/RPM-GPG-KEY-jriver.asc"
-      local pubkey_tmp
-      pubkey_tmp=$(mktemp) || { err "Failed to create temp file for public key"; return 1; }
-      if ! execute "${sign_prefix[@]}" gpg --batch --yes --armor --output "$pubkey_tmp" --export "$SIGN_KEY"; then
-        rm -f "$pubkey_tmp"
-        err "Public key export failed for SIGN_KEY=$SIGN_KEY"
-        return 1
-      fi
-      execute sudo install -m 0644 "$pubkey_tmp" "$pubkey_file"
-      execute sudo chown "$WEBROOT_USER:$WEBROOT_USER" "$pubkey_file"
+    pubkey_file="$CREATEREPO_WEBROOT/RPM-GPG-KEY-jriver.asc"
+    local pubkey_tmp
+    pubkey_tmp=$(mktemp) || { err "Failed to create temp file for public key"; return 1; }
+    if ! execute "${sign_prefix[@]}" gpg --batch --yes --armor --output "$pubkey_tmp" --export "$SIGN_KEY"; then
       rm -f "$pubkey_tmp"
-    else
-      err "SIGN_SWITCH enabled without --sign-key; skipping public key export"
+      err "Public key export failed for SIGN_KEY=$SIGN_KEY"
+      return 1
     fi
+    execute sudo install -m 0644 "$pubkey_tmp" "$pubkey_file"
+    execute sudo chown "$WEBROOT_USER:$WEBROOT_USER" "$pubkey_file"
+    rm -f "$pubkey_tmp"
   fi
 }
 
