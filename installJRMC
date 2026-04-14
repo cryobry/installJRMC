@@ -1221,6 +1221,7 @@ run_createrepo() {
     repomd_asc_tmp=$(mktemp) || { err "Failed to create temp file for signature"; return 1; }
 
     gpg_cmd=(gpg --batch --yes --armor --detach-sign --output "$repomd_asc_tmp")
+    ((DEBUG)) && gpg_cmd+=(--verbose)
     [[ -n $SIGN_KEY ]] && gpg_cmd+=(--local-user "$SIGN_KEY")
     gpg_cmd+=("$repomd_xml")
 
