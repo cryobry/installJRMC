@@ -1725,7 +1725,6 @@ service_jriver-createrepo() {
 
 		[Service]
 		ExecStart=${start_cmd[*]}
-		$USER_STRING
 
 		[Install]
 		WantedBy=multi-user.target
