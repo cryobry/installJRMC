@@ -2041,7 +2041,7 @@ main() {
     esac
 
     echo "Updating package lists"
-    if ! execute "${PKG_UPDATE[@]}"; then
+    if ! "${PKG_UPDATE[@]}"; then
       err "Package update failed!"
       remove_legacy_repo
       if [[ $MC_REPO != "$MC_REPO_HARDCODE" ]]; then
