@@ -68,8 +68,8 @@ print_help() {
 		    Enter beta team password for access to beta builds.
 		  --service, -s SERVICE
 		    See SERVICES below for possible services to install.
-		    --service-type user|system
-		      Starts services at boot (system) or at user login (user) (default: per service, see SERVICES).
+		  --service-type user|system
+		    Starts services at boot (system) or at user login (user) (default: per service, see SERVICES).
 		  --no-update
 		    Disable automatic installJRMC self-update.
 		  --uninstall, -u
@@ -421,7 +421,12 @@ init() {
 
   echo "MC source -> target: $MC_REPO $MC_ARCH -> $BUILD_TARGET $ARCH"
   set_mc_version
-  echo "Selected MC version $MC_VERSION from the $MC_REPO repo (via $MC_VERSION_SOURCE)"
+  if ((REPO_INSTALL_SWITCH)) && [[ -z $MC_VERSION_USER ]]; then
+    debug "Selected latest MC version from the $MC_REPO repo (via $MC_VERSION_SOURCE)"
+  else
+    debug "Selected MC version $MC_VERSION from the $MC_REPO repo (via $MC_VERSION_SOURCE)"
+  fi
+  debug "If using --install=repo and no --mcversion, the latest version will be installed"
   
   # Set additional MC version variables
   MC_RELEASE="${MC_RELEASE_USER:-1}"
@@ -454,7 +459,11 @@ set_mc_version() {
   # Package manager will handle updates in other instances
   if ! ((BUILD_SWITCH || LOCAL_INSTALL_SWITCH || CREATEREPO_SWITCH)); then
     MC_VERSION="$MC_VERSION_HARDCODE"
-    MC_VERSION_SOURCE="hardcoded"
+    if ((REPO_INSTALL_SWITCH)); then
+      MC_VERSION_SOURCE="package manager"
+    else
+      MC_VERSION_SOURCE="hardcoded"
+    fi
     return 0
   fi
 
@@ -1983,7 +1992,7 @@ main() {
     case $ID in
       fedora|centos)
         local keyurl="https://repos.bryanroessler.com/jriver/RPM-GPG-KEY-jriver.asc"
-        local keyfile="/etc/pki/rpm-gpg/RPM-GPG-KEY-jriver"
+        # local keyfile="/etc/pki/rpm-gpg/RPM-GPG-KEY-jriver"
 
         echo "Installing repository file: $repo_file"
         repo_file="/etc/yum.repos.d/jriver.repo"
