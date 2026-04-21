@@ -566,7 +566,7 @@ install_package() {
 
   # Install packages
   if [[ ${#pkg_array[@]} -gt 0 ]]; then
-    if ! execute "${pkg_install[@]}" "${install_flags[@]}" "${pkg_array[@]}"; then     
+    if ! "${pkg_install[@]}" "${install_flags[@]}" "${pkg_array[@]}"; then     
       ((silent)) || err "Failed to install ${pkg_array[*]}"
       return 1
     fi
