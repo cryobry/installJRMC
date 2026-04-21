@@ -422,11 +422,10 @@ init() {
   echo "MC source -> target: $MC_REPO $MC_ARCH -> $BUILD_TARGET $ARCH"
   set_mc_version
   if ((REPO_INSTALL_SWITCH)) && [[ -z $MC_VERSION_USER ]]; then
-    debug "Selected latest MC version from the $MC_REPO repo (via $MC_VERSION_SOURCE)"
+    echo "Selected latest MC version from the $MC_REPO repo (via $MC_VERSION_SOURCE)"
   else
-    debug "Selected MC version $MC_VERSION from the $MC_REPO repo (via $MC_VERSION_SOURCE)"
+    echo "Selected MC version $MC_VERSION from the $MC_REPO repo (via $MC_VERSION_SOURCE)"
   fi
-  debug "If using --install=repo and no --mcversion, the latest version will be installed"
   
   # Set additional MC version variables
   MC_RELEASE="${MC_RELEASE_USER:-1}"
