@@ -421,7 +421,7 @@ init() {
 
   echo "MC source -> target: $MC_REPO $MC_ARCH -> $BUILD_TARGET $ARCH"
   set_mc_version
-  if ((REPO_INSTALL_SWITCH)) && [[ -z $MC_VERSION_USER ]]; then
+  if ((REPO_INSTALL_SWITCH || UNINSTALL_SWITCH)) && [[ -z $MC_VERSION_USER ]]; then
     echo "Selected latest MC version from the $MC_REPO repo (via $MC_VERSION_SOURCE)"
   else
     echo "Selected MC version $MC_VERSION from the $MC_REPO repo (via $MC_VERSION_SOURCE)"
@@ -458,7 +458,7 @@ set_mc_version() {
   # Package manager will handle updates in other instances
   if ! ((BUILD_SWITCH || LOCAL_INSTALL_SWITCH || CREATEREPO_SWITCH)); then
     MC_VERSION="$MC_VERSION_HARDCODE"
-    if ((REPO_INSTALL_SWITCH)); then
+    if ((REPO_INSTALL_SWITCH || UNINSTALL_SWITCH)); then
       MC_VERSION_SOURCE="package manager"
     else
       MC_VERSION_SOURCE="hardcoded"
