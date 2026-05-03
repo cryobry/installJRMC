@@ -896,7 +896,7 @@ translate_packages() {
     arch)
       # Set these manually for Arch since they are quite different
       requires_arr=('alsa-lib' 'ca-certificates' 'dbus' 'gtk3' 'gcc-libs' 'libx11' 'libxext'
-        'libxcb' 'libxau' 'libxdmcp' 'libxss' 'util-linux' 'mesa-libgl' 'webkit2gtk-bin')
+        'libxcb' 'libxau' 'libxdmcp' 'libxss' 'util-linux' 'mesa-libgl' 'webkit2gtk-4.1')
       recommends_arr=('mesa-libgl' 'nvidia-libgl' 'nvidia-utils' 'vulkan-intel'
         'vulkan-radeon' 'vorbis-tools' 'musepack-tools')
       ;;
