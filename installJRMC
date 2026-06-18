@@ -22,7 +22,7 @@
 # shellcheck disable=SC2329
 shopt -s extglob
 
-declare -g SCRIPT_VERSION="1.35.16"
+declare -g SCRIPT_VERSION="1.35.17-dev"
 declare -g MC_VERSION_HARDCODE="35.0.74" # do find all replace
 declare -g MC_REPO_HARDCODE="bookworm" # should match the MC_VERSION_HARDCODE
 declare -g BOARD_ID="92.0" # MC35 board ID for fallback latest version detection
@@ -901,6 +901,18 @@ translate_packages() {
         'vulkan-radeon' 'vorbis-tools' 'musepack-tools')
       ;;
     *) echo "Skipping package translations for $ID" ;;
+  esac
+
+  # TODO Quirks
+  case $BUILD_TARGET in
+    # RHEL 9
+    centos)
+      if [[ ${VERSION_ID%%.*} == 9 ]]; then
+        requires_arr=("${requires_arr[@]/freetype*/freetype}") # remove freetype minimum version requirement
+        requires_arr=("${requires_arr[@]/webkit2gtk*/webkit2gtk3}") # use webkit2gtk3
+        requires_arr=("${requires_arr[@]/pango*/pango}") # remove pango minimum version requirement
+      fi
+      ;;
   esac
 }
 
