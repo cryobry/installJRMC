@@ -22,7 +22,7 @@
 # shellcheck disable=SC2329
 shopt -s extglob
 
-declare -g SCRIPT_VERSION="1.36.0"
+declare -g SCRIPT_VERSION="1.36.1-dev"
 declare -g MC_VERSION_HARDCODE="36.0.14" # do find all replace
 declare -g MC_REPO_HARDCODE="bookworm" # should match the MC_VERSION_HARDCODE
 declare -g BOARD_ID="95.0" # MC36 board ID for fallback latest version detection
@@ -610,7 +610,7 @@ install_external_repos() {
           "https://download1.rpmfusion.org/free/fedora/rpmfusion-free-release-$VERSION_ID.noarch.rpm"
       fi
       # Install freeworld mesa packages for better hardware acceleration
-      for pkg in mesa-va-drivers mesa-vdpau-drivers mesa-vulkan-drivers; do
+      for pkg in mesa-va-drivers mesa-vulkan-drivers; do
         freeworld_pkg="${pkg}-freeworld"
         if ! "${PKG_QUERY[@]}" "$freeworld_pkg" &>/dev/null; then
           if "${PKG_QUERY[@]}" "$pkg" &>/dev/null; then
@@ -823,7 +823,6 @@ translate_packages() {
       recommends_arr=("${recommends_arr[@]/fdkaac/fdk-aac-free}")
       recommends_arr+=("mesa-va-drivers-freeworld|mesa-va-drivers")
       recommends_arr+=("mesa-vulkan-drivers-freeworld|mesa-vulkan-drivers")
-      recommends_arr+=("mesa-vdpau-driver-freeworld|mesa-vdpau-driver")
       ;;
     suse)
       requires_arr=("${requires_arr[@]/python*/python3}")
