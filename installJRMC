@@ -22,10 +22,10 @@
 # shellcheck disable=SC2329
 shopt -s extglob
 
-declare -g SCRIPT_VERSION="1.35.17"
-declare -g MC_VERSION_HARDCODE="35.0.78" # do find all replace
+declare -g SCRIPT_VERSION="1.36.0"
+declare -g MC_VERSION_HARDCODE="36.0.14" # do find all replace
 declare -g MC_REPO_HARDCODE="bookworm" # should match the MC_VERSION_HARDCODE
-declare -g BOARD_ID="92.0" # MC35 board ID for fallback latest version detection
+declare -g BOARD_ID="95.0" # MC36 board ID for fallback latest version detection
 declare -gi SELF_UPDATE_SWITCH=1 # 0 to disable installJRMC self-update
 declare -g SCRIPT_URL="https://git.bryanroessler.com/bryan/installJRMC/raw/branch/master/installJRMC" # self-update URL
 # declare -g SCRIPT_URL="https://raw.githubusercontent.com/cryobry/installJRMC/refs/heads/master/installJRMC" # backup URL
@@ -173,7 +173,8 @@ parse_input() {
 
             # Set major version defaults
             case "$MC_MVERSION_USER" in
-              35) MC_REPO_HARDCODE="bookworm" BOARD_ID="92.0" ;; # fallback to hardcoded version if full version not provided
+              36) MC_REPO_HARDCODE="bookworm" BOARD_ID="95.0" ;; # fallback to hardcoded version if full version not provided
+              35) MC_VERSION_USER="${MC_VERSION_USER:-35.0.78}" MC_REPO_HARDCODE="bookworm" BOARD_ID="92.0" ;;
               34) MC_VERSION_USER="${MC_VERSION_USER:-34.0.75}" MC_REPO_HARDCODE="bookworm" BOARD_ID="89.0" ;;
               33) MC_VERSION_USER="${MC_VERSION_USER:-33.0.72}" MC_REPO_HARDCODE="bullseye" BOARD_ID="86.0" ;;
               32) MC_VERSION_USER="${MC_VERSION_USER:-32.0.58}" MC_REPO_HARDCODE="bullseye" BOARD_ID="83.0" ;;
@@ -2005,8 +2006,8 @@ main() {
         local keyurl="https://repos.bryanroessler.com/jriver/RPM-GPG-KEY-jriver.asc"
         # local keyfile="/etc/pki/rpm-gpg/RPM-GPG-KEY-jriver"
 
-        echo "Installing repository file: $repo_file"
         repo_file="/etc/yum.repos.d/jriver.repo"
+        echo "Installing repository file: $repo_file"
         sudo tee "$repo_file" &>/dev/null <<-EOF
 					[jriver]
 					baseurl = https://repos.bryanroessler.com/jriver
