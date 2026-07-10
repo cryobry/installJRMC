@@ -1544,8 +1544,6 @@ service_jriver-mediacenter() {
 		Type=simple
 		$USER_STRING
 		ExecStart=/usr/bin/mediacenter$MC_MVERSION $*
-		KillMode=none
-		ExecStop=/usr/bin/mc$MC_MVERSION /MCC 20007
 		Restart=always
 		RestartSec=10
 		TimeoutStopSec=30
