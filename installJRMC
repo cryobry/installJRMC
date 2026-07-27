@@ -304,8 +304,9 @@ init() {
   # Detect host architecture and translate to MC convention
   if ARCH=$(uname -m); then
     case $ARCH in
-      x86_64) MC_ARCH="amd64" ;;
-      aarch64) MC_ARCH="arm64" ;;
+      x86_64|amd64) MC_ARCH="amd64" ;;
+      aarch64|arm64) MC_ARCH="arm64" ;;
+      armv8l|armv7*|armv6*) MC_ARCH="armhf" ;;
       *) MC_ARCH="$ARCH" ;;
     esac
   else
