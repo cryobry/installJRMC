@@ -788,13 +788,7 @@ translate_packages() {
   recommends_arr=("${recommends_arr[@]//)/}")
 
   # Translate package names
-  debug "BUILD_TARGET: $BUILD_TARGET"
-
   case $BUILD_TARGET in
-    raspbian)
-      requires_arr=("${requires_arr[@]/libasound2/libasound2t64}")
-      requires_arr=("${requires_arr[@]/libgtk-3-0/libgtk-3-0t64}")
-      ;;
     fedora|centos)
       requires_arr=("${requires_arr[@]/libc6/glibc}")
       requires_arr=("${requires_arr[@]/libasound2/alsa-lib}")
@@ -1139,6 +1133,12 @@ install_mc_deb() {
     if [[ $ID == "ubuntu" && ${VERSION_ID%%.*} -le 16 ]] &&
     grep -q zorin /etc/os-release; then
       execute sed -i 's/libva2/libva1/g' control
+    fi
+
+    # TODO workaround for 32-bit raspbian
+    if [[ $ID == "raspbian" && $MC_ARCH == "armhf" ]]; then
+      execute sed -i 's/libasound2/libasound2t64/g' control
+      execute sed -i 's/libgtk-3-0/libgtk-3-0t64/g' control
     fi
 
     execute tar -cJf "control.tar.xz" "control" "postinst"
