@@ -788,6 +788,10 @@ translate_packages() {
 
   # Translate package names
   case $BUILD_TARGET in
+    raspbian)
+      requires_arr=("${requires_arr[@]/libasound2/libasound2t64}")
+      requires_arr=("${requires_arr[@]/libgtk-3-0/libgtk-3-0t64}")
+      ;;
     fedora|centos)
       requires_arr=("${requires_arr[@]/libc6/glibc}")
       requires_arr=("${requires_arr[@]/libasound2/alsa-lib}")
