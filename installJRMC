@@ -22,7 +22,7 @@
 # shellcheck disable=SC2329
 shopt -s extglob
 
-declare -g SCRIPT_VERSION="1.36.1"
+declare -g SCRIPT_VERSION="1.36.2-dev"
 declare -g MC_VERSION_HARDCODE="36.0.20" # do find all replace
 declare -g MC_REPO_HARDCODE="bookworm" # should match the MC_VERSION_HARDCODE
 declare -g BOARD_ID="95.0" # MC36 board ID for fallback latest version detection
@@ -327,10 +327,9 @@ init() {
 
   # Normalize ID and set OS defaults
   case $ID in
-    debian|fedora|centos) ;;
+    debian|raspbian|fedora|centos) ;;
     rhel|almalinux) ID="centos" ;;
     linuxmint|neon|zorin|*ubuntu*) ID="ubuntu" ;;
-    raspbian) ID="debian" ;;
     *mandriva*) ID="mandriva"
       if ((REPO_INSTALL_SWITCH)); then
         debug "Automatically using --install=local for Mandriva."
@@ -389,7 +388,7 @@ init() {
       PKG_UPDATE=(sudo "$rpm_mgr" makecache --assumeyes)
       PKG_QUERY=(rpm -q)
       ;;
-    debian|ubuntu)
+    debian|raspbian|ubuntu)
       PKG_INSTALL=(sudo apt-get install --fix-broken --install-recommends --assume-yes)
       PKG_REMOVE=(sudo apt-get remove --auto-remove --assume-yes)
       PKG_UPDATE=(sudo apt-get update --assume-yes)
@@ -440,7 +439,7 @@ init() {
     # Append explicit package version when user provides --mcversion
     case $ID in
       fedora|centos|suse|mandriva) MC_PKG+="-$MC_VERSION" ;;
-      debian|ubuntu)
+      debian|raspbian|ubuntu)
         # ARM packages append arch to the package name and version
         if [[ $MC_ARCH == "arm64" || $MC_ARCH == "armhf" ]]; then
           MC_PKG+=":${MC_ARCH}=${MC_VERSION}-${MC_ARCH}"
@@ -525,7 +524,7 @@ install_package() {
 
   # Distribution-specific package aliases
   case $ID in
-    debian|ubuntu) pkg_aliases=(
+    debian|raspbian|ubuntu) pkg_aliases=(
       [rpm-build]="rpm"
       [createrepo_c]="createrepo"
       [tigervnc-server]="tigervnc-standalone-server"
@@ -558,7 +557,7 @@ install_package() {
 
   # Add OS install flags to package manager command
   case $ID in
-    debian|ubuntu)
+    debian|raspbian|ubuntu)
       ((allow_downgrades)) && install_flags+=(--allow-downgrades)
       ((reinstall)) && install_flags+=(--reinstall) ;;
     fedora|centos|mandriva)
@@ -2022,7 +2021,7 @@ main() {
 					name = JRiver Media Center hosted by BryanC
 				EOF
         ;;
-      debian|ubuntu)
+      debian|raspbian|ubuntu)
         local keyurl="https://dist.jriver.com/mediacenter@jriver.com.gpg.complete"
         local keyfile="/usr/share/keyrings/jriver-com-archive-keyring-complete.gpg"
         local channel="latest"
@@ -2126,7 +2125,7 @@ main() {
         local -a gpg_flag; ((SIGN_SWITCH)) || gpg_flag=(--no-gpg-check)
         install_package --no-install-check "${gpg_flag[@]}" --allow-downgrades "$MC_RPM"
         ;;
-      debian|ubuntu) install_mc_deb "$@" ;;
+      debian|raspbian|ubuntu) install_mc_deb "$@" ;;
       arch) install_mc_arch ;;
       unknown) install_mc_generic ;;
     esac
