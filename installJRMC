@@ -788,6 +788,8 @@ translate_packages() {
   recommends_arr=("${recommends_arr[@]//)/}")
 
   # Translate package names
+  debug "BUILD_TARGET: $BUILD_TARGET"
+
   case $BUILD_TARGET in
     raspbian)
       requires_arr=("${requires_arr[@]/libasound2/libasound2t64}")
