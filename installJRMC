@@ -453,7 +453,7 @@ init() {
   fi
 }
 
-# @description Determines the latest JRiver MC version using several methods
+# @description Determines the latest MC version using several methods
 set_mc_version() {
   debug "${FUNCNAME[0]}()"
   declare -g MC_VERSION MC_VERSION_SOURCE
@@ -484,10 +484,10 @@ set_mc_version() {
   buildah rm "$CNT" &>/dev/null &&
   [[ $MC_VERSION =~ ^[0-9]+\.[0-9]+\.[0-9]+$ ]]; then
     MC_VERSION_SOURCE="containerized package manager"
-  # Fallback to webscrape
-  elif MC_VERSION=$(download "https://yabb.jriver.com/interact/index.php/board,$BOARD_ID.html" "-" | grep -Eo '[0-9]+\.[0-9]+\.[0-9]+' | head -n 1) &&
-  [[ $MC_VERSION =~ ^[0-9]+\.[0-9]+\.[0-9]+$ ]]; then
-    MC_VERSION_SOURCE="webscrape"
+  # # Fallback to webscrape
+  # elif MC_VERSION=$(download "https://yabb.jriver.com/interact/index.php/board,$BOARD_ID.html" "-" | grep -Eo '[0-9]+\.[0-9]+\.[0-9]+' | head -n 1) &&
+  # [[ $MC_VERSION =~ ^[0-9]+\.[0-9]+\.[0-9]+$ ]]; then
+  #   MC_VERSION_SOURCE="webscrape"
   # Fallback to hardcoded value
   else
     MC_VERSION="$MC_VERSION_HARDCODE"
