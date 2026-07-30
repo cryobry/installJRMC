@@ -25,7 +25,6 @@ shopt -s extglob
 declare -g SCRIPT_VERSION="1.36.3-dev"
 declare -g MC_VERSION_HARDCODE="36.0.20" # do find all replace
 declare -g MC_REPO_HARDCODE="bookworm" # should match the MC_VERSION_HARDCODE
-declare -g BOARD_ID="95.0" # MC36 board ID for fallback latest version detection
 declare -gi SELF_UPDATE_SWITCH=1 # 0 to disable installJRMC self-update
 declare -g SCRIPT_URL="https://git.bryanroessler.com/bryan/installJRMC/raw/branch/master/installJRMC" # self-update URL
 # declare -g SCRIPT_URL="https://raw.githubusercontent.com/cryobry/installJRMC/refs/heads/master/installJRMC" # backup URL
@@ -173,23 +172,23 @@ parse_input() {
 
             # Set major version defaults
             case "$MC_MVERSION_USER" in
-              36) MC_REPO_HARDCODE="bookworm" BOARD_ID="95.0" ;; # fallback to hardcoded version if full version not provided
-              35) MC_VERSION_USER="${MC_VERSION_USER:-35.0.78}" MC_REPO_HARDCODE="bookworm" BOARD_ID="92.0" ;;
-              34) MC_VERSION_USER="${MC_VERSION_USER:-34.0.75}" MC_REPO_HARDCODE="bookworm" BOARD_ID="89.0" ;;
-              33) MC_VERSION_USER="${MC_VERSION_USER:-33.0.72}" MC_REPO_HARDCODE="bullseye" BOARD_ID="86.0" ;;
-              32) MC_VERSION_USER="${MC_VERSION_USER:-32.0.58}" MC_REPO_HARDCODE="bullseye" BOARD_ID="83.0" ;;
-              31) MC_VERSION_USER="${MC_VERSION_USER:-31.0.83}" MC_REPO_HARDCODE="bullseye" BOARD_ID="80.0" ;;
-              30) MC_VERSION_USER="${MC_VERSION_USER:-30.0.96}" MC_REPO_HARDCODE="buster" BOARD_ID="76.0" ;;
-              29) MC_VERSION_USER="${MC_VERSION_USER:-29.0.91}" MC_REPO_HARDCODE="buster" BOARD_ID="74.0" ;;
-              28) MC_VERSION_USER="${MC_VERSION_USER:-28.0.110}" MC_REPO_HARDCODE="buster" BOARD_ID="71.0" ;;
-              27) MC_VERSION_USER="${MC_VERSION_USER:-27.0.88}"  MC_REPO_HARDCODE="buster" BOARD_ID="67.0" ;;
-              26) MC_VERSION_USER="${MC_VERSION_USER:-26.0.107}" MC_REPO_HARDCODE="jessie" BOARD_ID="64.0" ;;
-              25) MC_VERSION_USER="${MC_VERSION_USER:-25.0.114}" MC_REPO_HARDCODE="jessie" BOARD_ID="62.0" ;;
-              24) MC_VERSION_USER="${MC_VERSION_USER:-24.0.78}" MC_REPO_HARDCODE="jessie" BOARD_ID="58.0" ;;
-              23) MC_VERSION_USER="${MC_VERSION_USER:-23.0.104}" MC_REPO_HARDCODE="jessie" BOARD_ID="54.0" ;;
-              22) MC_VERSION_USER="${MC_VERSION_USER:-22.0.102}" MC_REPO_HARDCODE="jessie" BOARD_ID="51.0" ;;
-              21) MC_VERSION_USER="${MC_VERSION_USER:-21.0.90}" MC_REPO_HARDCODE="jessie" BOARD_ID="44.0" ;;
-              20) MC_VERSION_USER="${MC_VERSION_USER:-20.0.131}" MC_REPO_HARDCODE="jessie" BOARD_ID="35.0" ;;
+              36) MC_REPO_HARDCODE="bookworm" ;; # fallback to hardcoded version if full version not provided
+              35) MC_VERSION_USER="${MC_VERSION_USER:-35.0.78}" MC_REPO_HARDCODE="bookworm" ;;
+              34) MC_VERSION_USER="${MC_VERSION_USER:-34.0.75}" MC_REPO_HARDCODE="bookworm" ;;
+              33) MC_VERSION_USER="${MC_VERSION_USER:-33.0.72}" MC_REPO_HARDCODE="bullseye" ;;
+              32) MC_VERSION_USER="${MC_VERSION_USER:-32.0.58}" MC_REPO_HARDCODE="bullseye" ;;
+              31) MC_VERSION_USER="${MC_VERSION_USER:-31.0.83}" MC_REPO_HARDCODE="bullseye" ;;
+              30) MC_VERSION_USER="${MC_VERSION_USER:-30.0.96}" MC_REPO_HARDCODE="buster" ;;
+              29) MC_VERSION_USER="${MC_VERSION_USER:-29.0.91}" MC_REPO_HARDCODE="buster" ;;
+              28) MC_VERSION_USER="${MC_VERSION_USER:-28.0.110}" MC_REPO_HARDCODE="buster" ;;
+              27) MC_VERSION_USER="${MC_VERSION_USER:-27.0.88}"  MC_REPO_HARDCODE="buster" ;;
+              26) MC_VERSION_USER="${MC_VERSION_USER:-26.0.107}" MC_REPO_HARDCODE="jessie" ;;
+              25) MC_VERSION_USER="${MC_VERSION_USER:-25.0.114}" MC_REPO_HARDCODE="jessie" ;;
+              24) MC_VERSION_USER="${MC_VERSION_USER:-24.0.78}" MC_REPO_HARDCODE="jessie" ;;
+              23) MC_VERSION_USER="${MC_VERSION_USER:-23.0.104}" MC_REPO_HARDCODE="jessie" ;;
+              22) MC_VERSION_USER="${MC_VERSION_USER:-22.0.102}" MC_REPO_HARDCODE="jessie" ;;
+              21) MC_VERSION_USER="${MC_VERSION_USER:-21.0.90}" MC_REPO_HARDCODE="jessie" ;;
+              20) MC_VERSION_USER="${MC_VERSION_USER:-20.0.131}" MC_REPO_HARDCODE="jessie" ;;
               *) 
                 # Warn for future major beta versions
                 if [[ $MC_MVERSION_USER -gt ${MC_VERSION_HARDCODE%%.*} ]] && [[ -z $MC_VERSION_USER ]]; then
@@ -484,10 +483,6 @@ set_mc_version() {
   buildah rm "$CNT" &>/dev/null &&
   [[ $MC_VERSION =~ ^[0-9]+\.[0-9]+\.[0-9]+$ ]]; then
     MC_VERSION_SOURCE="containerized package manager"
-  # # Fallback to webscrape
-  # elif MC_VERSION=$(download "https://yabb.jriver.com/interact/index.php/board,$BOARD_ID.html" "-" | grep -Eo '[0-9]+\.[0-9]+\.[0-9]+' | head -n 1) &&
-  # [[ $MC_VERSION =~ ^[0-9]+\.[0-9]+\.[0-9]+$ ]]; then
-  #   MC_VERSION_SOURCE="webscrape"
   # Fallback to hardcoded value
   else
     MC_VERSION="$MC_VERSION_HARDCODE"
