@@ -434,6 +434,7 @@ init() {
   MC_RPM="$OUTPUT_DIR/RPMS/$ARCH/mediacenter$MC_MVERSION-$MC_VERSION-$MC_RELEASE.$ARCH.rpm"
   MC_ROOT="/usr/lib/jriver/Media Center $MC_MVERSION"
 
+  # Use explicit architecture for Debian-based distros to avoid package manager confusion with multiarch
   if [[ $ID == debian || $ID == raspbian || $ID == ubuntu ]]; then
     MC_PKG+=":$MC_ARCH"
   fi
@@ -443,9 +444,8 @@ init() {
     # Append explicit package version when user provides --mcversion
     case $ID in
       fedora|centos|suse|mandriva) MC_PKG+="-$MC_VERSION" ;;
-      debian|raspbian|ubuntu)
-        # Debian-family packages keep the requested architecture in the name.
-        MC_PKG+="=${MC_VERSION}"
+      debian|raspbian|ubuntu) MC_PKG+="=${MC_VERSION}"
+        # MC ARM packages append the architecture to the package name
         [[ $MC_ARCH == "arm64" || $MC_ARCH == "armhf" ]] && MC_PKG+="-${MC_ARCH}"
         ;;
     esac
