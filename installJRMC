@@ -193,7 +193,7 @@ parse_input() {
               *) 
                 # Warn for future major beta versions
                 if [[ $MC_MVERSION_USER -gt ${MC_VERSION_HARDCODE%%.*} ]] && [[ -z $MC_VERSION_USER ]]; then
-                  info "For future major versions, supply full version (and --betapass if necessary)."
+                  warn "For future major versions, supply full version (and --betapass if necessary)."
                   err "Bad --mcversion."; print_help; exit 1
                 fi
                 ;;
@@ -583,7 +583,7 @@ install_external_repos() {
       ;;
     centos)
       if ! command -v dpkg &>/dev/null; then
-        info "Adding EPEL repository."
+        info "Adding the EPEL repository."
         if ! install_package epel-release; then
           # If epel-release is not available, install it manually
           install_package --no-install-check \
@@ -591,14 +591,14 @@ install_external_repos() {
         fi
       fi
       if ! "${PKG_QUERY[@]}" rpmfusion-free-release &>/dev/null; then
-        info "Installing the RPMFusion repository."
+        info "Adding the RPMFusion repository."
         install_package --no-install-check \
           "https://download1.rpmfusion.org/free/el/rpmfusion-free-release-${VERSION_ID%%.*}.noarch.rpm"
       fi
       ;;
     fedora)
       if ! "${PKG_QUERY[@]}" rpmfusion-free-release &>/dev/null; then
-        info "Installing the RPMFusion repository."
+        info "Adding the RPMFusion repository."
         install_package --no-install-check \
           "https://download1.rpmfusion.org/free/fedora/rpmfusion-free-release-$VERSION_ID.noarch.rpm"
       fi
@@ -618,7 +618,7 @@ install_external_repos() {
       ;;
     suse) : # TODO may be needed if X11_XOrg is made unavailable in default repos
       # if ! zypper repos | grep -q "X11_XOrg"; then
-      #   info "Installing the X11 repository."
+      #   info "Adding the X11 repository."
       #   execute sudo zypper  --non-interactive --quiet addrepo \
       #     "https://download.opensuse.org/repositories/X11:/XOrg/${NAME// /_}/X11:XOrg.repo"
       #   execute sudo zypper  --non-interactive --quiet refresh
@@ -1338,7 +1338,7 @@ link_ssl_certs() {
   for f in "${source_certs[@]}"; do
     if [[ -f $f ]]; then
       if execute sudo ln -fs "$f" "$mc_cert_link"; then
-        info "Symlinked $mc_cert_link to $f."
+        ok "Symlinked $mc_cert_link to $f."
         return 0
       fi
     fi
@@ -1379,7 +1379,7 @@ restore_license() {
     for f in "$MJR_FILE" "$newest"; do
       if [[ -f $f ]]; then
         if execute "mediacenter$MC_MVERSION" "/RestoreFromFile" "$f"; then
-          info "Restored license from $f."
+          ok "Restored license from $f."
           return 0
         else
           err "Failed to restore license from $f."
@@ -1623,7 +1623,7 @@ service_jriver-xvnc() {
     done
     return 1
   else
-    info "Xvnc running on localhost:$PORT."
+    ok "Xvnc running on localhost:$PORT."
     open_firewall "jriver-xvnc" "$PORT/tcp"
     open_firewall "jriver-mediacenter" "52100-52200/tcp" "1900/udp"
     return 0
@@ -1687,7 +1687,7 @@ service_jriver-x11vnc() {
 
   "${RELOAD[@]}" &&
   "${ENABLE[@]}" "$SERVICE_NAME" && 
-  info "x11vnc running on localhost:$PORT."
+  ok "x11vnc running on localhost:$PORT."
 }
 
 # @description Starts and enables (at startup) an hourly service to build the latest version of
@@ -1712,7 +1712,7 @@ service_jriver-createrepo() {
   # If the script lives under /home/, copy it to a system path first.
   if [[ $SCRIPT_PATH == /home/* ]]; then
     service_script="/opt/installJRMC/installJRMC"
-    info "Script is in a home directory; installing to $service_script for system service."
+    warn "Script is in a home directory; installing to $service_script for system service."
     if ! { execute sudo mkdir -p "/opt/installJRMC" && execute sudo install -m 0755 "$SCRIPT_PATH" "$service_script"; }; then
       err "Could not install script to $service_script; the service may fail to start."
       service_script="$SCRIPT_PATH"
@@ -1828,7 +1828,7 @@ uninstall() {
 
   info "Uninstalling the JRiver Media Center package."
   if "${PKG_REMOVE[@]}" "${MC_PKG%%=*}"; then # strip version specifier
-    info "Successfully uninstalled the ${MC_PKG%%=*} package."
+    ok "Uninstalled the ${MC_PKG%%=*} package."
   elif [[ $? -eq 100 ]]; then
     err "JRiver Media Center package '${MC_PKG%%=*}' is not present and was not uninstalled."
   else
@@ -1993,9 +1993,9 @@ main() {
   get_mc_version &&
   set_mc_vars
 
-  info "MC_VERSION_SOURCE=$MC_VERSION_SOURCE"
-  info "MC_REPO=$MC_REPO"
-  info "MC_VERSION=$MC_VERSION"
+  debug "MC_VERSION_SOURCE=$MC_VERSION_SOURCE"
+  debug "MC_REPO=$MC_REPO"
+  debug "MC_VERSION=$MC_VERSION"
 
   ((UNINSTALL_SWITCH)) && uninstall
 
@@ -2077,7 +2077,7 @@ main() {
 
     info "Installing $MC_PKG package."
     if install_package --no-install-check --allow-downgrades "$MC_PKG"; then
-      info "Successfully installed JRiver Media Center from repository."
+      ok "Installed JRiver Media Center from repository."
     else
       err "MC failed to install."
       remove_legacy_repo
@@ -2103,7 +2103,7 @@ main() {
       install_package rpm-build
       [[ -d $OUTPUT_DIR/SPECS ]] || execute mkdir -p "$OUTPUT_DIR/SPECS"
       if build_rpm requires recommends; then
-        info "RPM package built successfully."
+        ok "Built RPM package."
       else
         err "Failed to build RPM package."
         # On build failure, remove the source DEB in case it is corrupted
@@ -2117,7 +2117,7 @@ main() {
       fi
     elif [[ $BUILD_TARGET =~ arch ]]; then
       if build_pkgbuild requires recommends; then
-        info "Successfully generated Arch PKGBUILD."
+        ok "Generated Arch PKGBUILD."
       else
         err "Failed to generate Arch PKGBUILD."
       fi
@@ -2142,7 +2142,7 @@ main() {
 
     # shellcheck disable=SC2181
     if [[ $? -eq 0 ]]; then
-      info "Successfully installed JRiver Media Center from local package."
+      ok "Installed JRiver Media Center from local package."
     else
       err "MC package install failed."
     fi
@@ -2162,7 +2162,7 @@ main() {
           err "Failed to create $service service."
         fi
       else
-        info "Started and enabled $service service."
+        ok "Started and enabled $service service."
       fi
     done
     unset service
@@ -2170,7 +2170,7 @@ main() {
 
   if ((CREATEREPO_SWITCH)); then
     if run_createrepo; then
-      info "Successfully updated repo."
+      ok "Updated repo."
     else
       err "Repo creation failed."
     fi
@@ -2179,10 +2179,18 @@ main() {
 
 # @section Helper functions
 # @internal
-info() { echo "[INFO] $*"; }
-warn() { echo "[WARN] $*"; }
-debug() { ((DEBUG)) && echo "[DEBUG] $*"; }
-err() { echo "[ERROR] $*" >&2; }
+print_message() {
+  local label="$1" color="$2" message="$3"
+  local prefix="[$label]"
+  local prefix_width=8
+  local pad=$((prefix_width - ${#prefix}))
+  printf '%b%s\033[0m%*s%s\n' "$color" "$prefix" "$pad" '' "$message"
+}
+info() { print_message "INFO" '\033[1m' "$*"; }
+warn() { print_message "WARN" '\033[1;33m' "$*"; }
+debug() { ((DEBUG)) && print_message "DEBUG" '\033[1m' "$*"; }
+ok() { print_message "OK" '\033[1;32m' "$*"; }
+err() { print_message "ERROR" '\033[1;31m' "$*" >&2; }
 ask_ok() {
   local response
   ((YES_SWITCH)) && return 0
@@ -2204,7 +2212,7 @@ fix_permissions() {
   [[ -d "$dir" ]] || return 1
   owner=$(stat -c '%U' "$dir")
   if [[ "$owner" != "$user" ]]; then
-    info "Directory $dir is owned by $owner, not $user."
+    warn "Directory $dir is owned by $owner, not $user."
     if ask_ok "Change ownership of $dir to $user?"; then
       execute sudo chown -R "$user:$user" "$dir"
     fi
