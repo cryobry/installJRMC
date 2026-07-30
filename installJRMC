@@ -2268,8 +2268,12 @@ rerun() {
   debug "${FUNCNAME[0]}()" "$@"
   if ((SCRIPT_IS_PIPED)); then
     # Re-download and execute if script was piped
-    curl -fsSL "$SCRIPT_URL" | bash -s -- "$@" "--no-update"
-    exit $?
+    if command -v curl &>/dev/null || install_package curl; then
+      curl -fsSL "$SCRIPT_URL" | bash -s -- "$@" "--no-update"
+    else
+      bash -s -- "$@" "--no-update"
+    fi
+    exit $? # exit parent script with same exit code
   else
     exec bash "$SCRIPT_PATH" "$@" "--no-update"
   fi
