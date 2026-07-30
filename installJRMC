@@ -22,7 +22,7 @@
 # shellcheck disable=SC2329
 shopt -s extglob
 
-declare -g SCRIPT_VERSION="1.36.2"
+declare -g SCRIPT_VERSION="1.36.3-dev"
 declare -g MC_VERSION_HARDCODE="36.0.20" # do find all replace
 declare -g MC_REPO_HARDCODE="bookworm" # should match the MC_VERSION_HARDCODE
 declare -g BOARD_ID="95.0" # MC36 board ID for fallback latest version detection
@@ -435,18 +435,19 @@ init() {
   MC_RPM="$OUTPUT_DIR/RPMS/$ARCH/mediacenter$MC_MVERSION-$MC_VERSION-$MC_RELEASE.$ARCH.rpm"
   MC_ROOT="/usr/lib/jriver/Media Center $MC_MVERSION"
 
+  if [[ $ID == debian || $ID == raspbian || $ID == ubuntu ]]; then
+    MC_PKG+=":$MC_ARCH"
+  fi
+
   # Generate explicit package name
   if [[ -n $MC_VERSION_USER ]]; then
     # Append explicit package version when user provides --mcversion
     case $ID in
       fedora|centos|suse|mandriva) MC_PKG+="-$MC_VERSION" ;;
       debian|raspbian|ubuntu)
-        # ARM packages append arch to the package name and version
-        if [[ $MC_ARCH == "arm64" || $MC_ARCH == "armhf" ]]; then
-          MC_PKG+=":${MC_ARCH}=${MC_VERSION}-${MC_ARCH}"
-        else
-          MC_PKG+="=$MC_VERSION"
-        fi
+        # Debian-family packages keep the requested architecture in the name.
+        MC_PKG+="=${MC_VERSION}"
+        [[ $MC_ARCH == "arm64" || $MC_ARCH == "armhf" ]] && MC_PKG+="-${MC_ARCH}"
         ;;
     esac
   fi
@@ -476,8 +477,10 @@ set_mc_version() {
 
   # Determine latest version
   # Containerized package manager
+  local apt_pkg="mediacenter${MC_MVERSION_USER:-${MC_VERSION_HARDCODE%%.*}}"
+  [[ $ID == debian || $ID == raspbian || $ID == ubuntu ]] && apt_pkg+=":$MC_ARCH"
   if create_mc_apt_container &&
-  MC_VERSION=$(buildah run "$CNT" -- apt-cache policy "mediacenter${MC_MVERSION_USER:-${MC_VERSION_HARDCODE%%.*}}" | awk '/Candidate:/ {sub(/-.*/, "", $2); print $2}' | sort -V | tail -n1) &&
+  MC_VERSION=$(buildah run "$CNT" -- apt-cache policy "$apt_pkg" | awk '/Candidate:/ {sub(/-.*/, "", $2); print $2}' | sort -V | tail -n1) &&
   buildah rm "$CNT" &>/dev/null &&
   [[ $MC_VERSION =~ ^[0-9]+\.[0-9]+\.[0-9]+$ ]]; then
     MC_VERSION_SOURCE="containerized package manager"
@@ -727,7 +730,7 @@ acquire_deb() {
   # shellcheck disable=SC2016
   if ! {
     # Download to /tmp to silence _apt permission warnings
-    create_mc_apt_container "cd /tmp && apt-get download --allow-unauthenticated mediacenter$MC_MVERSION -qq" &&
+    create_mc_apt_container "cd /tmp && apt-get download --allow-unauthenticated $MC_PKG -qq" &&
     env CNT="$CNT" MC_DEB="$MC_DEB" buildah unshare -- bash -eu -o pipefail -c '
       mnt="$(buildah mount "$CNT")"
       deb="$(find "$mnt/tmp" -maxdepth 1 -type f -name "*.deb" | head -n1)"
