@@ -157,7 +157,7 @@ parse_input() {
             container) CONTAINER_INSTALL_SWITCH=1 ;;
             snap) SNAP_INSTALL_SWITCH=1 ;;
             appimage) APPIMAGE_INSTALL_SWITCH=1 ;;
-            *) err "Invalid --install option passed"; exit 1 ;;
+            *) err "Invalid --install option passed."; exit 1 ;;
           esac
           ;;
         --build|-b) BUILD_SWITCH=1; shift; BUILD_TARGET="$1" ;;
@@ -194,12 +194,12 @@ parse_input() {
                 # Warn for future major beta versions
                 if [[ $MC_MVERSION_USER -gt ${MC_VERSION_HARDCODE%%.*} ]] && [[ -z $MC_VERSION_USER ]]; then
                   info "For future major versions, supply full version (and --betapass if necessary)."
-                  err "Bad --mcversion"; print_help; exit 1
+                  err "Bad --mcversion."; print_help; exit 1
                 fi
                 ;;
             esac
           else
-            err "Bad --mcversion"; print_help; exit 1
+            err "Bad --mcversion."; print_help; exit 1
           fi
           ;;
         --arch) shift; USER_ARCH="$1" ;;
@@ -230,26 +230,26 @@ parse_input() {
       shift
     done
   else
-    err "Incorrect option provided, see installJRMC --help"; exit 1
+    err "Incorrect option provided, see installJRMC --help."; exit 1
   fi
 
   # Default to --install=repo (can be overridden later by OS defaults)
   if ! ((UNINSTALL_SWITCH || BUILD_SWITCH || CREATEREPO_SWITCH || LOCAL_INSTALL_SWITCH
   || CONTAINER_INSTALL_SWITCH || SNAP_INSTALL_SWITCH || APPIMAGE_INSTALL_SWITCH)) &&
   [[ ${#SERVICES[@]} -eq 0 && ${#CONTAINERS[@]} -eq 0 ]]; then
-    debug "Defaulting to --install=repo"
+    debug "Defaulting to --install=repo."
     REPO_INSTALL_SWITCH=1
   fi
 
   if [[ -n $BETAPASS ]] && ((REPO_INSTALL_SWITCH)); then
-    warn "Not all repositories have beta channels"
-    warn "If the MC package is unavailable, try using --mcrepo to select another repository"
+    warn "Not all repositories have beta channels."
+    warn "If the MC package is unavailable, try using --mcrepo to select another repository."
   fi
 
   # If jriver-createrepo is being installed as a service, treat --createrepo
   # as service configuration only and defer build/repo execution to the timer.
   if [[ " ${SERVICES[*]} " =~ [[:space:]]jriver-createrepo[[:space:]] ]] && ((CREATEREPO_SWITCH)); then
-    debug "Deferring --createrepo execution while configuring jriver-createrepo service"
+    debug "Deferring --createrepo execution while configuring jriver-createrepo service."
     BUILD_SWITCH=0
     CREATEREPO_SWITCH=0
   fi
@@ -276,10 +276,10 @@ init() {
 
   # Try to save users from themselves
   if [[ $EUID -eq 0 ]]; then
-    warn "Running as root"
+    warn "Running as root user."
     ask_ok "Continue as root user (not recommended)?" || exit 1
   elif [[ -n $SUDO_USER ]]; then
-    err "Sudo detected, installJRMC should not be run with sudo but attempting to continue"
+    err "Sudo detected, installJRMC should not be run with sudo but attempting to continue."
     ask_ok "Continue as user $SUDO_USER (unsupported and may result in permission issues)?" || exit 1
     USER="${SUDO_USER:-$USER}"
   fi
@@ -362,7 +362,7 @@ init() {
       done
 
       if [[ -z $ID ]]; then
-        err "OS detection failed!"
+        warn "OS detection failed."
         if ask_ok "Continue with manual installation?"; then
           debug "Automatically using --install=local for unknown distro."
           ID="unknown"
@@ -433,7 +433,7 @@ get_mc_version() {
     fi
   else
     # Determine latest version via containerized package manager
-    debug "Determining latest MC version via containerized package manager"
+    debug "Determining latest MC version via containerized package manager."
     local apt_pkg="mediacenter${MC_MVERSION_USER:-${MC_VERSION_HARDCODE%%.*}}" &&
     [[ $ID == debian || $ID == raspbian || $ID == ubuntu ]] && apt_pkg+=":$MC_ARCH"
     if create_mc_apt_container &&
@@ -493,7 +493,7 @@ install_package() {
   local long_opts="no-install-check,allow-downgrades,no-gpg-check,refresh,reinstall,silent"
   local -a pkg_install=("${PKG_INSTALL[@]}")
 
-  input=$(getopt -o +s -l "$long_opts" -- "$@") || { err "Incorrect options provided"; exit 1; }
+  input=$(getopt -o +s -l "$long_opts" -- "$@") || { err "Incorrect options provided."; exit 1; }
   eval set -- "$input"
   
   while true; do
@@ -529,7 +529,7 @@ install_package() {
     # Use alias if present, otherwise just pkg itself
     pkg_names=("$pkg")
     if [[ -v pkg_aliases[$pkg] ]]; then
-      debug "Aliasing $pkg to ${pkg_aliases[$pkg]}"
+      debug "Aliasing $pkg to ${pkg_aliases[$pkg]}."
       IFS=' ' read -ra pkg_names <<< "${pkg_aliases[$pkg]}"
     fi
     for p in "${pkg_names[@]}"; do
@@ -537,7 +537,7 @@ install_package() {
       ! { command -v "$p" &>/dev/null || "${PKG_QUERY[@]}" "$p" &>/dev/null; }; then
         pkg_array+=("$p")
       else
-        debug "$p is already installed, skipping installation"
+        debug "$p is already installed, skipping installation."
       fi
     done
   done
@@ -561,7 +561,7 @@ install_package() {
   # Install packages
   if [[ ${#pkg_array[@]} -gt 0 ]]; then
     if ! "${pkg_install[@]}" "${install_flags[@]}" "${pkg_array[@]}"; then     
-      ((silent)) || err "Failed to install ${pkg_array[*]}"
+      ((silent)) || err "Failed to install ${pkg_array[*]}."
       return 1
     fi
   fi
@@ -575,15 +575,15 @@ install_external_repos() {
   case $ID in
     ubuntu)
       if ! grep -E '^deb|^Components' /etc/apt/sources.list /etc/apt/sources.list.d/* | grep -q universe; then
-        info "Adding universe repository"
+        info "Adding universe repository."
         if ! execute sudo add-apt-repository -y universe; then
-          err "Adding universe repository failed"
+          err "Adding universe repository failed."
         fi
       fi
       ;;
     centos)
       if ! command -v dpkg &>/dev/null; then
-        info "Adding EPEL repository"
+        info "Adding EPEL repository."
         if ! install_package epel-release; then
           # If epel-release is not available, install it manually
           install_package --no-install-check \
@@ -591,14 +591,14 @@ install_external_repos() {
         fi
       fi
       if ! "${PKG_QUERY[@]}" rpmfusion-free-release &>/dev/null; then
-        info "Installing the RPMFusion repository"
+        info "Installing the RPMFusion repository."
         install_package --no-install-check \
           "https://download1.rpmfusion.org/free/el/rpmfusion-free-release-${VERSION_ID%%.*}.noarch.rpm"
       fi
       ;;
     fedora)
       if ! "${PKG_QUERY[@]}" rpmfusion-free-release &>/dev/null; then
-        info "Installing the RPMFusion repository"
+        info "Installing the RPMFusion repository."
         install_package --no-install-check \
           "https://download1.rpmfusion.org/free/fedora/rpmfusion-free-release-$VERSION_ID.noarch.rpm"
       fi
@@ -608,7 +608,7 @@ install_external_repos() {
         if ! "${PKG_QUERY[@]}" "$freeworld_pkg" &>/dev/null; then
           if "${PKG_QUERY[@]}" "$pkg" &>/dev/null; then
             if ! execute sudo dnf swap -y "$pkg" "$freeworld_pkg"; then
-              err "Package swap failed for $pkg!"
+              err "Package swap failed for $pkg."
             fi
           else
             "${PKG_INSTALL[@]}" "$freeworld_pkg"
@@ -618,7 +618,7 @@ install_external_repos() {
       ;;
     suse) : # TODO may be needed if X11_XOrg is made unavailable in default repos
       # if ! zypper repos | grep -q "X11_XOrg"; then
-      #   info "Installing the X11 repository"
+      #   info "Installing the X11 repository."
       #   execute sudo zypper  --non-interactive --quiet addrepo \
       #     "https://download.opensuse.org/repositories/X11:/XOrg/${NAME// /_}/X11:XOrg.repo"
       #   execute sudo zypper  --non-interactive --quiet refresh
@@ -722,8 +722,8 @@ acquire_deb() {
     [[ -f $MC_DEB ]] &&
     buildah rm "$CNT" &>/dev/null;
   }; then
-    debug "Failed to download DEB using containerized package manager"
-    info "Using legacy download method"
+    debug "Failed to download DEB using containerized package manager."
+    info "Using legacy download method."
     # Define the repository search order
     local -a repos
     [[ -n $BETAPASS ]] && repos=("https://files.jriver-cdn.com/mediacenter/channels/v$MC_MVERSION/beta/$BETAPASS/$fname")
@@ -893,7 +893,7 @@ translate_packages() {
       recommends_arr=('mesa-libgl' 'nvidia-libgl' 'nvidia-utils' 'vulkan-intel'
         'vulkan-radeon' 'vorbis-tools' 'musepack-tools')
       ;;
-    *) debug "Skipping package translations for $ID" ;;
+    *) debug "Skipping package translations for $ID." ;;
   esac
 
   # TODO Quirks
@@ -922,10 +922,10 @@ build_rpm() {
   # skip rebuilding the rpm if it already exists
   debug "Checking for existing MC RPM: $MC_RPM"
   if [[ -f $MC_RPM && -f $spec_file ]]; then
-    info "Skipping build step: .spec and ouput RPM already exist"
+    info "Skipping build step: .spec and ouput RPM already exist."
     debug "RPM .spec file: $spec_file"
     debug "RPM: $MC_RPM"
-    info "Remove either to force rebuild"
+    info "Remove either to force rebuild."
     return 0
   fi
 
@@ -1000,7 +1000,7 @@ build_rpm() {
 	EOF
 
   # Run rpmbuild
-  info "Building $MC_RPM, this may take some time"
+  info "Building $MC_RPM, this may take some time."
   rpmbuild_cmd=(
     rpmbuild 
       --define="_topdir $OUTPUT_DIR" 
@@ -1024,11 +1024,11 @@ build_rpm() {
 
   # Optionally sign the built RPM with the configured key
   if ((SIGN_SWITCH)); then
-    command -v rpmsign &>/dev/null || { err "rpmsign command missing (install rpm-sign/rpm-build)"; return 1; }
-    command -v gpg &>/dev/null || { err "gpg command missing"; return 1; }
+    command -v rpmsign &>/dev/null || { err "rpmsign command missing (install rpm-sign/rpm-build)."; return 1; }
+    command -v gpg &>/dev/null || { err "gpg command missing."; return 1; }
 
     if ! id "$SIGN_USER" &>/dev/null; then
-      err "Signing user does not exist: $SIGN_USER"
+      err "Signing user '$SIGN_USER' does not exist."
       return 1
     fi
 
@@ -1040,8 +1040,8 @@ build_rpm() {
     fi
 
     if [[ -n $SIGN_KEY ]] && ! "${sign_prefix[@]}" gpg --batch --list-secret-keys --with-colons "$SIGN_KEY" 2>/dev/null | grep -q '^sec'; then
-      err "Signing key not found in $SIGN_USER keyring: $SIGN_KEY"
-      err "Import the private key for $SIGN_USER or adjust --sign-user/--sign-key"
+      err "Signing key '$SIGN_KEY' not found in user '$SIGN_USER' keyring."
+      err "Import the private key for user '$SIGN_USER' or adjust --sign-user/--sign-key."
       return 1
     fi
 
@@ -1058,9 +1058,9 @@ build_rpm() {
     debug "${sign_prefix[*]} ${sign_cmd[*]}"
 
     if ! sign_output=$("${sign_prefix[@]}" "${sign_cmd[@]}" 2>&1); then
-      err "RPM signing failed"
+      err "RPM signing failed."
       [[ -n $sign_output ]] && echo "$sign_output" >&2
-      err "Hint: for non-interactive service runs, ensure $SIGN_USER can access an unlocked GPG key"
+      err "For non-interactive service runs, ensure $SIGN_USER can access an unlocked GPG key."
       return 1
     fi
 
@@ -1136,10 +1136,10 @@ install_mc_deb() {
 
   # Add older repository for libwebkit2gtk-4.0-37, etc, on newer Debian/Ubuntu
   add_legacy_repo
-  execute "${PKG_UPDATE[@]}" || { err "Package update failed!"; remove_legacy_repo; return 1; }
+  execute "${PKG_UPDATE[@]}" || { err "Package update failed."; remove_legacy_repo; return 1; }
 
   # Copy the DEB to a temporary file so _apt can read it
-  debug "Creating temporary deb file owned by _apt"
+  debug "Creating temporary deb file owned by _apt."
   local temp_deb
   temp_deb=$(mktemp --suffix=.deb)
   execute sudo cp "$MC_DEB" "$temp_deb"
@@ -1152,7 +1152,7 @@ install_mc_deb() {
     --allow-downgrades \
     --reinstall \
     "$temp_deb"; then
-    err "Local MC DEB installation failed"
+    err "Local MC DEB installation failed."
     remove_legacy_repo
     execute sudo rm -f "$temp_deb"
     if ask_ok "Remove source DEB and retry?"; then
@@ -1172,7 +1172,7 @@ install_mc_generic() {
   local extract_dir
   local -a raw_files
 
-  info "Using generic installation method"
+  info "Using generic installation method."
 
   extract_dir="$(mktemp -d)"
   pushd "$extract_dir" &>/dev/null || return
@@ -1211,7 +1211,7 @@ install_mc_arch() {
     --force \
     --noconfirm \
     -p mediacenter.pkgbuild; then
-    err "makepkg failed"; exit 1
+    err "makepkg failed."; exit 1
   fi
  
   popd &>/dev/null || return
@@ -1227,14 +1227,14 @@ run_createrepo() {
 
   # Ensure WEBROOT_USER exists or offer to create it
   if ! id "$WEBROOT_USER" &>/dev/null; then
-    err "Specified --webroot-user '$WEBROOT_USER' does not exist"
+    err "Specified --webroot-user '$WEBROOT_USER' does not exist."
     if ask_ok "Create local user '$WEBROOT_USER'?"; then
       if ! execute sudo useradd "$WEBROOT_USER"; then
-        err "Failed to create user '$WEBROOT_USER'"
+        err "Failed to create user '$WEBROOT_USER'."
         return 1
       fi
     else
-      err "Cannot continue without a valid --webroot-user"
+      err "Cannot continue without a valid --webroot-user."
       return 1
     fi
   fi
@@ -1244,9 +1244,9 @@ run_createrepo() {
     if ! execute sudo -u "$WEBROOT_USER" mkdir -p "$CREATEREPO_WEBROOT"; then
       if ! (execute sudo mkdir -p "$CREATEREPO_WEBROOT" ||
       execute sudo chown -R "$WEBROOT_USER:$WEBROOT_USER" "$CREATEREPO_WEBROOT"); then
-        err "Could not create the createrepo-webroot path!"
-        err "Make sure that the webroot $CREATEREPO_WEBROOT is writable by user $WEBROOT_USER"
-        err "Or change the repo ownership with --webroot-user"
+        err "Could not create the createrepo-webroot path."
+        err "Make sure that the webroot $CREATEREPO_WEBROOT is writable by user $WEBROOT_USER."
+        err "Or change the repo ownership with --webroot-user."
         return 1
       fi
     fi
@@ -1255,7 +1255,7 @@ run_createrepo() {
   # Copy built RPMs to webroot
   if ! execute sudo cp -nf "$MC_RPM" "$CREATEREPO_WEBROOT" ||
   ! execute sudo chown -R "$WEBROOT_USER:$WEBROOT_USER" "$CREATEREPO_WEBROOT"; then
-    err "Could not copy $MC_RPM to $CREATEREPO_WEBROOT"
+    err "Could not copy $MC_RPM to $CREATEREPO_WEBROOT."
     return 1
   fi
 
@@ -1264,7 +1264,7 @@ run_createrepo() {
   # [[ -d "$CREATEREPO_WEBROOT/repodata" ]] && cr_opts+=(--update) # TODO temporarily disabled for legacy createrepo
   if ! execute sudo -u "$WEBROOT_USER" createrepo "${cr_opts[@]}" "$CREATEREPO_WEBROOT"; then
     if ! (execute sudo createrepo "${cr_opts[@]}" "$CREATEREPO_WEBROOT" && execute sudo chown -R "$WEBROOT_USER:$WEBROOT_USER" "$CREATEREPO_WEBROOT"); then
-      err "createrepo failed"
+      err "createrepo failed."
       return 1
     fi
   fi
@@ -1274,8 +1274,8 @@ run_createrepo() {
     command -v gpg &>/dev/null || { err "gpg command missing"; return 1; }
     repomd_xml="$CREATEREPO_WEBROOT/repodata/repomd.xml"
     repomd_asc="$repomd_xml.asc"
-    [[ -f $repomd_xml ]] || { err "repomd.xml missing after createrepo"; return 1; }
-    [[ -n $SIGN_KEY ]] || { err "--sign requires --sign-key for repodata signing"; return 1; }
+    [[ -f $repomd_xml ]] || { err "repomd.xml missing after createrepo."; return 1; }
+    [[ -n $SIGN_KEY ]] || { err "--sign requires --sign-key for repodata signing."; return 1; }
 
     if [[ $(id -un) == "$SIGN_USER" ]]; then
       sign_prefix=()
@@ -1286,7 +1286,7 @@ run_createrepo() {
     # Sign repo.md to a temp file first and then move to webroot
     local repomd_asc_tmp
     if ! repomd_asc_tmp=$("${sign_prefix[@]}" mktemp); then
-      err "Failed to create temp file for signature"
+      err "Failed to create temp file for signature."
       return 1
     fi
 
@@ -1297,7 +1297,7 @@ run_createrepo() {
     info "Signing repodata: $repomd_xml"
     if ! execute "${sign_prefix[@]}" "${gpg_cmd[@]}"; then
       rm -f "$repomd_asc_tmp"
-      err "Repodata signing failed"
+      err "Repodata signing failed."
       return 1
     fi
     execute sudo install -m 0644 "$repomd_asc_tmp" "$repomd_asc"
@@ -1308,12 +1308,12 @@ run_createrepo() {
     pubkey_file="$CREATEREPO_WEBROOT/RPM-GPG-KEY-jriver.asc"
     local pubkey_tmp
     if ! pubkey_tmp=$("${sign_prefix[@]}" mktemp); then
-      err "Failed to create temp file for public key"
+      err "Failed to create temp file for public key."
       return 1
     fi
     if ! execute "${sign_prefix[@]}" gpg --batch --yes --armor --output "$pubkey_tmp" --export "$SIGN_KEY"; then
       rm -f "$pubkey_tmp"
-      err "Public key export failed for SIGN_KEY=$SIGN_KEY"
+      err "Public key export failed for SIGN_KEY=$SIGN_KEY."
       return 1
     fi
     execute sudo install -m 0644 "$pubkey_tmp" "$pubkey_file"
@@ -1338,12 +1338,12 @@ link_ssl_certs() {
   for f in "${source_certs[@]}"; do
     if [[ -f $f ]]; then
       if execute sudo ln -fs "$f" "$mc_cert_link"; then
-        info "Symlinked $mc_cert_link to $f"
+        info "Symlinked $mc_cert_link to $f."
         return 0
       fi
     fi
   done
-  err "Certificate symlinking failed"; return 1
+  err "Certificate symlinking failed."; return 1
 }
 
 # @description Restore the mjr license file from MJR_FILE or other common locations
@@ -1379,10 +1379,10 @@ restore_license() {
     for f in "$MJR_FILE" "$newest"; do
       if [[ -f $f ]]; then
         if execute "mediacenter$MC_MVERSION" "/RestoreFromFile" "$f"; then
-          info "Restored license from $f"
+          info "Restored license from $f."
           return 0
         else
-          err "Failed to restore license from $f"
+          err "Failed to restore license from $f."
         fi
       fi
     done
@@ -1438,8 +1438,8 @@ set_vnc_pass() {
 
   if [[ -f $vncpassfile ]]; then
     if [[ ! -v VNCPASS ]]; then
-      err "Refusing to overwrite existing $vncpassfile with an empty password"
-      err "Remove existing $vncpassfile or use --vncpass ''"
+      err "Refusing to overwrite existing $vncpassfile with an empty password."
+      err "Remove existing $vncpassfile or use --vncpass ''."
       return 1
     else
       execute rm -f "$vncpassfile"
@@ -1489,8 +1489,8 @@ set_service_vars() {
   local service_dir="/usr/lib/systemd/$service_type"
 
   if [[ $USER == "root" && $service_type == "user" ]]; then
-    err "Trying to install user service as root"
-    err "Use --service-type service and/or execute installJRMC as non-root user"
+    err "Trying to install user service as root."
+    err "Use --service-type service and/or execute installJRMC as non-root user."
     return 1
   fi
 
@@ -1614,16 +1614,16 @@ service_jriver-xvnc() {
   "${RELOAD[@]}"
 
   if ! "${ENABLE[@]}" "$SERVICE_NAME"; then
-    err "vncserver failed to start on DISPLAY $NEXT_DISPLAY"
+    err "vncserver failed to start on DISPLAY $NEXT_DISPLAY."
     # Allow to increment 10 times before breaking
     max=$((THIS_DISPLAY_NUM + 10))
     while [[ $NEXT_DISPLAY_NUM -lt $max ]]; do
-      info "Incrementing DISPLAY and retrying"
+      info "Incrementing DISPLAY and retrying."
       service_jriver-xvnc && return
     done
     return 1
   else
-    info "Xvnc running on localhost:$PORT"
+    info "Xvnc running on localhost:$PORT."
     open_firewall "jriver-xvnc" "$PORT/tcp"
     open_firewall "jriver-mediacenter" "52100-52200/tcp" "1900/udp"
     return 0
@@ -1644,7 +1644,7 @@ service_jriver-x11vnc() {
   if [[ ! -f "$HOME/.Xauthority" ]]; then
     [[ $XDG_SESSION_TYPE == "wayland" ]] && 
     ask_ok "Unsupported Wayland session detected for x11vnc, continue?" || return 1
-    debug "Generating $HOME/.Xauthority"
+    debug "Generating $HOME/.Xauthority."
     execute touch "$HOME/.Xauthority"
     execute chmod 644 "$HOME/.Xauthority"
     xauth generate "$DISPLAY" . trusted
@@ -1687,7 +1687,7 @@ service_jriver-x11vnc() {
 
   "${RELOAD[@]}" &&
   "${ENABLE[@]}" "$SERVICE_NAME" && 
-  info "x11vnc running on localhost:$PORT"
+  info "x11vnc running on localhost:$PORT."
 }
 
 # @description Starts and enables (at startup) an hourly service to build the latest version of
@@ -1712,9 +1712,9 @@ service_jriver-createrepo() {
   # If the script lives under /home/, copy it to a system path first.
   if [[ $SCRIPT_PATH == /home/* ]]; then
     service_script="/opt/installJRMC/installJRMC"
-    info "Script is in a home directory; installing to $service_script for system service"
+    info "Script is in a home directory; installing to $service_script for system service."
     if ! { execute sudo mkdir -p "/opt/installJRMC" && execute sudo install -m 0755 "$SCRIPT_PATH" "$service_script"; }; then
-      err "Could not install script to $service_script; the service may fail to start"
+      err "Could not install script to $service_script; the service may fail to start."
       service_script="$SCRIPT_PATH"
     fi
   else
@@ -1791,11 +1791,11 @@ uninstall() {
   local service type unit f
 
   if ! ask_ok "Uninstall JRiver Media Center, services, and firewall rules?"; then
-    info "Uninstall cancelled"
+    info "Uninstall cancelled."
     return 1
   fi
 
-  info "Stopping and removing all Media Center services"
+  info "Stopping and removing all Media Center services."
   for service in $(compgen -A "function" "service"); do
     service="${service##service_}"
     for type in user system; do
@@ -1813,7 +1813,7 @@ uninstall() {
     done
   done
 
-  info "Removing firewall rules"
+  info "Removing firewall rules."
   for service in jriver-mediacenter jriver-xvnc jriver-x11vnc; do
     if command -v firewall-cmd &>/dev/null; then
       execute sudo firewall-cmd --permanent --remove-service=$service
@@ -1826,19 +1826,19 @@ uninstall() {
     fi
   done
 
-  info "Uninstalling the JRiver Media Center package"
+  info "Uninstalling the JRiver Media Center package."
   if "${PKG_REMOVE[@]}" "${MC_PKG%%=*}"; then # strip version specifier
-    info "Successfully uninstalled the ${MC_PKG%%=*} package"
+    info "Successfully uninstalled the ${MC_PKG%%=*} package."
   elif [[ $? -eq 100 ]]; then
-    err "JRiver Media Center package '${MC_PKG%%=*}' is not present and was not uninstalled"
+    err "JRiver Media Center package '${MC_PKG%%=*}' is not present and was not uninstalled."
   else
-    err "Could not remove Media Center package"
+    err "Could not remove Media Center package."
   fi
 
   # Remove the repository files
   for file in "/etc/yum.repos.d/jriver.repo" /etc/apt/sources.list.d/{jriver,mediacenter}*.{list,sources}; do
     if [[ -e $file ]]; then
-      info "Removing repository file: $file"
+      info "Removing repository file: $file."
       execute sudo rm -f "$file"
     fi
   done
@@ -1847,16 +1847,16 @@ uninstall() {
 
   local keyfile="/usr/share/keyrings/jriver-com-archive-keyring.gpg"
   if [[ -f $keyfile ]]; then
-    info "Removing the JRiver Media Center GPG key"
+    info "Removing the JRiver Media Center GPG key."
     execute sudo rm -f "$keyfile"
   fi
 
   if [[ -f $SCRIPT_DIR/.uninstall ]]; then
-    info "Removing files from .uninstall log"
+    info "Removing files from .uninstall log."
     while read -r p; do
       [[ -d $p ]] && execute sudo rm -rf "$p"
     done < "$SCRIPT_DIR/.uninstall"
-    info "Backing up .uninstall log to .uninstall.bk"
+    info "Backing up .uninstall log to .uninstall.bk."
     mv "$SCRIPT_DIR/.uninstall" "$SCRIPT_DIR/.uninstall.bk"
   fi
 
@@ -1875,19 +1875,19 @@ uninstall() {
   if [[ -d $HOME/.jriver ]]; then
     if ask_ok "Backup and reset your MC library?"; then
       execute mv "$HOME/.jriver" "$HOME/.jriver.bk"
-      info "Your MC library has been reset and backed up to $HOME/.jriver.bk"
-      info "To restore your MC library: mv $HOME/.jriver.bk $HOME/.jriver"
+      info "Your MC library has been reset and backed up to $HOME/.jriver.bk."
+      info "To restore your MC library: 'mv $HOME/.jriver.bk $HOME/.jriver'"
       return
     fi
-    info "To backup and reset your MC library: mv $HOME/.jriver $HOME/.jriver.bk"
-    info "To remove your MC library: rm -rf $HOME/.jriver"
+    info "To backup and reset your MC library: 'mv $HOME/.jriver $HOME/.jriver.bk'"
+    info "To remove your MC library: 'rm -rf $HOME/.jriver'"
   fi
 }
 
 # @description Checks for installJRMC update and re-executes, if necessary
 update() {
   debug "${FUNCNAME[0]}()" "$@"
-  debug "Checking for installJRMC update"
+  debug "Checking for installJRMC update."
 
   # Extract and normalize version from a script
   extract_version() {
@@ -1927,7 +1927,7 @@ update() {
 
     # If the commit hash has changed, an update occurred
     if [[ "$before_pull_hash" != $(git -C "$SCRIPT_DIR" rev-parse HEAD) ]]; then
-      info "Detected installJRMC update, restarting"
+      info "Detected installJRMC update, restarting."
       rerun "$@"
     fi
   else
@@ -1954,14 +1954,14 @@ update() {
 
     # Compare versions and update if the remote version is greater
     if version_greater "$remote_version" "$SCRIPT_VERSION"; then
-      execute mv "$tmp" "$SCRIPT_PATH" || { err "Failed to replace the script"; execute rm -f "$tmp"; return 1; }
-      execute chmod +x "$SCRIPT_PATH" || { err "Failed to make the script executable"; return 1; }
+      execute mv "$tmp" "$SCRIPT_PATH" || { err "Failed to replace the script."; execute rm -f "$tmp"; return 1; }
+      execute chmod +x "$SCRIPT_PATH" || { err "Failed to make the script executable."; return 1; }
       execute rm -f "$tmp"
 
-      info "Detected installJRMC update, restarting"
+      info "Detected installJRMC update, restarting."
       rerun "$@"
     else
-      debug "Current installJRMC $SCRIPT_VERSION is the latest version"
+      debug "Current installJRMC $SCRIPT_VERSION is the latest version."
       execute rm -f "$tmp"
       return 0
     fi
@@ -1972,12 +1972,12 @@ update() {
 main() {
   debug "${FUNCNAME[0]}()" "$@" # prints function name and arguments
 
-  info "Starting installJRMC $SCRIPT_VERSION"
+  info "Starting installJRMC $SCRIPT_VERSION."
 
   if ((DEBUG)); then
-    debug "Debugging on"
+    debug "Debugging on."
   else
-    info "To enable debugging output, use --debug or -d"
+    info "To enable debugging output, use --debug or -d."
   fi
 
   # Parse input, set target MC version, and create associated variables
@@ -2007,7 +2007,7 @@ main() {
   fi
 
   if ((REPO_INSTALL_SWITCH)); then
-    info "Installing JRiver Media Center from remote repository"
+    info "Installing JRiver Media Center from remote repository."
     local repo_file
 
     install_external_repos
@@ -2041,7 +2041,7 @@ main() {
           repo_file="/etc/apt/sources.list.d/jriver.sources"
         fi
 
-        info "Installing JRiver Media Center GPG key"
+        info "Installing JRiver Media Center GPG key."
         download "$keyurl" "-" | 
           gpg --dearmor | sudo tee "$keyfile" &>/dev/null
 
@@ -2058,28 +2058,28 @@ main() {
         add_legacy_repo
         ;;
       *) 
-        err "An MC repository for $ID is not yet available"
-        err "Use --install=local to install MC on $ID"
+        err "An MC repository for $ID is not yet available."
+        err "Use --install=local to install MC on $ID."
         return 1
         ;;
     esac
 
-    info "Updating package lists"
+    info "Updating package lists."
     if ! "${PKG_UPDATE[@]}"; then
-      err "Package update failed!"
+      err "Package update failed."
       remove_legacy_repo
       if [[ $MC_REPO != "$MC_REPO_HARDCODE" ]]; then
-        info "Rerunning installJRMC with --mcrepo=$MC_REPO_HARDCODE"
+        info "Rerunning installJRMC with --mcrepo=$MC_REPO_HARDCODE."
         rerun "$@" "--mcrepo=$MC_REPO_HARDCODE"
       fi
       return 1
     fi
 
-    info "Installing $MC_PKG package"
+    info "Installing $MC_PKG package."
     if install_package --no-install-check --allow-downgrades "$MC_PKG"; then
-      info "Successfully installed JRiver Media Center from repository"
+      info "Successfully installed JRiver Media Center from repository."
     else
-      err "MC failed to install"
+      err "MC failed to install."
       remove_legacy_repo
       return 1
     fi
@@ -2093,7 +2093,7 @@ main() {
   fi
 
   if ((BUILD_SWITCH)); then
-    acquire_deb || { err "Could not download Media Center DEB package"; return 1; }
+    acquire_deb || { err "Could not download Media Center DEB package."; return 1; }
 
     # Convert the source DEB dependencies to various distro-specific packages
     install_package dpkg
@@ -2103,12 +2103,12 @@ main() {
       install_package rpm-build
       [[ -d $OUTPUT_DIR/SPECS ]] || execute mkdir -p "$OUTPUT_DIR/SPECS"
       if build_rpm requires recommends; then
-        info "RPM package built successfully"
+        info "RPM package built successfully."
       else
-        err "Failed to build RPM package"
+        err "Failed to build RPM package."
         # On build failure, remove the source DEB in case it is corrupted
         if [[ -f $MC_DEB ]]; then
-          info "Removing source DEB"
+          info "Removing source DEB."
           if ! execute rm -f "$MC_DEB"; then
             execute sudo rm -f "$MC_DEB"
           fi
@@ -2117,13 +2117,15 @@ main() {
       fi
     elif [[ $BUILD_TARGET =~ arch ]]; then
       if build_pkgbuild requires recommends; then
-        info "Successfully generated Arch PKGBUILD"
+        info "Successfully generated Arch PKGBUILD."
+      else
+        err "Failed to generate Arch PKGBUILD."
       fi
     fi
   fi
 
   if ((LOCAL_INSTALL_SWITCH)); then
-    info "Installing JRiver Media Center from local package"
+    info "Installing JRiver Media Center from local package."
 
     install_external_repos
 
@@ -2140,9 +2142,9 @@ main() {
 
     # shellcheck disable=SC2181
     if [[ $? -eq 0 ]]; then
-      info "Successfully installed JRiver Media Center from local package"
+      info "Successfully installed JRiver Media Center from local package."
     else
-      err "MC package install failed!"
+      err "MC package install failed."
     fi
     
     link_ssl_certs
@@ -2155,12 +2157,12 @@ main() {
     for service in "${SERVICES[@]}"; do
       if ! "service_$service"; then
         if [[ $? -eq 127 ]]; then
-          err "Service $service does not exist, check service name"
+          err "Service $service does not exist, check service name."
         else
-          err "Failed to create $service service"
+          err "Failed to create $service service."
         fi
       else
-        info "Started and enabled $service service"
+        info "Started and enabled $service service."
       fi
     done
     unset service
@@ -2168,9 +2170,9 @@ main() {
 
   if ((CREATEREPO_SWITCH)); then
     if run_createrepo; then
-      info "Successfully updated repo"
+      info "Successfully updated repo."
     else
-      err "Repo creation failed"
+      err "Repo creation failed."
     fi
   fi
 }
@@ -2202,7 +2204,7 @@ fix_permissions() {
   [[ -d "$dir" ]] || return 1
   owner=$(stat -c '%U' "$dir")
   if [[ "$owner" != "$user" ]]; then
-    info "Directory $dir is owned by $owner, not $user"
+    info "Directory $dir is owned by $owner, not $user."
     if ask_ok "Change ownership of $dir to $user?"; then
       execute sudo chown -R "$user:$user" "$dir"
     fi
@@ -2224,7 +2226,7 @@ download() {
     cmd=(wget --quiet)
     [[ -n "$output" ]] && cmd+=("--output-document=$output")
   else
-    err "Unable to install wget or curl"
+    err "Unable to install wget or curl."
     return 1
   fi
   debug "${cmd[@]}" "$url"
@@ -2242,7 +2244,7 @@ create_mc_apt_container() {
     channel="beta"
   fi
 
-  debug "Using MC $repo repo $channel channel for apt container"
+  debug "Using MC $repo repo $channel channel for apt container."
 
   # shellcheck disable=SC2016
   { command -v buildah &>/dev/null || install_package buildah; } &&
@@ -2261,7 +2263,7 @@ create_mc_apt_container() {
     apt-get update -qq' &&
   # If user passes command strings run them in the container
   for cmd in "${cmds[@]}"; do
-    buildah run "$CNT" -- sh -c "$cmd" || { err "$cmd failed"; return 1; }
+    buildah run "$CNT" -- sh -c "$cmd" || { err "$cmd failed."; return 1; }
   done
 }
 rerun() {
