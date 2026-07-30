@@ -2251,7 +2251,7 @@ create_mc_apt_container() {
 			Signed-By: /usr/share/keyrings/jriver-com-archive-keyring.gpg
 			Suites: $MC_REPO
 			Components: main
-			Architectures: amd64 armhf arm64
+			Architectures: $MC_ARCH
 		EOF
     apt-get update -qq' &&
   # If user passes command strings run them in the container
