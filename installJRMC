@@ -25,7 +25,7 @@ shopt -s extglob
 declare -g SCRIPT_VERSION="1.36.3-dev"
 declare -g MC_VERSION_HARDCODE="36.0.20" # do find all replace
 declare -g MC_REPO_HARDCODE="bookworm" # should match the MC_VERSION_HARDCODE
-declare -gi SELF_UPDATE_SWITCH=1 # 0 to disable installJRMC self-update
+declare -gi SELF_UPDATE_SWITCH=1 # 0 to disable installJRMC self-updater
 declare -g SCRIPT_URL="https://git.bryanroessler.com/bryan/installJRMC/raw/branch/master/installJRMC" # self-update URL
 # declare -g SCRIPT_URL="https://raw.githubusercontent.com/cryobry/installJRMC/refs/heads/master/installJRMC" # backup URL
 declare -gi DEBUG=${DEBUG:-0} # set default debug and allow DEBUG env override (default: disabled)
@@ -135,6 +135,7 @@ parse_input() {
   declare -g MC_VERSION_USER MC_MVERSION_USER MC_RELEASE_USER MC_REPO_USER USER_ARCH MJR_FILE \
     BETAPASS SERVICE_TYPE VNCPASS USER_DISPLAY BUILD_TARGET CREATEREPO_TARGET \
     WEBROOT_USER SIGN_USER SIGN_KEY
+  declare -ga SERVICES CONTAINERS
   local long_opts short_opts input
   long_opts="install:,build::,outputdir:,mcversion:,arch:,mcrepo:,compat,"
   long_opts+="restorefile:,betapass:,"
@@ -261,17 +262,13 @@ init() {
   declare -g USER
   declare -g SCRIPT_PATH; SCRIPT_PATH=$(readlink -f "${BASH_SOURCE[0]}")
   declare -g SCRIPT_DIR; SCRIPT_DIR=$(readlink -f "$(dirname "${BASH_SOURCE[0]}")")
-  declare -gi SCRIPT_IS_PIPED=0
-
-  # Detect if script is being piped (SCRIPT_PATH won't be a regular file)
-  [[ ! -f $SCRIPT_PATH ]] && SCRIPT_IS_PIPED=1
-  
+  # Detect if script is piped (SCRIPT_PATH won't be a regular file)
+  declare -gi SCRIPT_IS_PIPED=0; [[ ! -f $SCRIPT_PATH ]] && SCRIPT_IS_PIPED=1
   declare -g OUTPUT_DIR="$SCRIPT_DIR/output"
   declare -g CREATEREPO_WEBROOT="/var/www/jriver"
   declare -g WEBROOT_USER # can be root
   declare -g SIGN_USER
   declare -g ID VERSION_ID UBUNTU_CODENAME VERSION_CODENAME ARCH MC_ARCH NAME
-  declare -g MC_MVERSION MC_RELEASE MC_PKG MC_RPM MC_ROOT
   declare -ga PKG_INSTALL PKG_REMOVE PKG_UPDATE PKG_QUERY
   declare -ga SERVICES CONTAINERS
 
@@ -419,17 +416,68 @@ init() {
   CREATEREPO_TARGET="${CREATEREPO_TARGET:-$ID}"
   MC_REPO="${MC_REPO_USER:-${UBUNTU_CODENAME:-${VERSION_CODENAME:-$MC_REPO_HARDCODE}}}" # user>host>hardcoded
 
-  echo "MC source -> target: $MC_REPO $MC_ARCH -> $BUILD_TARGET $ARCH"
-  set_mc_version
-  if ((REPO_INSTALL_SWITCH || UNINSTALL_SWITCH)) && [[ -z $MC_VERSION_USER ]]; then
-    echo "Selected latest MC version from the $MC_REPO repo (via $MC_VERSION_SOURCE)"
+  echo "MC source --> target: $MC_REPO $MC_ARCH --> $BUILD_TARGET $ARCH"
+}
+
+# @description Determines the latest MC version using several methods
+# @set MC_VERSION string MC version (ex. 36.0.20)
+# @set MC_MVERSION string MC major version (ex. 36)
+get_mc_version() {
+  debug "${FUNCNAME[0]}()"
+  declare -g MC_VERSION MC_MVERSION
+  local mc_version_source ec
+
+  # Use user provided MC version if available
+  if [[ -n $MC_VERSION_USER ]]; then
+    MC_VERSION="$MC_VERSION_USER"
+    mc_version_source="user input"
+  # Package manager will use latest version in some instances
+  elif ! ((BUILD_SWITCH || LOCAL_INSTALL_SWITCH || CREATEREPO_SWITCH)); then
+    MC_VERSION="$MC_VERSION_HARDCODE"
+    if ((REPO_INSTALL_SWITCH || UNINSTALL_SWITCH)); then
+      mc_version_source="package manager"
+    else
+      mc_version_source="hardcoded"
+    fi
   else
-    echo "Selected MC version $MC_VERSION from the $MC_REPO repo (via $MC_VERSION_SOURCE)"
+    # Determine latest version via containerized package manager
+    local apt_pkg="mediacenter${MC_MVERSION_USER:-${MC_VERSION_HARDCODE%%.*}}" &&
+    [[ $ID == debian || $ID == raspbian || $ID == ubuntu ]] && apt_pkg+=":$MC_ARCH"
+    if create_mc_apt_container &&
+      MC_VERSION=$(buildah run "$CNT" -- apt-cache policy "$apt_pkg" | awk '/Candidate:/ {sub(/-.*/, "", $2); print $2}' | sort -V | tail -n1) &&
+      buildah rm "$CNT" &>/dev/null &&
+      [[ $MC_VERSION =~ ^[0-9]+\.[0-9]+\.[0-9]+$ ]]; then
+        mc_version_source="containerized package manager"
+    # Fallback to hardcoded value
+    else
+      MC_VERSION="$MC_VERSION_HARDCODE"
+      mc_version_source="hardcoded"
+    fi
   fi
-  
+  ec=$?
+
+  if ((REPO_INSTALL_SWITCH || UNINSTALL_SWITCH)) && [[ -z $MC_VERSION_USER ]]; then
+    echo "Selected latest MC version from the $MC_REPO repo (via $mc_version_source)"
+  else
+    echo "Selected MC version $MC_VERSION from the $MC_REPO repo (via $mc_version_source)"
+  fi
+
+  # Set MC major version
+  MC_MVERSION="${MC_MVERSION_USER:-${MC_VERSION%%.*}}"
+
+  debug "Using MC version: $MC_VERSION (major: $MC_MVERSION) from $mc_version_source"
+
+  return "$ec"
+}
+
+# @description Sets additional MC version variables based on MC version, host, and target
+set_mc_vars() {
+  debug "${FUNCNAME[0]}()"
+  declare -g MC_RELEASE MC_PKG MC_RPM MC_ROOT
+
   # Set additional MC version variables
   MC_RELEASE="${MC_RELEASE_USER:-1}"
-  MC_MVERSION="${MC_MVERSION_USER:-${MC_VERSION%%.*}}"
+  
   MC_PKG="mediacenter$MC_MVERSION"
   MC_RPM="$OUTPUT_DIR/RPMS/$ARCH/mediacenter$MC_MVERSION-$MC_VERSION-$MC_RELEASE.$ARCH.rpm"
   MC_ROOT="/usr/lib/jriver/Media Center $MC_MVERSION"
@@ -452,44 +500,6 @@ init() {
   fi
 }
 
-# @description Determines the latest MC version using several methods
-set_mc_version() {
-  debug "${FUNCNAME[0]}()"
-  declare -g MC_VERSION MC_VERSION_SOURCE
-
-  if [[ -n $MC_VERSION_USER ]]; then
-    MC_VERSION="$MC_VERSION_USER"
-    MC_VERSION_SOURCE="user input"
-    return 0  
-  fi
-
-  # Package manager will handle updates in other instances
-  if ! ((BUILD_SWITCH || LOCAL_INSTALL_SWITCH || CREATEREPO_SWITCH)); then
-    MC_VERSION="$MC_VERSION_HARDCODE"
-    if ((REPO_INSTALL_SWITCH || UNINSTALL_SWITCH)); then
-      MC_VERSION_SOURCE="package manager"
-    else
-      MC_VERSION_SOURCE="hardcoded"
-    fi
-    return 0
-  fi
-
-  # Determine latest version
-  # Containerized package manager
-  local apt_pkg="mediacenter${MC_MVERSION_USER:-${MC_VERSION_HARDCODE%%.*}}"
-  [[ $ID == debian || $ID == raspbian || $ID == ubuntu ]] && apt_pkg+=":$MC_ARCH"
-  if create_mc_apt_container &&
-  MC_VERSION=$(buildah run "$CNT" -- apt-cache policy "$apt_pkg" | awk '/Candidate:/ {sub(/-.*/, "", $2); print $2}' | sort -V | tail -n1) &&
-  buildah rm "$CNT" &>/dev/null &&
-  [[ $MC_VERSION =~ ^[0-9]+\.[0-9]+\.[0-9]+$ ]]; then
-    MC_VERSION_SOURCE="containerized package manager"
-  # Fallback to hardcoded value
-  else
-    MC_VERSION="$MC_VERSION_HARDCODE"
-    MC_VERSION_SOURCE="hardcoded"
-  fi
-}
-
 # @description Installs a package using the system package manager
 # @arg $1 array One or more package names
 # @option --no-install-check Do not check if package is already installed
@@ -498,7 +508,7 @@ set_mc_version() {
 # @option --silent | -s Do not print errors (useful for optional packages)
 install_package() {
   debug "${FUNCNAME[0]}()" "$@"
-  local -a pkg_array install_flags
+  local -a pkg_array pkg_names install_flags
   local -A pkg_aliases
   local input pkg _pkg
   local -i no_install_check=0 allow_downgrades=0 silent=0 refresh=0 no_gpg_check=0 reinstall=0
@@ -1994,6 +2004,10 @@ main() {
   # Parse input, set default/host variables, and MC version
   init "$@"
 
+  # Set target MC version and create associated variables
+  get_mc_version &&
+  set_mc_vars
+
   ((UNINSTALL_SWITCH)) && uninstall
 
   # Exit now if only --uninstall is passed
@@ -2174,7 +2188,7 @@ main() {
 
 # @section Helper functions
 # @internal
-debug() { ((DEBUG)) && echo "Debug: $*"; }
+debug() { ((DEBUG)) && echo "[DEBUG] $*"; }
 err() { echo "Error: $*" >&2; }
 ask_ok() {
   local response
