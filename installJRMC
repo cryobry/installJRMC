@@ -426,6 +426,8 @@ get_mc_version() {
   debug "${FUNCNAME[0]}()"
   declare -g MC_VERSION MC_MVERSION MC_VERSION_SOURCE
 
+  debug "BUILD_SWITCH=$BUILD_SWITCH LOCAL_INSTALL_SWITCH=$LOCAL_INSTALL_SWITCH CREATEREPO_SWITCH=$CREATEREPO_SWITCH"
+
   # Use user provided MC version if available
   if [[ -n $MC_VERSION_USER ]]; then
     MC_VERSION="$MC_VERSION_USER"
@@ -2018,7 +2020,7 @@ main() {
   fi
 
   if ((REPO_INSTALL_SWITCH)); then
-    info "Installing JRiver Media Center from remote repository."
+    info "Installing JRiver Media Center from repository."
     local repo_file
 
     install_external_repos
