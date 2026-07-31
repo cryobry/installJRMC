@@ -279,7 +279,7 @@ init() {
     warn "Running as root user."
     ask_ok "Continue as root user (not recommended)?" || exit 1
   elif [[ -n $SUDO_USER ]]; then
-    err "Sudo detected, installJRMC should not be run with sudo but attempting to continue."
+    err "sudo detected, installJRMC should not be run with sudo but attempting to continue."
     ask_ok "Continue as user $SUDO_USER (unsupported and may result in permission issues)?" || exit 1
     USER="${SUDO_USER:-$USER}"
   fi
@@ -348,7 +348,7 @@ init() {
         BUILD_SWITCH=1
         LOCAL_INSTALL_SWITCH=1
       fi ;;
-    *) err "Auto-detecting OS, this is unreliable and --compat may be required."
+    *) warn "Auto-detecting OS, this is unreliable and --compat may be required."
       for cmd in dnf yum apt-get pacman; do
         if command -v "$cmd" &>/dev/null; then
           case "$cmd" in
@@ -410,6 +410,13 @@ init() {
       PKG_QUERY=(:)
       ;;
   esac
+
+  # Set source repo and build/install targets
+  MC_REPO="${MC_REPO_USER:-${UBUNTU_CODENAME:-${VERSION_CODENAME:-$MC_REPO_HARDCODE}}}" # user>host>hardcoded
+  BUILD_TARGET="${BUILD_TARGET:-$ID}"
+  CREATEREPO_TARGET="${CREATEREPO_TARGET:-$ID}"
+
+  info "$MC_REPO $MC_ARCH --> $BUILD_TARGET $ARCH"
 }
 
 # @description Determines the latest MC version using several methods
@@ -476,6 +483,10 @@ set_mc_vars() {
         ;;
     esac
   fi
+
+  debug "MC_VERSION_SOURCE=$MC_VERSION_SOURCE"
+  debug "MC_REPO=$MC_REPO"
+  debug "MC_VERSION=$MC_VERSION"
 }
 
 # @description Installs a package using the system package manager
@@ -700,8 +711,8 @@ acquire_deb() {
 
   # If deb file already exists and is >30MB, skip download
   if [[ -f $MC_DEB ]]; then
-    if [[ $(stat -c%s "$MC_DEB") -lt 30000000 ]]; then
-      info "Removing existing DEB under 30MB: $MC_DEB"
+    if [[ $(stat -c%s "$MC_DEB") -lt 40000000 ]]; then
+      info "Removing existing DEB under 40MB: $MC_DEB"
       execute rm -f "$MC_DEB"
     else
       info "Using existing DEB: $MC_DEB"
@@ -743,14 +754,15 @@ acquire_deb() {
     done
   fi
 
-  # Return if the download was successful
-  [[ -f $MC_DEB ]]
+  # Return if the download was successful and over 40MB
+  [[ -f $MC_DEB && $(stat -c%s "$MC_DEB") -gt 40000000 ]]
 }
 
 # @description Translates upstream DEB dependencies for several distros
 translate_packages() {
   debug "${FUNCNAME[0]}()" "$*"
   local deb_file="$1"
+  # Use namerefs to pass arrays
   # shellcheck disable=SC2178
   declare -n requires_arr="$2" recommends_arr="$3"
   local -i i
@@ -929,6 +941,8 @@ build_rpm() {
     return 0
   fi
 
+  [[ -d $OUTPUT_DIR/SPECS ]] || execute mkdir -p "$OUTPUT_DIR/SPECS"
+
   # Exclude MC stub executable <= MC31
   if [[ $MC_MVERSION -le 31 ]]; then
     stub=""
@@ -1020,10 +1034,20 @@ build_rpm() {
   fi
 
   # Run rpmbuild and verify output RPM exists
-  execute "${build_prefix[@]}" "${rpmbuild_cmd[@]}" && [[ -f $MC_RPM ]] || return 1
+  if { execute "${build_prefix[@]}" "${rpmbuild_cmd[@]}" && [[ -f $MC_RPM ]]; }; then
+    ok "Built RPM: $MC_RPM"
+  else
+    err "Failed to build RPM."
+    # On build failure, remove the source DEB in case it is corrupted
+    if [[ -f $MC_DEB ]] && ask_ok "Remove source DEB?"; then
+      execute rm -f "$MC_DEB" || execute sudo rm -f "$MC_DEB"
+    fi
+    return 1
+  fi
 
   # Optionally sign the built RPM with the configured key
   if ((SIGN_SWITCH)); then
+    info "Signing RPM with key '$SIGN_KEY' as user '$SIGN_USER'."
     command -v rpmsign &>/dev/null || { err "rpmsign command missing (install rpm-sign/rpm-build)."; return 1; }
     command -v gpg &>/dev/null || { err "gpg command missing."; return 1; }
 
@@ -1057,17 +1081,17 @@ build_rpm() {
     info "Signing RPM: $MC_RPM"
     debug "${sign_prefix[*]} ${sign_cmd[*]}"
 
-    if ! sign_output=$("${sign_prefix[@]}" "${sign_cmd[@]}" 2>&1); then
+    if sign_output=$("${sign_prefix[@]}" "${sign_cmd[@]}" 2>&1); then
+      ok "Signed RPM: $MC_RPM"
+    else
       err "RPM signing failed."
-      [[ -n $sign_output ]] && echo "$sign_output" >&2
-      err "For non-interactive service runs, ensure $SIGN_USER can access an unlocked GPG key."
+      warn "For non-interactive service runs, ensure $SIGN_USER can access an unlocked GPG key."
       return 1
     fi
 
-    ((DEBUG)) && [[ -n $sign_output ]] && echo "$sign_output"
+    [[ -n $sign_output ]] && debug "$sign_output"
+    return 0
   fi
-
-  return 0
 }
 
 # @description Creates the Arch PKGBUILD file for Media Center
@@ -1098,6 +1122,7 @@ build_pkgbuild() {
 		}
 	EOF
   unset requires_arr recommends_arr
+  ok "Generated Arch PKGBUILD."
 }
 
 # @description Installs Media Center via DEB package w/ optional compatability fixes
@@ -1981,26 +2006,12 @@ main() {
   fi
 
   # Parse input, set target MC version, and create associated variables
-  init "$@"
-
-  # Set targets
-  BUILD_TARGET="${BUILD_TARGET:-$ID}"
-  CREATEREPO_TARGET="${CREATEREPO_TARGET:-$ID}"
-  MC_REPO="${MC_REPO_USER:-${UBUNTU_CODENAME:-${VERSION_CODENAME:-$MC_REPO_HARDCODE}}}" # user>host>hardcoded
-
-  info "MC source --> target: $MC_REPO $MC_ARCH --> $BUILD_TARGET $ARCH"
-
+  init "$@" &&
   get_mc_version &&
   set_mc_vars
 
-  debug "MC_VERSION_SOURCE=$MC_VERSION_SOURCE"
-  debug "MC_REPO=$MC_REPO"
-  debug "MC_VERSION=$MC_VERSION"
-
-  ((UNINSTALL_SWITCH)) && uninstall
-
-  # Exit now if only --uninstall is passed
-  if ((UNINSTALL_SWITCH)) && 
+  # Uninstall and exit if only --uninstall is passed
+  if ((UNINSTALL_SWITCH)) && uninstall &&
      ! ((BUILD_SWITCH || CREATEREPO_SWITCH || REPO_INSTALL_SWITCH || LOCAL_INSTALL_SWITCH)) &&
      [[ ${#SERVICES[@]} -eq 0 && ${#CONTAINERS[@]} -eq 0 ]]; then
     exit 0
@@ -2012,6 +2023,7 @@ main() {
 
     install_external_repos
 
+    # Install MC repositories
     case $ID in
       fedora|centos)
         local keyurl="https://repos.bryanroessler.com/jriver/RPM-GPG-KEY-jriver.asc"
@@ -2084,9 +2096,7 @@ main() {
       return 1
     fi
 
-    # Clean up legacy repo after successful install
     remove_legacy_repo
-
     link_ssl_certs
     restore_license
     open_firewall "jriver-mediacenter" "52100-52200/tcp" "1900/udp"
@@ -2101,26 +2111,9 @@ main() {
 
     if [[ $BUILD_TARGET =~ centos|fedora|suse|mandriva || $CREATEREPO_TARGET =~ centos|fedora|suse|mandriva ]]; then
       install_package rpm-build
-      [[ -d $OUTPUT_DIR/SPECS ]] || execute mkdir -p "$OUTPUT_DIR/SPECS"
-      if build_rpm requires recommends; then
-        ok "Built RPM package."
-      else
-        err "Failed to build RPM package."
-        # On build failure, remove the source DEB in case it is corrupted
-        if [[ -f $MC_DEB ]]; then
-          info "Removing source DEB."
-          if ! execute rm -f "$MC_DEB"; then
-            execute sudo rm -f "$MC_DEB"
-          fi
-        fi
-        return 1
-      fi
+      build_rpm requires recommends || return
     elif [[ $BUILD_TARGET =~ arch ]]; then
-      if build_pkgbuild requires recommends; then
-        ok "Generated Arch PKGBUILD."
-      else
-        err "Failed to generate Arch PKGBUILD."
-      fi
+      build_pkgbuild requires recommends
     fi
   fi
 
