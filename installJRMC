@@ -16,7 +16,7 @@
 shopt -s extglob
 
 declare -g SCRIPT_VERSION="1.36.4-dev"
-declare -g MC_VERSION_HARDCODE="36.0.20" # do find all replace
+declare -g MC_VERSION_HARDCODE="36.0.47" # do find all replace
 declare -g MC_REPO_HARDCODE="bookworm" # should match the MC_VERSION_HARDCODE
 declare -gi SELF_UPDATE_SWITCH=1 # 0 to disable installJRMC self-updater
 declare -g SCRIPT_URL="https://git.bryanroessler.com/bryan/installJRMC/raw/branch/master/installJRMC" # self-updater URL
@@ -413,7 +413,7 @@ init() {
 }
 
 # @description Determines the latest MC version using several methods
-# @set MC_VERSION string MC version (ex. 36.0.20)
+# @set MC_VERSION string MC version (ex. 36.0.47)
 # @set MC_MVERSION string MC major version (ex. 36)
 get_mc_version() {
   debug "${FUNCNAME[0]}()"
@@ -688,6 +688,12 @@ acquire_deb() {
   debug "${FUNCNAME[0]}()"
   declare -g MC_DEB MC_SOURCE
   local fname
+  local apt_pkg="mediacenter$MC_MVERSION:$MC_ARCH"
+
+  if [[ -n $MC_VERSION_USER ]]; then
+    apt_pkg+="=$MC_VERSION"
+    [[ $MC_ARCH == "arm64" || $MC_ARCH == "armhf" ]] && apt_pkg+="-$MC_ARCH"
+  fi
 
   [[ -d $OUTPUT_DIR/SOURCES ]] || execute mkdir -p "$OUTPUT_DIR/SOURCES"
 
@@ -717,7 +723,7 @@ acquire_deb() {
   # shellcheck disable=SC2016
   if ! {
     # Download to /tmp to silence _apt permission warnings
-    create_mc_apt_container "cd /tmp && apt-get download --allow-unauthenticated $MC_PKG -qq" &&
+    create_mc_apt_container "cd /tmp && apt-get download --allow-unauthenticated $apt_pkg -qq" &&
     env CNT="$CNT" MC_DEB="$MC_DEB" buildah unshare -- bash -eu -o pipefail -c '
       mnt="$(buildah mount "$CNT")"
       deb="$(find "$mnt/tmp" -maxdepth 1 -type f -name "*.deb" | head -n1)"
