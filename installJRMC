@@ -683,6 +683,27 @@ remove_legacy_repo() {
   [[ -n $LEGACY_REPO_FILE ]] && execute sudo rm -f "$LEGACY_REPO_FILE"
 }
 
+# @description Copies the DEB downloaded into container $CNT's /tmp out to $1
+# @arg $1 string Destination path for the extracted DEB file
+extract_mc_deb() {
+  debug "${FUNCNAME[0]}()" "$@"
+  local dest="$1"
+  # shellcheck disable=SC2016
+  local mount_script='
+    mnt="$(buildah mount "$CNT")"
+    deb="$(find "$mnt/tmp" -maxdepth 1 -type f -name "*.deb" | head -n1)"
+    [[ -n "$deb" ]] && cp -f "$deb" "$MC_DEB"
+    buildah umount "$CNT"'
+  if ((EUID == 0)); then
+    # Already root: mount directly and skip "buildah unshare", which re-execs
+    # into a new user namespace via memfd_create() and can fail on hosts
+    # (restricted VPS/containers) that block that syscall.
+    env CNT="$CNT" MC_DEB="$dest" bash -eu -o pipefail -c "$mount_script"
+  else
+    env CNT="$CNT" MC_DEB="$dest" buildah unshare -- bash -eu -o pipefail -c "$mount_script"
+  fi
+}
+
 # @description Acquires the source DEB package from JRiver
 acquire_deb() {
   debug "${FUNCNAME[0]}()"
@@ -724,11 +745,7 @@ acquire_deb() {
   if ! {
     # Download to /tmp to silence _apt permission warnings
     create_mc_apt_container "cd /tmp && apt-get download --allow-unauthenticated $apt_pkg -qq" &&
-    env CNT="$CNT" MC_DEB="$MC_DEB" buildah unshare -- bash -eu -o pipefail -c '
-      mnt="$(buildah mount "$CNT")"
-      deb="$(find "$mnt/tmp" -maxdepth 1 -type f -name "*.deb" | head -n1)"
-      [[ -n "$deb" ]] && cp -f "$deb" "$MC_DEB"
-      buildah umount "$CNT"' && 
+    extract_mc_deb "$MC_DEB" &&
     [[ -f $MC_DEB ]] &&
     buildah rm "$CNT" &>/dev/null;
   }; then
