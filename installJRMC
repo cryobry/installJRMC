@@ -16,7 +16,7 @@
 shopt -s extglob
 
 declare -g SCRIPT_VERSION="1.36.4-dev"
-declare -g MC_VERSION_HARDCODE="36.0.47" # do find all replace
+declare -g MC_VERSION_HARDCODE="36.0.55" # do find all replace
 declare -g MC_REPO_HARDCODE="bookworm" # should match the MC_VERSION_HARDCODE
 declare -gi SELF_UPDATE_SWITCH=1 # 0 to disable installJRMC self-updater
 declare -g SCRIPT_URL="https://git.bryanroessler.com/bryan/installJRMC/raw/branch/master/installJRMC" # self-updater URL
@@ -413,7 +413,7 @@ init() {
 }
 
 # @description Determines the latest MC version using several methods
-# @set MC_VERSION string MC version (ex. 36.0.47)
+# @set MC_VERSION string MC version (ex. 36.0.55)
 # @set MC_MVERSION string MC major version (ex. 36)
 get_mc_version() {
   debug "${FUNCNAME[0]}()"
