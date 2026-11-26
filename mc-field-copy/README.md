@@ -73,7 +73,7 @@ In the second instance, open **Tools > Options > Media Network**, enable **Use M
 
 </details>
 
-### One MC library at a time (save and restore fields from file)
+#### One MC library at a time (save and restore fields from file)
 
 If you can only open one library at a time, open the source library and save its field definitions to a new JSON file. The export only connects to the source and does not change it:
 
