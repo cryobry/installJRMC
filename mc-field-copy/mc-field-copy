@@ -123,9 +123,9 @@ def main():
     ap = argparse.ArgumentParser(description=__doc__)
     ap.add_argument("-s", "--source", metavar="URL_OR_FILE",
                     help="source Library Server URL or saved JSON field snapshot")
-    ap.add_argument("--export-fields", type=Path, metavar="FILE",
+    ap.add_argument("--export", type=Path, metavar="FILE",
                     help="save field definitions from a live source to a new JSON file")
-    ap.add_argument("-u", "--target", metavar="URL",
+    ap.add_argument("-t", "--target", metavar="URL",
                     help="Library Server to create fields in, e.g. http://user@newpc:52199")
     ap.add_argument("-m", "--mpl", action="extend", nargs="+", default=[], metavar="PATH",
                     help="fallback: take field names from MPL files or directories instead of all "
@@ -136,12 +136,12 @@ def main():
     args = ap.parse_args()
 
     live_source = args.source and "://" in args.source
-    if args.export_fields is not None:
+    if args.export is not None:
         if not live_source:
-            ap.error("--export-fields requires a live --source URL")
+            ap.error("--export requires a live --source URL")
         if args.target is not None or args.mpl or args.field or args.dry_run:
-            ap.error("--export-fields cannot be combined with --target, --mpl, --field, or --dry-run")
-        save_fields(args.export_fields, MCWS(args.source).fields())
+            ap.error("--export cannot be combined with --target, --mpl, --field, or --dry-run")
+        save_fields(args.export, MCWS(args.source).fields())
         return
 
     overrides = {}

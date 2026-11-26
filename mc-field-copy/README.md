@@ -18,8 +18,8 @@ Replace the example hosts, usernames, and passwords with your own. Preview the c
 | Option | Description |
 | --- | --- |
 | `-s`, `--source URL_OR_FILE` | Read field definitions from a live server or a saved JSON snapshot. |
-| `--export-fields FILE` | Save field definitions from a live source to a new JSON file, without connecting to a target. |
-| `-u`, `--target URL` | Create missing fields on this server. |
+| `-t`, `--target URL` | Create missing fields on this server. |
+| `--export FILE` | Save field definitions from a live source to a new JSON file, without connecting to a target. |
 | `-n`, `--dry-run` | Preview the fields that would be created. |
 | `-f`, `--field FIELD=TYPE` | Add a missing field or override its type: `string`, `integer`, `list`, or `date`. Repeat for multiple fields. |
 | `-m`, `--mpl PATH ...` | Use [MPL files or directories](#mpl-fallback) to select fields. |
@@ -78,7 +78,7 @@ In the second instance, open **Tools > Options > Media Network**, enable **Use M
 If you can only open one library at a time, open the source library and save its field definitions to a new JSON file. The export only connects to the source and does not change it:
 
 ```sh
-python3 mc-field-copy --source http://username:password@localhost:52199 --export-fields fields.json
+python3 mc-field-copy --source http://username:password@localhost:52199 --export fields.json
 ```
 
 Now switch Media Center to the target library. Use the JSON file as `--source` and the running instance as `--target`. Both steps can use the same server address because they run at different times:
