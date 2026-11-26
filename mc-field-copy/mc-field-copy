@@ -1,0 +1,174 @@
+#!/usr/bin/env python3
+"""Copy missing custom field definitions between JRiver Media Center libraries via MCWS."""
+
+import argparse
+import base64
+import getpass
+import re
+import sys
+import urllib.error
+import urllib.parse
+import urllib.request
+import xml.etree.ElementTree as ET
+from pathlib import Path
+
+INTEGER = re.compile(r"^-?\d+$")
+TYPES = ("string", "integer", "list", "date")
+# MCWS DataType -> CreateField type; unlisted types (Decimal, Path, ...) become string.
+SOURCE_TYPES = {"String": "string", "Integer": "integer", "List": "list",
+                "Date (float)": "date", "Date": "integer"}
+# Written by MPL export only; not a library field.
+MPL_ONLY = {"date (readable)"}
+
+
+def mpl_files(paths):
+    for p in map(Path, paths):
+        if p.is_dir():
+            yield from sorted(f for f in p.rglob("*") if f.suffix.lower() == ".mpl")
+        else:
+            yield p
+
+
+def scan(files):
+    """Return {field name: set of observed values} across all MPL items."""
+    fields = {}
+    for f in files:
+        for _, el in ET.iterparse(f):
+            if el.tag == "Field" and el.get("Name"):
+                fields.setdefault(el.get("Name"), set()).add(el.text or "")
+            elif el.tag == "Item":
+                el.clear()
+    return fields
+
+
+def infer_type(values):
+    values = [v for v in values if v != ""]
+    if any(";" in v and "\n" not in v for v in values):
+        return "list"
+    if values and all(INTEGER.match(v) for v in values):
+        return "integer"
+    return "string"
+
+
+class MCWS:
+    def __init__(self, url):
+        parts = urllib.parse.urlsplit(url)
+        if not parts.scheme or not parts.hostname:
+            sys.exit(f"Invalid URL {url!r}; expected e.g. http://user@host:52199")
+        user = urllib.parse.unquote(parts.username) if parts.username else None
+        password = urllib.parse.unquote(parts.password) if parts.password is not None else None
+        if user and password is None:
+            password = getpass.getpass(f"MCWS password for {user}@{parts.hostname}: ")
+        netloc = parts.netloc.rpartition("@")[2]
+        self.base = urllib.parse.urlunsplit((parts.scheme, netloc, parts.path.rstrip("/"), "", "")) + "/MCWS/v1/"
+        self.headers = {}
+        if user:
+            token = base64.b64encode(f"{user}:{password}".encode()).decode()
+            self.headers["Authorization"] = f"Basic {token}"
+
+    def call(self, command, **params):
+        url = self.base + command
+        if params:
+            url += "?" + urllib.parse.urlencode(params)
+        req = urllib.request.Request(url, headers=self.headers)
+        try:
+            with urllib.request.urlopen(req, timeout=30) as resp:
+                root = ET.fromstring(resp.read())
+        except urllib.error.HTTPError as e:
+            sys.exit(f"MCWS {command} failed: HTTP {e.code} {e.reason}")
+        except urllib.error.URLError as e:
+            sys.exit(f"Cannot reach {self.base}: {e.reason}")
+        if root.get("Status") != "OK":
+            sys.exit(f"MCWS {command} failed: {ET.tostring(root, encoding='unicode')}")
+        return root
+
+    def fields(self):
+        return {f.get("Name", "").casefold(): f.attrib
+                for f in self.call("Library/Fields").iter("Field")}
+
+
+def main():
+    ap = argparse.ArgumentParser(description=__doc__)
+    ap.add_argument("-s", "--source",
+                    help="Library Server to copy fields from, e.g. http://user@oldpc:52199")
+    ap.add_argument("-u", "--target", metavar="URL", default="http://localhost:52199",
+                    help="Library Server to create fields in, e.g. http://user@newpc:52199")
+    ap.add_argument("-m", "--mpl", action="extend", nargs="+", default=[], metavar="PATH",
+                    help="fallback: take field names from MPL files or directories instead of all "
+                         "source fields; types are inferred unless --source has them")
+    ap.add_argument("-f", "--field", action="append", default=[], metavar="FIELD=TYPE",
+                    help=f"add a missing field or override its type ({', '.join(TYPES)}); repeatable")
+    ap.add_argument("-n", "--dry-run", action="store_true", help="only show what would be created")
+    args = ap.parse_args()
+
+    overrides = {}
+    for spec in args.field:
+        name, _, kind = spec.rpartition("=")
+        if not name.strip() or kind.lower() not in TYPES:
+            ap.error(f"invalid --field {spec!r}; expected FIELD=TYPE")
+        overrides[name.casefold()] = (name, kind.lower())
+    if not (args.mpl or args.source or overrides):
+        ap.error("specify --source, --mpl, or --field")
+
+    files = list(mpl_files(args.mpl))
+    missing = [f for f in files if not f.is_file()]
+    if missing:
+        ap.error("not found: " + ", ".join(map(str, missing)))
+    try:
+        found = scan(files)
+    except ET.ParseError as e:
+        sys.exit(f"Invalid MPL: {e}")
+
+    mc = MCWS(args.target)
+    existing = mc.fields()
+    source = MCWS(args.source).fields() if args.source else {}
+    if not args.mpl:
+        # Internal fields like "Rich Data" are flagged User but not editable.
+        found = {f["Name"]: set() for f in source.values()
+                 if "User" in f.get("Type", "").split(";")
+                 and f.get("EditType") != "Not editable"}
+
+    found_keys = {name.casefold() for name in found}
+    for key, (name, _) in overrides.items():
+        if key not in found_keys:
+            found[name] = set()
+
+    new = []
+    for name, values in sorted(found.items(), key=lambda kv: kv[0].casefold()):
+        key = name.casefold()
+        if key in existing or (key in MPL_ONLY and key not in overrides):
+            continue
+        src = source.get(key)
+        if src:
+            kind = SOURCE_TYPES.get(src.get("DataType", ""), "string")
+            expression = src.get("Expression", "")
+            origin = f"source {src.get('DataType')}"
+        else:
+            kind, expression, origin = infer_type(values), "", "inferred"
+        if key in overrides:
+            kind, origin = overrides[key][1], "override"
+        new.append((name, kind, expression, origin))
+
+    origins = []
+    if args.mpl:
+        origins.append(f"{len(files)} MPL file(s)")
+    elif args.source:
+        origins.append("source user fields")
+    if overrides:
+        origins.append("explicit fields")
+    origin_desc = " + ".join(origins)
+    print(f"{origin_desc}: {len(found)} field(s), "
+          f"{len(found) - len(new)} existing or skipped, {len(new)} to create")
+    for name, kind, expression, origin in new:
+        calc = f" = {expression}" if expression else ""
+        print(f"{'would create' if args.dry_run else 'creating'}: {name} ({kind}, {origin}){calc}")
+        if not args.dry_run:
+            params = {"Name": name, "Type": kind}
+            if expression:
+                params["Expression"] = expression
+            mc.call("Library/CreateField", **params)
+
+
+if __name__ == "__main__":
+    main()
+
