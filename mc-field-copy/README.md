@@ -31,7 +31,7 @@ python3 mc-field-copy --source http://username:password@localhost:52199 --target
 
 #### Launching a second instance as a separate user on Linux
 
-Use containers or TigerVNC `vncserver`, create a separate user account and start Media Center in its own VNC session. Use an unused display: this example uses `:1`. If prompted, set a VNC password for the new account.
+Use containers or TigerVNC `vncserver`, create a separate user account and start Media Center in its own VNC session. Use an unused display: this example uses `:3`. If prompted, set a VNC password for the new account.
 
 ```sh
 sudo useradd --create-home jriver-test
