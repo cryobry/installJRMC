@@ -9,19 +9,40 @@ The script copies field definitions, including calculated expressions. It does n
 - Python 3.8 or later. No extra packages are needed.
 - **Tools > Options > Media Network > Use Media Network** enabled on each instance you connect to. Have the Media Network login handy for each server that requires one. For a live copy, both instances must be running; with a JSON snapshot, you can run them one at a time.
 
-## Quick start
+## Usage
 
 Replace the example hosts, usernames, and passwords with your own. Preview the changes with `--dry-run`. Review the proposed fields, then rerun the same command without `--dry-run` to create them. Fields are kept when the source marks them as `User` and editable.
 
-### Two MC instances on separate machines
+### Options
+
+| Option | Description |
+| --- | --- |
+| `-s`, `--source URL_OR_FILE` | Read field definitions from a live server or a saved JSON snapshot. |
+| `--export-fields FILE` | Save field definitions from a live source to a new JSON file, without connecting to a target. |
+| `-u`, `--target URL` | Create missing fields on this server. |
+| `-n`, `--dry-run` | Preview the fields that would be created. |
+| `-f`, `--field FIELD=TYPE` | Add a missing field or override its type: `string`, `integer`, `list`, or `date`. Repeat for multiple fields. |
+| `-m`, `--mpl PATH ...` | Use [MPL files or directories](#mpl-fallback) to select fields. |
+
+#### `--source` and `--target` URLs with username and password
+
+Use the same URL format for `--source` and `--target`. Each server can have its own credentials.
+
+| URL | Login |
+| --- | --- |
+| `http://username:password@newpc:52199` | user `username` with password `password` |
+
+If your password contains special characters, percent-encode them: for example, `p@ss` becomes `p%40ss`.
+
+### Examples
+
+#### Two MC instances on separate machines
 
 ```sh
 python3 mc-field-copy --source http://username:password@oldpc:52199 --target http://username:password@newpc:52199 --dry-run
 ```
 
----
-
-### Two MC instances on the same computer (using different ports)
+#### Two MC instances on the same computer (using different ports)
 
 If both Media Center instances are running on the computer where you run the script, use `localhost` for both URLs and specify each instance's Media Network port. This example copies from port `52199` to port `52198`:
 
@@ -29,7 +50,8 @@ If both Media Center instances are running on the computer where you run the scr
 python3 mc-field-copy --source http://username:password@localhost:52199 --target http://username:password@localhost:52198 --dry-run
 ```
 
-#### Launching a second instance as a separate user on Linux
+<details>
+<summary>Launching a second instance as a separate user on Linux</summary>
 
 Use containers or TigerVNC `vncserver`, create a separate user account and start Media Center in its own VNC session. Use an unused display: this example uses `:3`. If prompted, set a VNC password for the new account.
 
@@ -49,6 +71,8 @@ vncviewer localhost:3
 
 In the second instance, open **Tools > Options > Media Network**, enable **Use Media Network**, and set its port to a different unused port, such as `52198`. The VNC display number is only for connecting to the desktop; use the Media Network ports in `--source` and `--target`.
 
+</details>
+
 ### One MC library at a time (save and restore fields from file)
 
 If you can only open one library at a time, open the source library and save its field definitions to a new JSON file. The export only connects to the source and does not change it:
@@ -64,27 +88,6 @@ python3 mc-field-copy --source fields.json --target http://username:password@loc
 ```
 
 After reviewing the preview, rerun without `--dry-run`. The snapshot includes field names, types, and calculated expressions, not tracks, field values, or server credentials. Existing target fields are left unchanged.
-
-## Options
-
-| Option | Description |
-| --- | --- |
-| `-s`, `--source URL_OR_FILE` | Read field definitions from a live server or a saved JSON snapshot. |
-| `--export-fields FILE` | Save field definitions from a live source to a new JSON file, without connecting to a target. |
-| `-u`, `--target URL` | Create missing fields on this server. |
-| `-n`, `--dry-run` | Preview the fields that would be created. |
-| `-f`, `--field FIELD=TYPE` | Add a missing field or override its type: `string`, `integer`, `list`, or `date`. Repeat for multiple fields. |
-| `-m`, `--mpl PATH ...` | Use [MPL files or directories](#mpl-fallback) to select fields. |
-
-### `--source` and `--target` URLs with username and password
-
-Use the same URL format for `--source` and `--target`. Each server can have its own credentials.
-
-| URL | Login |
-| --- | --- |
-| `http://username:password@newpc:52199` | user `username` with password `password` |
-
-If your password contains special characters, percent-encode them: for example, `p@ss` becomes `p%40ss`.
 
 ## Field types
 
@@ -105,17 +108,7 @@ You can also create fields without a source or MPL file. For example, preview ad
 python3 mc-field-copy -f "Moods=list" --field "Review Date=date" --dry-run
 ```
 
-## Calculated fields
-
-A calculated field derives its value from a formula, such as `[Artist] - [Name]`. The script reads the `Expression` attribute from the source's `Library/Fields` response:
-
-```xml
-<Field Name="Artist - Title" Expression="[Artist, 1] - [Name, 1]" DataType="String" />
-```
-
-The script sends that expression to `Library/CreateField` on the target.
-
-## MPL fallback
+## MPL file fallback
 
 If the old server is unavailable, use `--mpl` to find field names in exported playlists. Pass one or more files or directories. Directories are searched recursively for `.mpl` files.
 
@@ -123,7 +116,7 @@ If the old server is unavailable, use `--mpl` to find field names in exported pl
 python3 mc-field-copy --target http://username:password@localhost:52199 --mpl ~/exports/ --dry-run
 ```
 
-MPL files provide field names and values, not types or formulas. The first matching rule wins:
+MPL files provide field names and values, not types or formulas (MPL files lack calculated field expressions). The first matching rule wins:
 
 | What the script finds | Type used |
 | --- | --- |
