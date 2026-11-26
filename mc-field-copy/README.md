@@ -18,8 +18,7 @@ Replace the example hosts, usernames, and passwords with your own. Preview the c
 | Option | Description |
 | --- | --- |
 | `-s`, `--source URL_OR_FILE` | Read field definitions from a live server or a saved JSON snapshot. |
-| `-t`, `--target URL` | Create missing fields on this server. |
-| `--export FILE` | Save field definitions from a live source to a new JSON file, without connecting to a target. |
+| `-t`, `--target URL_OR_FILE` | Create missing fields on a server or save a snapshot to a new JSON file. |
 | `-n`, `--dry-run` | Preview the fields that would be created. |
 | `-f`, `--field FIELD=TYPE` | Add a missing field or override its type: `string`, `integer`, `list`, or `date`. Repeat for multiple fields. |
 | `-m`, `--mpl PATH ...` | Use [MPL files or directories](#mpl-fallback) to select fields. |
@@ -58,6 +57,7 @@ Use containers or TigerVNC `vncserver`, create a separate user account and start
 ```sh
 sudo useradd --create-home jriver-test
 sudo -iu jriver-test
+# In jriver-test user prompt
 vncserver :3 -localhost yes -geometry 1440x900 -autokill \
   -xstartup /usr/bin/mediacenter36
 exit
@@ -69,17 +69,19 @@ Back on your normal desktop, connect to the new session using the same display n
 vncviewer localhost:3
 ```
 
-In the second instance, open **Tools > Options > Media Network**, enable **Use Media Network**, and set its port to a different unused port, such as `52198`. The VNC display number is only for connecting to the desktop; use the Media Network ports in `--source` and `--target`.
+In the second instance, open **Tools > Options > Media Network**, enable **Use Media Network**, and set its port to a different unused port, such as `52198`. The VNC display number is only for connecting to the desktop and configuring MC; use the Media Network ports in `--source` and `--target`.
 
 </details>
 
 #### One MC library at a time (save and restore fields from file)
 
-If you can only open one library at a time, open the source library and save its field definitions to a new JSON file. The export only connects to the source and does not change it:
+If you can only open one library at a time, open the source library and save its field definitions to a new JSON file using `--target`:
 
 ```sh
-python3 mc-field-copy --source http://username:password@localhost:52199 --export fields.json
+python3 mc-field-copy --source http://username:password@localhost:52199 --target fields.json
 ```
+
+Export requires a live source and does not overwrite existing files. It cannot be combined with `--mpl`, `--field`, or `--dry-run`.
 
 Now switch Media Center to the target library. Use the JSON file as `--source` and the running instance as `--target`. Both steps can use the same server address because they run at different times:
 
@@ -87,7 +89,7 @@ Now switch Media Center to the target library. Use the JSON file as `--source` a
 python3 mc-field-copy --source fields.json --target http://username:password@localhost:52199 --dry-run
 ```
 
-After reviewing the preview, rerun without `--dry-run`. The snapshot includes field names, types, and calculated expressions, not tracks, field values, or server credentials. Existing target fields are left unchanged.
+After reviewing the preview, rerun without `--dry-run`. The snapshot includes field names, types, and calculated expressions, not tracks, field values, or server credentials.
 
 ## Field types
 
@@ -100,7 +102,9 @@ The script preserves types that MCWS can create and maps the others to supported
 | Date (Unix timestamp), like `Last Played` | `integer` |
 | Decimal, Path and others | `string` |
 
-Use `--field "Moods=list"` with `--source` or `--mpl` to create `Moods` as a list, even if it wasn't in the source or export. If the source provides a calculated expression for `Moods`, the script keeps it. If `Moods` already exists on the target, the script leaves it unchanged.
+**Note:** `SavedInTag` and `DefaultSearchField` flags are saved from the source but `CreateField()` currently doesn't support them on the target.
+
+Use `--field "Moods=list"` with `--source` or `--mpl` to create `Moods` as a list, even if it wasn't in the source or export.
 
 You can also create fields without a source or MPL file. For example, preview adding two fields to the local target:
 
@@ -116,11 +120,11 @@ If the old server is unavailable, use `--mpl` to find field names in exported pl
 python3 mc-field-copy --target http://username:password@localhost:52199 --mpl ~/exports/ --dry-run
 ```
 
-MPL files provide field names and values, not types or formulas (MPL files lack calculated field expressions). The first matching rule wins:
+MPL files provide field names and values, not types or calculated expressions. Thus, we determine types from the first matching rule:
 
 | What the script finds | Type used |
 | --- | --- |
-| A matching definition from `--source` | [Source type](#field-types), with its formula if present |
+| A matching definition from `--source` | [Source type](#field-types) |
 | A single-line value containing `;` | `list` |
 | At least one nonempty value, and all nonempty values are whole numbers | `integer` |
 | Anything else, including fields with only empty values | `string` |

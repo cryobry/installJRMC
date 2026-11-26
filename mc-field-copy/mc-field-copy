@@ -73,7 +73,7 @@ class MCWS:
     def call(self, command, **params):
         url = self.base + command
         if params:
-            url += "?" + urllib.parse.urlencode(params)
+            url += "?" + urllib.parse.urlencode(params, doseq=True)
         req = urllib.request.Request(url, headers=self.headers)
         try:
             with urllib.request.urlopen(req, timeout=30) as resp:
@@ -123,10 +123,8 @@ def main():
     ap = argparse.ArgumentParser(description=__doc__)
     ap.add_argument("-s", "--source", metavar="URL_OR_FILE",
                     help="source Library Server URL or saved JSON field snapshot")
-    ap.add_argument("--export", type=Path, metavar="FILE",
-                    help="save field definitions from a live source to a new JSON file")
-    ap.add_argument("-t", "--target", metavar="URL",
-                    help="Library Server to create fields in, e.g. http://user@newpc:52199")
+    ap.add_argument("-t", "--target", metavar="URL_OR_FILE",
+                    help="target Library Server URL or new JSON field snapshot")
     ap.add_argument("-m", "--mpl", action="extend", nargs="+", default=[], metavar="PATH",
                     help="fallback: take field names from MPL files or directories instead of all "
                          "source fields; types are inferred unless --source has them")
@@ -136,12 +134,12 @@ def main():
     args = ap.parse_args()
 
     live_source = args.source and "://" in args.source
-    if args.export is not None:
+    if args.target is not None and "://" not in args.target:
         if not live_source:
-            ap.error("--export requires a live --source URL")
-        if args.target is not None or args.mpl or args.field or args.dry_run:
-            ap.error("--export cannot be combined with --target, --mpl, --field, or --dry-run")
-        save_fields(args.export, MCWS(args.source).fields())
+            ap.error("a file --target requires a live --source URL")
+        if args.mpl or args.field or args.dry_run:
+            ap.error("a file --target cannot be combined with --mpl, --field, or --dry-run")
+        save_fields(Path(args.target), MCWS(args.source).fields())
         return
 
     overrides = {}
@@ -187,12 +185,15 @@ def main():
         if src:
             kind = SOURCE_TYPES.get(src.get("DataType", ""), "string")
             expression = src.get("Expression", "")
+            flags = [flag for flag in src.get("Type", "").split(";")
+                     if flag in {"SavedInTag", "DefaultSearchField"}]
             origin = f"source {src.get('DataType')}"
         else:
             kind, expression, origin = infer_type(values), "", "inferred"
+            flags = []
         if key in overrides:
             kind, origin = overrides[key][1], "override"
-        new.append((name, kind, expression, origin))
+        new.append((name, kind, expression, origin, flags))
 
     origins = []
     if args.mpl:
@@ -204,11 +205,11 @@ def main():
     origin_desc = " + ".join(origins)
     print(f"{origin_desc}: {len(found)} field(s), "
           f"{len(found) - len(new)} existing or skipped, {len(new)} to create")
-    for name, kind, expression, origin in new:
+    for name, kind, expression, origin, flags in new:
         calc = f" = {expression}" if expression else ""
         print(f"{'would create' if args.dry_run else 'creating'}: {name} ({kind}, {origin}){calc}")
         if not args.dry_run:
-            params = {"Name": name, "Type": kind}
+            params = {"Name": name, "Type": [kind, *flags]}
             if expression:
                 params["Expression"] = expression
             mc.call("Library/CreateField", **params)
