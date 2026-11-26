@@ -76,7 +76,7 @@ After reviewing the preview, rerun without `--dry-run`. The snapshot includes fi
 | `-f`, `--field FIELD=TYPE` | Add a missing field or override its type: `string`, `integer`, `list`, or `date`. Repeat for multiple fields. |
 | `-m`, `--mpl PATH ...` | Use [MPL files or directories](#mpl-fallback) to select fields. |
 
-## `--source` and `--target` URLs with username and password
+### `--source` and `--target` URLs with username and password
 
 Use the same URL format for `--source` and `--target`. Each server can have its own credentials.
 
