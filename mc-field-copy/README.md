@@ -7,20 +7,20 @@ The script copies field definitions, including calculated expressions. It does n
 ## Requirements
 
 - Python 3.8 or later. No extra packages are needed.
-- Both Media Center instances running with **Tools > Options > Media Network > Use Media Network** enabled. Have the Media Network login handy for each server that requires one.
+- **Tools > Options > Media Network > Use Media Network** enabled on each instance you connect to. Have the Media Network login handy for each server that requires one. For a live copy, both instances must be running; with a JSON snapshot, you can run them one at a time.
 
 ## Quick start
 
 Replace the example hosts, usernames, and passwords with your own. Preview the changes with `--dry-run`. Review the proposed fields, then rerun the same command without `--dry-run` to create them. Fields are kept when the source marks them as `User` and editable.
 
-### MC instances on separate machines
+### Two MC instances on separate machines
 
 ```sh
 python3 mc-field-copy --source http://username:password@oldpc:52199 --target http://username:password@newpc:52199 --dry-run
 python3 mc-field-copy --source http://username:password@oldpc:52199 --target http://username:password@newpc:52199
 ```
 
-### MC instances on the same computer (using different ports)
+### Two MC instances on the same computer (using different ports)
 
 If both Media Center instances are running on the computer where you run the script, use `localhost` for both URLs and specify each instance's Media Network port. This example copies from port `52199` to port `52198`:
 
@@ -49,11 +49,28 @@ vncviewer localhost:3
 
 In the second instance, open **Tools > Options > Media Network**, enable **Use Media Network**, and set its port to a different unused port, such as `52198`. The VNC display number is only for connecting to the desktop; use the Media Network ports in `--source` and `--target`.
 
+### One MC library at a time anmd switch between export and copy
+
+If you can only open one library at a time, open the source library and save its field definitions to a new JSON file. The export only connects to the source and does not change it:
+
+```sh
+python3 mc-field-copy --source http://username:password@localhost:52199 --export-fields fields.json
+```
+
+Now switch Media Center to the target library. Use the JSON file as `--source` and the running instance as `--target`. Both steps can use the same server address because they run at different times:
+
+```sh
+python3 mc-field-copy --source fields.json --target http://username:password@localhost:52199 --dry-run
+```
+
+After reviewing the preview, rerun without `--dry-run`. The snapshot includes field names, types, and calculated expressions, not tracks, field values, or server credentials. Existing target fields are left unchanged.
+
 ## Options
 
 | Option | Description |
 |---|---|
-| `-s`, `--source URL` | Read field definitions from this server. Required for direct copying. |
+| `-s`, `--source URL_OR_FILE` | Read field definitions from a live server or a saved JSON snapshot. |
+| `--export-fields FILE` | Save field definitions from a live source to a new JSON file, without connecting to a target. |
 | `-u`, `--target URL` | Create missing fields on this server. |
 | `-n`, `--dry-run` | Preview the fields that would be created. |
 | `-f`, `--field FIELD=TYPE` | Add a missing field or override its type: `string`, `integer`, `list`, or `date`. Repeat for multiple fields. |
@@ -65,7 +82,7 @@ Use the same URL format for `--source` and `--target`. Each server can have its 
 
 | URL | Login |
 |---|---|
-| `http://myuser:secret@newpc:52199` | `myuser` with password `secret` |
+| `http://username:password@newpc:52199` | user `username` with password `password` |
 
 If your password contains special characters, percent-encode them: for example, `p@ss` becomes `p%40ss`.
 
@@ -103,7 +120,7 @@ The script sends that expression to `Library/CreateField` on the target.
 If the old server is unavailable, use `--mpl` to find field names in exported playlists. Pass one or more files or directories. Directories are searched recursively for `.mpl` files.
 
 ```sh
-python3 mc-field-copy --target http://myuser@newpc:52199 --mpl ~/exports/ --dry-run
+python3 mc-field-copy --target http://username:password@localhost:52199 --mpl ~/exports/ --dry-run
 ```
 
 MPL files provide field names and values, not types or formulas. The first matching rule wins:
@@ -116,3 +133,9 @@ MPL files provide field names and values, not types or formulas. The first match
 | Anything else, including fields with only empty values | `string` |
 
 Use `--field` to override a type or add a field missing from the export.
+
+You can combine `--mpl` with `--source fields.json`. The MPL selects which fields to copy, and the saved JSON supplies types and calculated expressions for matching names. Fields without a match use the inference rules above.
+
+```sh
+python3 mc-field-copy --source fields.json --mpl playlist.mpl --target http://username:password@localhost:52199 --dry-run
+```

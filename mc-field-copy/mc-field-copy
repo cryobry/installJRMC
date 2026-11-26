@@ -4,6 +4,7 @@
 import argparse
 import base64
 import getpass
+import json
 import re
 import sys
 import urllib.error
@@ -87,11 +88,41 @@ class MCWS:
                 for f in self.call("Library/Fields").iter("Field")}
 
 
+def load_fields(path):
+    try:
+        with Path(path).open(encoding="utf-8") as file:
+            fields = json.load(file)
+    except (OSError, ValueError) as error:
+        sys.exit(f"Cannot read field snapshot {path!r}: {error}")
+    if not isinstance(fields, list) or not all(
+        isinstance(field, dict) and field.get("Name")
+        and all(isinstance(value, str) for value in field.values())
+        for field in fields
+    ):
+        sys.exit(f"Invalid field snapshot {path!r}: expected a list of named field definitions")
+    return {field["Name"].casefold(): field for field in fields}
+
+
+def save_fields(path, fields):
+    attributes = ("Name", "DataType", "Type", "EditType", "Expression")
+    snapshot = [{key: field[key] for key in attributes if key in field}
+                for field in fields.values() if field.get("Name")]
+    try:
+        with path.open("x", encoding="utf-8") as file:
+            json.dump(snapshot, file, ensure_ascii=False, indent=2)
+            file.write("\n")
+    except OSError as error:
+        sys.exit(f"Cannot save field snapshot {str(path)!r}: {error}")
+    print(f"Saved {len(snapshot)} field definitions to {path}")
+
+
 def main():
     ap = argparse.ArgumentParser(description=__doc__)
-    ap.add_argument("-s", "--source",
-                    help="Library Server to copy fields from, e.g. http://user@oldpc:52199")
-    ap.add_argument("-u", "--target", metavar="URL", default="http://localhost:52199",
+    ap.add_argument("-s", "--source", metavar="URL_OR_FILE",
+                    help="source Library Server URL or saved JSON field snapshot")
+    ap.add_argument("--export-fields", type=Path, metavar="FILE",
+                    help="save field definitions from a live source to a new JSON file")
+    ap.add_argument("-u", "--target", metavar="URL",
                     help="Library Server to create fields in, e.g. http://user@newpc:52199")
     ap.add_argument("-m", "--mpl", action="extend", nargs="+", default=[], metavar="PATH",
                     help="fallback: take field names from MPL files or directories instead of all "
@@ -100,6 +131,15 @@ def main():
                     help=f"add a missing field or override its type ({', '.join(TYPES)}); repeatable")
     ap.add_argument("-n", "--dry-run", action="store_true", help="only show what would be created")
     args = ap.parse_args()
+
+    live_source = args.source and "://" in args.source
+    if args.export_fields is not None:
+        if not live_source:
+            ap.error("--export-fields requires a live --source URL")
+        if args.target is not None or args.mpl or args.field or args.dry_run:
+            ap.error("--export-fields cannot be combined with --target, --mpl, --field, or --dry-run")
+        save_fields(args.export_fields, MCWS(args.source).fields())
+        return
 
     overrides = {}
     for spec in args.field:
@@ -119,9 +159,11 @@ def main():
     except ET.ParseError as e:
         sys.exit(f"Invalid MPL: {e}")
 
-    mc = MCWS(args.target)
+    source = {}
+    if args.source:
+        source = MCWS(args.source).fields() if live_source else load_fields(args.source)
+    mc = MCWS(args.target if args.target is not None else "http://localhost:52199")
     existing = mc.fields()
-    source = MCWS(args.source).fields() if args.source else {}
     if not args.mpl:
         # Internal fields like "Rich Data" are flagged User but not editable.
         found = {f["Name"]: set() for f in source.values()
