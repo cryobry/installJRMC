@@ -17,8 +17,9 @@ Replace the example hosts, usernames, and passwords with your own. Preview the c
 
 ```sh
 python3 mc-field-copy --source http://username:password@oldpc:52199 --target http://username:password@newpc:52199 --dry-run
-python3 mc-field-copy --source http://username:password@oldpc:52199 --target http://username:password@newpc:52199
 ```
+
+---
 
 ### Two MC instances on the same computer (using different ports)
 
@@ -26,7 +27,6 @@ If both Media Center instances are running on the computer where you run the scr
 
 ```sh
 python3 mc-field-copy --source http://username:password@localhost:52199 --target http://username:password@localhost:52198 --dry-run
-python3 mc-field-copy --source http://username:password@localhost:52199 --target http://username:password@localhost:52198
 ```
 
 #### Launching a second instance as a separate user on Linux
@@ -37,7 +37,7 @@ Use containers or TigerVNC `vncserver`, create a separate user account and start
 sudo useradd --create-home jriver-test
 sudo -iu jriver-test
 vncserver :3 -localhost yes -geometry 1440x900 -autokill \
-	-xstartup /usr/bin/mediacenter36
+  -xstartup /usr/bin/mediacenter36
 exit
 ```
 
@@ -49,7 +49,7 @@ vncviewer localhost:3
 
 In the second instance, open **Tools > Options > Media Network**, enable **Use Media Network**, and set its port to a different unused port, such as `52198`. The VNC display number is only for connecting to the desktop; use the Media Network ports in `--source` and `--target`.
 
-### One MC library at a time anmd switch between export and copy
+### One MC library at a time (save and restore fields from file)
 
 If you can only open one library at a time, open the source library and save its field definitions to a new JSON file. The export only connects to the source and does not change it:
 
@@ -68,7 +68,7 @@ After reviewing the preview, rerun without `--dry-run`. The snapshot includes fi
 ## Options
 
 | Option | Description |
-|---|---|
+| --- | --- |
 | `-s`, `--source URL_OR_FILE` | Read field definitions from a live server or a saved JSON snapshot. |
 | `--export-fields FILE` | Save field definitions from a live source to a new JSON file, without connecting to a target. |
 | `-u`, `--target URL` | Create missing fields on this server. |
@@ -81,7 +81,7 @@ After reviewing the preview, rerun without `--dry-run`. The snapshot includes fi
 Use the same URL format for `--source` and `--target`. Each server can have its own credentials.
 
 | URL | Login |
-|---|---|
+| --- | --- |
 | `http://username:password@newpc:52199` | user `username` with password `password` |
 
 If your password contains special characters, percent-encode them: for example, `p@ss` becomes `p%40ss`.
@@ -91,7 +91,7 @@ If your password contains special characters, percent-encode them: for example, 
 The script preserves types that MCWS can create and maps the others to supported types:
 
 | Source type | Created as |
-|---|---|
+| --- | --- |
 | String, Integer, List | Same type |
 | Date (float), like the `Date` field | `date` |
 | Date (Unix timestamp), like `Last Played` | `integer` |
@@ -126,7 +126,7 @@ python3 mc-field-copy --target http://username:password@localhost:52199 --mpl ~/
 MPL files provide field names and values, not types or formulas. The first matching rule wins:
 
 | What the script finds | Type used |
-|---|---|
+| --- | --- |
 | A matching definition from `--source` | [Source type](#field-types), with its formula if present |
 | A single-line value containing `;` | `list` |
 | At least one nonempty value, and all nonempty values are whole numbers | `integer` |
